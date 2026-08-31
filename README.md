@@ -47,6 +47,7 @@ Both input methods work everywhere; neither is a second-class citizen.
 | Sword | Z or Space | Right-click |
 | Use item | X | On-screen button |
 | Swap item | C or Tab | On-screen ↻ button |
+| Music on/off | M | — |
 | Pause | Escape | — |
 
 The item in the B slot is shown in the status bar, so he can see what the item
@@ -143,6 +144,23 @@ A concept can override which part its own hints hide, because a word can belong
 to two lessons with different tricky parts — "rainbow" is about `ow` for the
 /oa/ sound but about `bow` as a compound word.
 
+## Music
+
+There are six original tunes, written for this game and synthesised at
+runtime: a marching overworld theme, a slow unfriendly dungeon theme, a close
+echoing cave theme, a driving boss theme, a warm title theme and a short shop
+lilt. They use the voice layout of the NES sound chip — two pulse channels for
+melody and harmony, a triangle for bass, a whisper of noise for percussion —
+and they are written as note tokens in `src/core/audio/music.ts`, so a tune can
+be adjusted by editing the source rather than reaching for a tracker.
+
+Everything is deliberately quiet, and **M** turns it off. That choice is kept
+per device rather than in the save file, so it does not travel when he moves
+machines.
+
+**Exercises run in silence.** He has to hear the word being read out, and a
+tune underneath makes that harder for exactly the child who needs it clearest.
+
 ## Audio
 
 Spoken words use the browser's speech synthesis, preferring an Australian
@@ -164,4 +182,19 @@ workflow refuses to publish if the tests or the content validator fail.
 All sprites are original, authored as text in `src/game/render/sprites.ts` and
 baked to a sprite atlas at boot. The hero is drawn in the visual language of the
 1986 NES adventure games — pointed cap, tunic, shield in front, chunky 16×16
-proportions — but nothing here is copied from anyone else's game.
+proportions — but nothing here is copied from anyone else's game. The music is
+likewise written for this project, in that idiom rather than borrowed from it.
+
+## The map is checked, not just drawn
+
+`src/game/world/analysis.ts` proves four things about the world, and the
+content validator fails the build if any of them break:
+
+1. No exit drops the player inside a wall or a river.
+2. The screens can all be laid on one consistent map.
+3. Every door has a tile you can step onto it from.
+4. No barrier can be walked around in the direction it guards.
+
+All four exist because all four were violated at once, and a child got
+permanently stuck in a river. `tools/map-smoke.mjs` then walks all 68 crossings
+in a real browser and confirms he can still move after each one.

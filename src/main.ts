@@ -8,6 +8,7 @@
 import { load, save as persistSave, type SaveData } from './core/save'
 import { WebSpeechEngine } from './core/audio/speech'
 import { sfx } from './core/audio/sfx'
+import { music } from './core/audio/music'
 import { WORD_BANK } from './content/words'
 import { CONCEPTS } from './content/concepts'
 import { EXERCISES, exerciseById, nextExercise, TOTAL_EXERCISES } from './content/exercises'
@@ -39,10 +40,31 @@ function persist(): void {
   persistSave(state)
 }
 
+const MUSIC_KEY = 'zsq.music'
+
 /** Browsers refuse to speak or play sound before the child interacts. */
 function primeAudio(): void {
   speech.prime()
   sfx.prime()
+  music.prime()
+  // A per-device preference rather than part of his progress, so it is kept
+  // outside the save file and does not travel when he moves machines.
+  try {
+    music.setMuted(localStorage.getItem(MUSIC_KEY) === 'off')
+  } catch {
+    // Storage unavailable; music simply stays on.
+  }
+}
+
+function toggleMusic(): void {
+  primeAudio()
+  const muted = !music.isMuted()
+  music.setMuted(muted)
+  try {
+    localStorage.setItem(MUSIC_KEY, muted ? 'off' : 'on')
+  } catch {
+    // Nothing to do; the choice just will not be remembered.
+  }
 }
 
 // --------------------------------------------------------------- title screen
@@ -50,6 +72,8 @@ function primeAudio(): void {
 function showTitle(): void {
   teardownWorld()
   clear(root)
+  // The title tune needs a gesture first; if audio is not primed yet this is
+  // a no-op and the music starts when he presses the button.
 
   const completed = state.spelling.completedExercises.length
   const start = button(
@@ -60,6 +84,8 @@ function showTitle(): void {
     },
     { class: 'btn btn-primary btn-large' },
   )
+
+  music.play('title')
 
   root.append(
     el('section', { class: 'exercise-screen title-screen' }, [
@@ -73,8 +99,8 @@ function showTitle(): void {
       ]),
       el('div', { class: 'controls' }, [start]),
       el('p', { class: 'q-hint-line controls-help' }, [
-        'Move: arrow keys, WASD or the number pad · Sword: Z or Space · Item: X · ' +
-          'Or click where you want to go, and click a monster to attack.',
+        'Move: arrow keys, WASD or the number pad · Sword: Z or Space · Item: X · Swap item: C · ' +
+          'Music on and off: M · Or click where you want to go, and click a monster to attack.',
       ]),
     ]),
   )
@@ -154,6 +180,10 @@ function handleGate(gate: Gate): void {
 
 function startExercise(exercise: Exercise, gate?: Gate): void {
   primeAudio()
+  // Silence during exercises. He has to hear the word being read out, and a
+  // tune underneath it makes that harder for exactly the child who needs it
+  // clearest.
+  music.stop()
   gateInProgress = gate
   teardownWorldCanvasOnly()
 
@@ -204,6 +234,7 @@ function startExercise(exercise: Exercise, gate?: Gate): void {
  * optional barriers so side content never consumes a curriculum exercise.
  */
 function startReviewChallenge(gate: Gate): void {
+  music.stop()
   const learned = EXERCISES.filter((e) => state.spelling.completedExercises.includes(e.id))
   if (learned.length === 0) {
     showNotice(root, 'You have not learned any patterns yet. Come back once you have finished an exercise.', () => {
@@ -331,6 +362,18 @@ function handleDefeat(): void {
 // --------------------------------------------------- parent view and dev keys
 
 window.addEventListener('keydown', (event) => {
+  // M mutes the music, anywhere, except while typing an answer.
+  if (
+    (event.key === 'm' || event.key === 'M') &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !(event.target instanceof HTMLInputElement) &&
+    !(event.target instanceof HTMLTextAreaElement)
+  ) {
+    toggleMusic()
+    return
+  }
+
   // Ctrl+Shift+P opens the parent dashboard from anywhere.
   if (event.ctrlKey && event.shiftKey && (event.key === 'P' || event.key === 'p')) {
     event.preventDefault()
@@ -388,6 +431,8 @@ Object.assign(window as unknown as Record<string, unknown>, {
     showTitle,
     goTo: (screenId: string, col = 7, row = 5) => world?.teleport(screenId, col, row),
     pacing: () => describePacing(state.pacing),
+    music,
+    toggleMusic,
     reset() {
       localStorage.removeItem('zsq.save')
       state = load()

@@ -9,10 +9,11 @@
 import { GameLoop } from '../core/loop'
 import { Input } from '../core/input'
 import { sfx } from '../core/audio/sfx'
+import { music, type TrackName } from '../core/audio/music'
 import { Rng } from '../core/rng'
 import { Atlas } from './render/atlas'
 import { drawHud, HUD_H } from './render/hud'
-import { drawDarkness, drawSeals, drawTiles } from './render/world'
+import { drawDarkness, drawSeals, drawTiles, themeFor } from './render/world'
 import { Enemy, overlaps, type Projectile } from './entities/enemies'
 import { Player, PLAYER_SIZE, type Facing } from './entities/player'
 import { SCREEN_H, SCREEN_W, TILE, TILES, isSolidChar, toTile, type TileChar } from './world/tiles'
@@ -136,12 +137,18 @@ export class World {
   start(): void {
     this.loop.start()
     this.input.resume()
+    music.play(this.trackFor(this.screen))
   }
 
   stop(): void {
     this.loop.stop()
     this.input.suspend()
     this.syncSave()
+  }
+
+  /** Silence the music. Used while an exercise is running. */
+  hushMusic(): void {
+    music.stop()
   }
 
   isRunning(): boolean {
@@ -245,6 +252,7 @@ export class World {
     if (remember && !this.save.world.visitedScreens.includes(id)) {
       this.save.world.visitedScreens.push(id)
     }
+    music.play(this.trackFor(next))
     if (next.shop) this.callbacks.onShop(next.shop)
   }
 
@@ -263,6 +271,22 @@ export class World {
     if (this.save.world.brokenTiles.includes(key)) return
     this.save.world.brokenTiles.push(key)
     this.callbacks.onChange()
+  }
+
+  /** Which tune suits this room. */
+  private trackFor(screen: Screen): TrackName {
+    const boss = (screen.spawns ?? []).some((s) => s.kind.startsWith('boss'))
+    if (boss && !this.save.world.defeatedBosses.includes(screen.id)) return 'boss'
+    if (screen.shop) return 'shop'
+    const theme = themeFor(screen)
+    if (theme === 'dungeon') return 'dungeon'
+    if (theme === 'cave') return 'cave'
+    return 'overworld'
+  }
+
+  /** Called after a boss dies, so the room stops sounding urgent. */
+  private refreshMusic(): void {
+    music.play(this.trackFor(this.screen))
   }
 
   private openedTiles(): Set<string> {
@@ -517,6 +541,7 @@ export class World {
       }
       sfx.play('secret')
       this.showMessage('The guardian falls. The way beyond is yours.')
+      this.refreshMusic()
     }
 
     // Rupee drops thin out when play is running ahead of spelling.
