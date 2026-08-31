@@ -90,9 +90,29 @@ function hardestWord(sentence: string, bank: WordBank): string {
   return best
 }
 
+/**
+ * The stretch of letters this concept's hints should hide. Falls back to the
+ * span marked in the word bank.
+ */
+export function spanFor(
+  word: string,
+  bank: WordBank,
+  concept: Concept | undefined,
+): [number, number] {
+  const syllables = syllablesOf(word, bank)
+  if (concept?.maskFrom === 'lastPart' && syllables.length > 1) {
+    const last = syllables[syllables.length - 1] as string
+    return [word.length - last.length, word.length]
+  }
+  if (concept?.maskFrom === 'firstPart' && syllables.length > 1) {
+    return [0, (syllables[0] as string).length]
+  }
+  return patternSpanOf(word, bank)
+}
+
 /** Replaces the pattern span with underscores: running -> ru__ing. */
-export function maskPattern(word: string, bank: WordBank): string {
-  const [start, end] = patternSpanOf(word, bank)
+export function maskPattern(word: string, bank: WordBank, concept?: Concept): string {
+  const [start, end] = spanFor(word, bank, concept)
   return word.slice(0, start) + '_'.repeat(end - start) + word.slice(end)
 }
 
@@ -107,7 +127,7 @@ export function patternChoices(
   concept: Concept | undefined,
   rng: Rng,
 ): string[] {
-  const [start, end] = patternSpanOf(word, bank)
+  const [start, end] = spanFor(word, bank, concept)
   const correct = word.slice(start, end)
   const entry = entryOf(word, bank)
 
@@ -190,10 +210,25 @@ export function buildHint(params: HintParams): Hint {
         level,
         kind: 'mask',
         text: 'Here is the word with the tricky part hidden. What goes in the gap?',
-        mask: maskPattern(word, bank),
+        mask: maskPattern(word, bank, concept),
       }
 
     case 5: {
+      // Two spellings to choose between only makes sense where there is a real
+      // rival spelling. Where there is not — a compound word, say — narrowing
+      // the gap teaches more than an invented wrong answer.
+      const hasRival =
+        (concept?.alternatives?.length ?? 0) > 0 || (entryOf(word, bank)?.confusions?.length ?? 0) > 0
+      if (!hasRival) {
+        const [start, end] = spanFor(word, bank, concept)
+        const hidden = word.slice(start, end)
+        return {
+          level,
+          kind: 'mask',
+          text: `The hidden part has ${hidden.length} letters and starts with "${hidden[0]}". Now type the whole word.`,
+          mask: maskPattern(word, bank, concept),
+        }
+      }
       const choices = patternChoices(word, bank, concept, rng)
       return {
         level,

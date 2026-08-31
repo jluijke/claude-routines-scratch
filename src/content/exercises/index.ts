@@ -8,9 +8,15 @@ import { exercise2 } from './02-ee-mystery'
 import { exercise3 } from './03-oa-mystery'
 import { exercise4 } from './04-more-than-one'
 import { exercise5 } from './05-baby-to-babies'
+import { exercise6 } from './06-word-lego'
+import { exercise7 } from './07-double-trouble'
+import { exercise8 } from './08-disappearing-e'
 
-/** The 40-exercise progression. Filled in order; 6 onwards still to come. */
-export const EXERCISES: Exercise[] = [exercise1, exercise2, exercise3, exercise4, exercise5]
+/** The 40-exercise progression, in order. */
+export const EXERCISES: Exercise[] = [
+  exercise1, exercise2, exercise3, exercise4, exercise5,
+  exercise6, exercise7, exercise8,
+]
 
 export const TOTAL_EXERCISES = 40
 

@@ -222,6 +222,19 @@ export interface Concept {
    * Hint level 5 offers the correct one alongside one of these.
    */
   alternatives?: string[]
+  /**
+   * Which part of a word hints 4 and 5 should hide.
+   *
+   * A word can belong to two concepts with different tricky parts: "rainbow"
+   * is about "ow" in the /oa/ lesson but about "bow" in the compound-words
+   * lesson. The word bank can only mark one span, so the concept says which
+   * part of the word its own hints are about.
+   *
+   *   'bank'      the span marked in the word bank (default)
+   *   'lastPart'  the final syllable — compounds, suffixes
+   *   'firstPart' the opening syllable — prefixes
+   */
+  maskFrom?: 'bank' | 'lastPart' | 'firstPart'
   /** Exercise that introduces it — the scheduler never reviews ahead of this. */
   introducedIn: number
   /**

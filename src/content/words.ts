@@ -65,10 +65,11 @@ const yPluralWords: Spec[] = [
 
 // --- Exercise 6: compound words -------------------------------------------
 const compoundWords: Spec[] = [
-  'rain-bow', 'tooth-brush', 'foot-ball', 'bed-room', 'sun-flow-er',
-  'play-ground', 'birth-day', 'cup-cake', 'note-book', 'snow-man',
-  'sea-side', 'week-end', 'home-work', 'door-bell', 'black-board',
-  'straw-ber-ry', 'sky-scrap-er', 'pop-corn', 'camp-fire', 'tooth-paste',
+  'rain-[bow]', 'tooth-[brush]', 'foot-[ball]', 'bed-[room]', 'sun-[flow-er]',
+  'play-[ground]', 'birth-[day]', 'cup-[cake]', 'note-[book]', 'snow-[man]',
+  'sea-[side]', 'week-[end]', 'home-[work]', 'door-[bell]', 'black-[board]',
+  'straw-[ber-ry]', 'sky-[scrap-er]', 'pop-[corn]', 'camp-[fire]', 'tooth-[paste]',
+  'jump-ing', 'play-ing', 'read-ing', 'look-ing',
 ]
 
 // --- Exercise 7: doubling the final consonant -----------------------------
@@ -83,11 +84,11 @@ const doublingWords: Spec[] = [
 
 // --- Exercise 8: dropping the silent e ------------------------------------
 const dropEWords: Spec[] = [
-  'make', 'mak-ing', 'hope', 'hop-ing', 'write', 'writ-ing',
-  'ride', 'rid-ing', 'bake', 'bak-ing', 'dance', 'danc-ing',
-  'smile', 'smil-ing', 'use', 'us-ing', 'move', 'mov-ing',
-  'drive', 'driv-ing', 'close', 'clos-ing', 'shine', 'shin-ing',
-  'tape', 'tap-ing', 'shake', 'shak-ing', 'save', 'sav-ing',
+  'make', 'mak-[ing]', 'hope', 'hop-[ing]', 'write', 'writ-[ing]',
+  'ride', 'rid-[ing]', 'bake', 'bak-[ing]', 'dance', 'danc-[ing]',
+  'smile', 'smil-[ing]', 'use', 'us-[ing]', 'move', 'mov-[ing]',
+  'drive', 'driv-[ing]', 'close', 'clos-[ing]', 'shine', 'shin-[ing]',
+  'tape', 'tap-[ing]', 'shake', 'shak-[ing]', 'save', 'sav-[ing]',
 ]
 
 // --- Homophones and other words used in sentences -------------------------
@@ -110,6 +111,40 @@ const contextWords: Spec[] = [
   'really', 'because', 'people', 'colour', 'favourite', 'centre', 'metre',
 ]
 
+
+// --- Level 2: Pattern Hunters ---------------------------------------------
+const level2Words: Spec[] = [
+  // -ed endings that sound different but spell the same
+  'jump-[ed]', 'play-[ed]', 'want-[ed]', 'walk-[ed]', 'land-[ed]', 'point-[ed]',
+  'kick-[ed]', 'shout-[ed]', 'clean-[ed]', 'paint-[ed]', 'wait-[ed]', 'help-[ed]',
+  'paint', 'shout', 'want', 'land',
+  // plural endings that sound like /s/, /z/ and /iz/
+  'lamps', 'beds', 'ro-ses', 'ta-bles', 'clocks', 'bir-ds', 'hor-ses', 'sna-kes',
+  // -er and -est
+  'fast', 'fast-[er]', 'fast-[est]', 'tall', 'tall-[er]', 'tall-[est]',
+  'quick', 'quick-[er]', 'quick-[est]', 'big', 'bi[g-g]er', 'bi[g-g]est',
+  'hot', 'ho[t-t]er', 'ho[t-t]est', 'thin', 'thi[n-n]er', 'thi[n-n]est',
+  'slow', 'slow-[er]', 'slow-[est]', 'strong', 'strong-[er]', 'strong-[est]',
+  // y becomes i before an ending
+  'hap-p[ier]', 'hap-p[iest]', 'fun-n[ier]', 'fun-n[iest]', 'ear-l[ier]',
+  'lucky', 'luck-[ier]', 'luck-[iest]', 'tid-y', 'tid-[ier]', 'tid-[iest]',
+  'heav-y', 'heav-[ier]', 'heav-[iest]', 'no-is-y', 'nois-[ier]',
+  // -ly
+  'quick-[ly]', 'slow-[ly]', 'sad-[ly]', 'kind-[ly]', 'love-[ly]', 'safe-[ly]',
+  'hap-pi-[ly]', 'an-gri-[ly]', 'eas-i-[ly]', 'lazi-[ly]', 'brave-[ly]', 'loud-[ly]',
+  'quiet-[ly]', 'sud-den-[ly]', 'care-ful-[ly]',
+  // silent letters
+  '[kn]ee', '[kn]ow', '[kn]ife', '[kn]ock', '[kn]ot', '[kn]ight',
+  '[wr]ite', '[wr]ong', '[wr]ap', '[wr]ist', '[wr]eck', '[wr]inkle',
+  'thu[mb]', 'cli[mb]', 'la[mb]', 'co[mb]', 'cru[mb]', 'nu[mb]',
+  // dge and ge
+  'bri[dge]', 'ba[dge]', 'e[dge]', 'he[dge]', 'fu[dge]', 'ju[dge]', 'do[dge]',
+  'hu[ge]', 'sta[ge]', 'ca[ge]', 'pa[ge]', 'lar[ge]', 'chan[ge]', 'villa[ge]',
+  // tch and ch
+  'ca[tch]', 'pi[tch]', 'ma[tch]', 'wi[tch]', 'sti[tch]', 'sket[ch]', 'scra[tch]',
+  'mu[ch]', 'bea[ch]', 'ri[ch]', 'su[ch]', 'tea[ch]', 'lun[ch]', 'ben[ch]',
+]
+
 export const WORD_BANK = buildWordBank([
   ...syllableWords,
   ...eeWords,
@@ -120,4 +155,5 @@ export const WORD_BANK = buildWordBank([
   ...doublingWords,
   ...dropEWords,
   ...contextWords,
+  ...level2Words,
 ])

@@ -77,3 +77,26 @@ describe('hint ladder', () => {
     expect(sorting.type).toBe('wordSort')
   })
 })
+
+describe('concept-aware masking', () => {
+  it('hides the part the current lesson is about, not just the word bank span', () => {
+    // "rainbow" is about "ow" in the /oa/ lesson but about "bow" as a compound.
+    expect(maskPattern('rainbow', WORD_BANK, CONCEPTS.get('oa-sound'))).toBe('rainb__')
+    expect(maskPattern('rainbow', WORD_BANK, CONCEPTS.get('compound-words'))).toBe('rain___')
+  })
+
+  it('narrows the gap instead of inventing a rival where there is none', () => {
+    const hint = buildHint({
+      question: aud('t5', 'compound-words', 'toothbrush'),
+      bank: WORD_BANK,
+      concept: CONCEPTS.get('compound-words'),
+      level: 5,
+      rng: rng(),
+    })
+    // A compound word has no competing spelling, so offering two options would
+    // be a made-up choice. Say how long the hidden part is instead.
+    expect(hint.text).toContain('5 letters')
+    expect(hint.text).toContain('"b"')
+    expect(hint.text.toLowerCase()).not.toContain('toothbrush')
+  })
+})
