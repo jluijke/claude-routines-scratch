@@ -15,8 +15,13 @@ export function drawTiles(
     const line = screen.rows[row] as string
     for (let col = 0; col < SCREEN_COLS; col++) {
       let char = (line[col] ?? '.') as TileChar
-      // A barrier that has been opened becomes ordinary ground.
-      if (char === '=' && openedTiles.has(`${col},${row}`)) char = '.'
+      // Anything cleared — a barrier opened, a wall bombed, a bush burned —
+      // becomes ordinary ground. The collision map already treats it that way,
+      // so without this the tile would be walkable but still drawn as rock.
+      if (openedTiles.has(`${col},${row}`)) {
+        const def = TILES[char]
+        if (char === '=' || def?.cracked || def?.bush) char = '.'
+      }
 
       const def = TILES[char] ?? TILES['.']
       const x = col * TILE
@@ -83,6 +88,19 @@ export function drawTiles(
           ctx.fillRect(x + 6, y + 5, 4, 1)
           ctx.fillRect(x + 6, y + 8, 4, 1)
           break
+        case 'X': {
+          // A cracked wall has to look different enough from ordinary rock
+          // that it is worth spending a bomb on, without being labelled.
+          ctx.fillStyle = '#857c6e'
+          ctx.fillRect(x + 1, y + 1, 14, 14)
+          ctx.fillStyle = def.accent
+          ctx.fillRect(x + 7, y + 2, 2, 5)
+          ctx.fillRect(x + 5, y + 6, 2, 4)
+          ctx.fillRect(x + 9, y + 7, 2, 6)
+          ctx.fillRect(x + 3, y + 10, 3, 2)
+          ctx.fillRect(x + 11, y + 4, 2, 3)
+          break
+        }
         case '=':
           break
       }

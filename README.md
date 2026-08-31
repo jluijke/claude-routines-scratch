@@ -33,12 +33,29 @@ Both input methods work everywhere; neither is a second-class citizen.
 | Move | Arrows, WASD, or the number pad (including diagonals) | Click or hold where you want to go |
 | Sword | Z or Space | Right-click |
 | Use item | X | On-screen button |
+| Swap item | C or Tab | On-screen ↻ button |
 | Pause | Escape | — |
+
+The item in the B slot is shown in the status bar, so he can see what the item
+button will do before pressing it.
 
 On a touch screen a d-pad and two buttons appear below the game. In the
 exercises everything works by keyboard alone: answers auto-focus, Enter
 submits, and word sorting accepts drag, click-then-click, or Tab plus the
 group's number.
+
+## Items worth knowing about
+
+**Bombs** blow open cracked walls. A cracked wall looks different from ordinary
+rock, and behind them are caves, a trader, and the entrance to one of the
+dungeons. Sold four at a time.
+
+**The Blue Candle** lights a dark dungeon room, and burns away a bush. Some
+bushes are hiding a stairway. It lights once per room, so it is worth thinking
+about where to use it.
+
+Neither is signposted. Finding out what is behind a cracked rock by trying a
+bomb on it is a better moment than being told.
 
 ## For the parent
 
@@ -78,6 +95,12 @@ longer.
 steers quietly toward 50/50: rupees thin out when play runs ahead, optional
 doors open free when spelling does. He never sees the ratio.
 
+**Every barrier is a small quest, not a toll gate.** A river with no bridge and
+planks stacked on the bank. A hall whose floor has fallen away. A sluice gate
+with letters cut around the wheel. A chest bound with a spelling charm. A
+shopkeeper who wants proof before selling you the Wings. Sixty-two of them
+across nine kinds, and each one names what it will give you before you start.
+
 ### Layout
 
 ```
@@ -114,6 +137,14 @@ voice, then British, then any English. Replays are unlimited and never
 penalised, and there is a slower playback option. Everything goes through a
 `SpeechEngine` interface, so pre-generated audio files can replace the browser
 voice later without touching a single exercise.
+
+## Hosting it
+
+Pushing to the branch builds the game and publishes it to GitHub Pages, so he
+can open a URL on any device instead of needing Node running. It needs one
+switch flipped by hand first: in the repository's **Settings → Pages**, set
+**Source** to **GitHub Actions**. After that every push deploys, and the
+workflow refuses to publish if the tests or the content validator fail.
 
 ## A note on the art
 

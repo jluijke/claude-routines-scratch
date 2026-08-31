@@ -18,6 +18,8 @@ export interface Projectile {
   damage: number
   life: number
   magic: boolean
+  /** Passes straight through walls rather than stopping at them. */
+  throughWalls?: boolean
 }
 
 interface Archetype {
@@ -31,6 +33,8 @@ interface Archetype {
   fireRate: number
   rupeeValue: number
   ignoresWalls?: boolean
+  /** Its shots pass straight through walls, so a corner is no refuge. */
+  shootsThroughWalls?: boolean
   boss?: boolean
 }
 
@@ -48,6 +52,14 @@ const ARCHETYPES: Record<EnemyKind, Archetype> = {
     spriteA: 'flyerA', spriteB: 'flyerB', fireRate: 0, rupeeValue: 2,
     ignoresWalls: true,
   },
+  caster: {
+    // Shots that ignore walls are already the hard part. Two of these in a
+    // room emptied twelve hearts in four seconds at the original numbers,
+    // which is not a fight, it is a punishment.
+    hp: 3, speed: 0, damage: 1, size: 14,
+    spriteA: 'casterA', spriteB: 'casterB', fireRate: 165, rupeeValue: 4,
+    shootsThroughWalls: true,
+  },
   boss1: {
     hp: 18, speed: 30, damage: 2, size: 30,
     spriteA: 'bossA', spriteB: 'bossA', fireRate: 90, rupeeValue: 25, boss: true,
@@ -55,6 +67,14 @@ const ARCHETYPES: Record<EnemyKind, Archetype> = {
   boss2: {
     hp: 28, speed: 38, damage: 3, size: 30,
     spriteA: 'bossA', spriteB: 'bossA', fireRate: 60, rupeeValue: 40, boss: true,
+  },
+  boss3: {
+    hp: 34, speed: 34, damage: 3, size: 30,
+    spriteA: 'bossA', spriteB: 'bossA', fireRate: 55, rupeeValue: 55, boss: true,
+  },
+  boss4: {
+    hp: 44, speed: 42, damage: 3, size: 30,
+    spriteA: 'bossA', spriteB: 'bossA', fireRate: 45, rupeeValue: 80, boss: true,
   },
 }
 
@@ -71,6 +91,10 @@ export class Enemy {
   private turnTimer = 0
   private phase = 0
   private readonly rng: Rng
+  /** Frames until the next blink, for enemies that teleport. */
+  private blinkTimer = 140
+  /** Counts down while fading in or out of a blink. */
+  private blinkPhase = 0
   /** Set while distracted by bait. */
   private baitTimer = 0
   private baitX = 0
@@ -98,6 +122,15 @@ export class Enemy {
     return Math.floor(this.phase / 14) % 2 === 0 ? this.def.spriteA : this.def.spriteB
   }
 
+  /** True while blinking out or in — the sprite flickers and cannot be hit. */
+  get isBlinking(): boolean {
+    return this.blinkPhase > 0
+  }
+
+  get shotsPassWalls(): boolean {
+    return this.def.shootsThroughWalls === true
+  }
+
   centre(): { x: number; y: number } {
     return { x: this.x + this.size / 2, y: this.y + this.size / 2 }
   }
@@ -115,6 +148,8 @@ export class Enemy {
 
   hurt(amount: number): boolean {
     if (this.hurtTimer > 0) return false
+    // Mid-blink it is not really there to hit.
+    if (this.blinkPhase > 12) return false
     this.hp -= amount
     this.hurtTimer = 12
     return true
@@ -172,8 +207,22 @@ export class Enemy {
         this.step(step, this.dirX, this.dirY, isBlocked)
         break
       }
+      case 'caster': {
+        // Never chases. It blinks somewhere else and keeps casting, so a
+        // corner is no refuge and you have to go to it.
+        this.blinkTimer -= 1
+        if (this.blinkPhase > 0) this.blinkPhase -= 1
+        if (this.blinkTimer <= 0) {
+          this.blinkTimer = this.rng.int(150, 260)
+          this.blinkPhase = 24
+          this.blinkTo(isBlocked)
+        }
+        break
+      }
       case 'boss1':
-      case 'boss2': {
+      case 'boss2':
+      case 'boss3':
+      case 'boss4': {
         // Advances steadily and cannot be out-walked forever.
         this.step(step, toGoalX / distance, toGoalY / distance, isBlocked)
         break
@@ -192,7 +241,8 @@ export class Enemy {
           vy: (toGoalY / distance) * speed,
           damage: this.def.damage,
           life: 180,
-          magic: this.isBoss,
+          magic: this.isBoss || this.shotsPassWalls,
+          throughWalls: this.shotsPassWalls,
         })
         // The second boss fires a spread rather than a single bolt.
         if (this.kind === 'boss2') {
@@ -205,6 +255,20 @@ export class Enemy {
           }
         }
       }
+    }
+  }
+
+  /** Picks a free tile somewhere else on the screen and appears there. */
+  private blinkTo(isBlocked: (x: number, y: number) => boolean): void {
+    for (let attempt = 0; attempt < 24; attempt++) {
+      const col = this.rng.int(1, 14)
+      const row = this.rng.int(1, 9)
+      const x = col * TILE + (TILE - this.size) / 2
+      const y = row * TILE + (TILE - this.size) / 2
+      if (this.blockedAt(x, y, isBlocked)) continue
+      this.x = x
+      this.y = y
+      return
     }
   }
 

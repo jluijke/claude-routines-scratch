@@ -1,0 +1,64 @@
+# Builds the game and publishes it to GitHub Pages, so it can be played by
+# opening a URL on any device instead of running a dev server.
+#
+# One-time setup: in the repository's Settings → Pages, set "Source" to
+# "GitHub Actions". Without that this workflow builds fine but has nowhere to
+# publish to.
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - claude/zelda-spelling-game-i9bl30
+  workflow_dispatch:
+
+# Only the deploy job needs these; keep the default read-only otherwise.
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Tests and content validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      # Catches content mistakes that would only show up as a confusing moment
+      # halfway through an exercise.
+      - run: npm run validate:content
+
+  deploy:
+    name: Publish to GitHub Pages
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4

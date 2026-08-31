@@ -26,13 +26,16 @@ export type TileChar =
   | '^' // stairs
   | '=' // sealed gate — opened by an exercise
   | '*' // statue
+  | 'X' // cracked wall — blow it open with a bomb
 
 export interface TileDef {
   solid: boolean
   /** Passable only while wearing the Wings. */
   water?: boolean
-  /** Cuttable with a sword. */
+  /** Cuttable with a sword, and burnable with the candle. */
   bush?: boolean
+  /** Blows open with a bomb. */
+  cracked?: boolean
   /** Walking onto it moves the player somewhere else. */
   portal?: boolean
   colour: string
@@ -54,6 +57,7 @@ export const TILES: Record<TileChar, TileDef> = {
   '^': { solid: false, portal: true, colour: '#7d7466', accent: '#c9c2ad' },
   '=': { solid: true, colour: '#79838f', accent: '#57d2c6' },
   '*': { solid: true, colour: '#8a8478', accent: '#a8a294' },
+  X: { solid: true, cracked: true, colour: '#6f685c', accent: '#4a453c' },
 }
 
 export function tileAt(rows: readonly string[], col: number, row: number): TileChar {

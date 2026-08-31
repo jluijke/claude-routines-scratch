@@ -307,6 +307,97 @@ const FLYER_B = S([
   '................',
 ])
 
+/** Caster: a hooded thing that blinks about and throws magic through walls. */
+const CASTER_A = S([
+  '................',
+  '......kkkk......',
+  '.....kbbbbk.....',
+  '....kbbbbbbk....',
+  '....kbwbbwbk....',
+  '....kbbbbbbk....',
+  '...kbbbbbbbbk...',
+  '...kbBBBBBBbk...',
+  '..kbbBBccBBbbk..',
+  '..kbbBBccBBbbk..',
+  '..kbbBBBBBBbbk..',
+  '...kbbbbbbbbk...',
+  '...kkbbbbbbkk...',
+  '.....kkkkkk.....',
+  '................',
+  '................',
+])
+
+const CASTER_B = S([
+  '................',
+  '......kkkk......',
+  '.....kbbbbk.....',
+  '....kbbbbbbk....',
+  '....kbcbbcbk....',
+  '....kbbbbbbk....',
+  '...kbbbbbbbbk...',
+  '..kbbBBBBBBbbk..',
+  '..kbBBBccBBBbk..',
+  '.kbbBBcwwcBBbbk.',
+  '..kbBBBccBBBbk..',
+  '..kbbBBBBBBbbk..',
+  '...kkbbbbbbkk...',
+  '.....kkkkkk.....',
+  '................',
+  '................',
+])
+
+const BOMB = S8([
+  '...kk...',
+  '..kddk..',
+  '.kddddk.',
+  'kdddddkk',
+  'kdddddk.',
+  'kdddddk.',
+  '.kdddk..',
+  '..kkk...',
+])
+
+const BOMB_LIT = S8([
+  '...kr...',
+  '..kokk..',
+  '.kwwwwk.',
+  'kwwwwwkk',
+  'kwwwwwk.',
+  'kdddddk.',
+  '.kdddk..',
+  '..kkk...',
+])
+
+const EXPLOSION = S([
+  '................',
+  '...k..kwwk..k...',
+  '..kok.kwwk.kok..',
+  '.kowk.kyyk.kwok.',
+  '..kok.koook.ok..',
+  'k..k.kowwok.k..k',
+  'wkkkkowwwwokkkkw',
+  'wwooowwwwwwooo ww',
+  'wwooowwwwwwooo ww',
+  'wkkkkowwwwokkkkw',
+  'k..k.kowwok.k..k',
+  '..kok.koook.ok..',
+  '.kowk.kyyk.kwok.',
+  '..kok.kwwk.kok..',
+  '...k..kwwk..k...',
+  '................',
+])
+
+const FLAME = S8([
+  '...kk...',
+  '..kyyk..',
+  '.kyoyk..',
+  'kyoowyk.',
+  'kyoowyk.',
+  'kyooryk.',
+  '.kyrrk..',
+  '..kkk...',
+])
+
 /** Boss: a horned guardian, twice the size of anything else. */
 const BOSS_A = defineSprite(32, 32, [
   '................................',
@@ -512,6 +603,8 @@ export const SPRITES = {
   chaserB: CHASER_B,
   flyerA: FLYER_A,
   flyerB: FLYER_B,
+  casterA: CASTER_A,
+  casterB: CASTER_B,
   bossA: BOSS_A,
   rupee: RUPEE,
   rupeeBlue: RUPEE_BLUE,
@@ -523,6 +616,10 @@ export const SPRITES = {
   seal: SEAL,
   projectile: PROJECTILE,
   magicBolt: MAGIC_BOLT,
+  bomb: BOMB,
+  bombLit: BOMB_LIT,
+  explosion: EXPLOSION,
+  flame: FLAME,
 } as const
 
 export type SpriteName = keyof typeof SPRITES

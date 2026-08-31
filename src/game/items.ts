@@ -22,6 +22,7 @@ export type ItemId =
   | 'bow'
   | 'arrows'
   | 'blueCandle'
+  | 'bomb'
   | 'bait'
   | 'blueRing'
   | 'recoveryHeart'
@@ -169,7 +170,15 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     name: 'Blue Candle',
     category: 'tool',
     price: 60,
-    description: 'Lights one dark room at a time.',
+    description: 'Lights a dark room, and burns away a bush. One flame per room.',
+  },
+  bomb: {
+    id: 'bomb',
+    name: 'Bombs',
+    category: 'consumable',
+    price: 40,
+    description: 'Blows open cracked walls. Sold in bundles of four.',
+    stackable: true,
   },
   bait: {
     id: 'bait',
@@ -208,6 +217,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
 /** Items on the village shopkeeper's shelf, in display order. */
 export const VILLAGE_SHOP: ItemId[] = [
   'recoveryHeart',
+  'bomb',
   'blueCandle',
   'bait',
   'metalSword',
@@ -224,7 +234,17 @@ export const VILLAGE_SHOP: ItemId[] = [
 ]
 
 /** The hidden cave in the graveyard. */
-export const SECRET_SHOP: ItemId[] = ['blueRing', 'recoveryHeart', 'arrows']
+export const SECRET_SHOP: ItemId[] = ['blueRing', 'bomb', 'recoveryHeart', 'arrows']
+
+/**
+ * Items that occupy the B slot and are used with the item key. Ordered the way
+ * the child cycles through them.
+ */
+export const TOOL_SLOT: ItemId[] = ['bomb', 'blueCandle', 'bait', 'recoveryHeart']
+
+export function isTool(id: ItemId): boolean {
+  return TOOL_SLOT.includes(id)
+}
 
 export function itemPower(id: ItemId): number {
   return ITEMS[id].power ?? 0

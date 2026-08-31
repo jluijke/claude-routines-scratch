@@ -7,7 +7,7 @@
  */
 import type { SpriteName } from '../render/sprites'
 
-export type EnemyKind = 'shooter' | 'chaser' | 'flyer' | 'boss1' | 'boss2'
+export type EnemyKind = 'shooter' | 'chaser' | 'flyer' | 'caster' | 'boss1' | 'boss2' | 'boss3' | 'boss4'
 
 export interface Spawn {
   kind: EnemyKind
@@ -55,23 +55,6 @@ export interface Screen {
   shop?: 'village' | 'secret' | 'smith'
 }
 
-const OPEN_ROW = '................'
-
-/** Builds a plain outdoor screen with walls only where there are no exits. */
-function field(exits: Screen['exits'], interior: string[]): string[] {
-  const rows: string[] = []
-  const top = exits.up ? 'TTTTTTT..TTTTTTT' : 'TTTTTTTTTTTTTTTT'
-  rows.push(top)
-  for (let i = 0; i < 9; i++) {
-    const line = interior[i] ?? OPEN_ROW
-    const left = exits.left && i >= 3 && i <= 5 ? '.' : 'T'
-    const right = exits.right && i >= 3 && i <= 5 ? '.' : 'T'
-    rows.push(left + line.slice(1, 15).padEnd(14, '.') + right)
-  }
-  rows.push(exits.down ? 'TTTTTTT..TTTTTTT' : 'TTTTTTTTTTTTTTTT')
-  return rows
-}
-
 export const SCREENS: Screen[] = [
   // ---------------------------------------------------------------- village
   {
@@ -92,7 +75,6 @@ export const SCREENS: Screen[] = [
       'TTTTTTTTTTTTTTTT',
     ],
     exits: { up: 'village-north', left: 'village-west', right: 'village-east' },
-    gates: [{ gateId: 'village-chest', col: 12, row: 8 }],
     portals: [{ col: 4, row: 1, to: 'shop-interior', spawnCol: 7, spawnRow: 8 }],
     props: [
       { sprite: 'scribe', col: 3, row: 5, talk: 'Welcome, traveller. The sealed stones open only for a careful speller.' },
@@ -132,14 +114,17 @@ export const SCREENS: Screen[] = [
       '.=..............',
       '.,..............',
       'T....,,,.......T',
-      'T..............T',
+      'T..........X...T',
       'T....H.........T',
       'T..............T',
       'TTTTTTTTTTTTTTTT',
     ],
     exits: { left: 'village-square', right: 'forest-1' },
     gates: [{ gateId: 'village-east-seal', col: 1, row: 4, opens: [{ col: 1, row: 4 }] }],
-    portals: [{ col: 5, row: 8, to: 'smith-interior', spawnCol: 7, spawnRow: 8 }],
+    portals: [
+      { col: 5, row: 8, to: 'smith-interior', spawnCol: 7, spawnRow: 8 },
+      { col: 11, row: 7, to: 'bomb-shop', spawnCol: 7, spawnRow: 7 },
+    ],
     spawns: [{ kind: 'shooter', col: 9, row: 6 }],
   },
   {
@@ -249,22 +234,52 @@ export const SCREENS: Screen[] = [
     id: 'forest-1',
     name: 'Forest Edge',
     region: 'Forest',
-    rows: field({ left: 'village-east', right: 'forest-2', up: 'forest-3' }, [
-      '.,,..........',
-      '..T...T..T...',
-      '.............',
-      '.....,.......',
-      '..T.......T..',
-      '.............',
-      '..,....,.....',
-      '.............',
-      '.............',
-    ]),
+    rows: [
+      'TTTTTTT..TTTTTTT',
+      'T.,,..........,T',
+      'T..T...T..T....T',
+      '...............T',
+      'T....,.........T',
+      '...T.......T....',
+      'T..............T',
+      'T..,...........T',
+      'T.......,......T',
+      'T..............T',
+      'TTTTTTTTTTTTTTTT',
+    ],
     exits: { left: 'village-east', right: 'forest-2', up: 'forest-3' },
+    // Nothing marks this bush out. Burning bushes is the point of the candle,
+    // and finding this by trying is a better moment than being told.
+    portals: [{ col: 8, row: 8, to: 'forest-grotto', spawnCol: 7, spawnRow: 8 }],
     spawns: [
       { kind: 'shooter', col: 5, row: 4 },
       { kind: 'flyer', col: 10, row: 6 },
     ],
+  },
+  {
+    id: 'forest-grotto',
+    name: 'A Hidden Grotto',
+    region: 'Forest',
+    rows: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#######..#######',
+      '#######..#######',
+      '#######..#######',
+    ],
+    exits: {},
+    dark: true,
+    props: [
+      { sprite: 'scribe', col: 7, row: 3, talk: 'Not many find this place. Take what you like.' },
+    ],
+    gates: [{ gateId: 'forest-chest', col: 5, row: 3 }],
+    portals: [{ col: 7, row: 10, to: 'forest-1', spawnCol: 8, spawnRow: 7 }],
   },
   {
     id: 'forest-2',
@@ -335,7 +350,7 @@ export const SCREENS: Screen[] = [
     ],
     exits: { up: 'forest-2' },
     gates: [
-      { gateId: 'forest-chest', col: 7, row: 2 },
+      { gateId: 'village-chest', col: 7, row: 2 },
       { gateId: 'forest-hermit', col: 4, row: 5 },
     ],
     spawns: [
@@ -499,13 +514,14 @@ export const SCREENS: Screen[] = [
       'T....~~~~~~....T',
       'T.....====.....T',
       'T......,,......T',
-      'T..............T',
+      'T.X............T',
       'T....,....,....T',
       'T..............T',
       'T..............T',
       'TTTTTTT..TTTTTTT',
     ],
     exits: { down: 'river-north' },
+    portals: [{ col: 2, row: 6, to: 'd3-entrance', spawnCol: 7, spawnRow: 8 }],
     gates: [
       {
         gateId: 'waterfall-seal',
@@ -534,7 +550,7 @@ export const SCREENS: Screen[] = [
       'T..............T',
       'T..*..*..*..*..T',
       'T...............',
-      'T.C.............',
+      'T.C.........X...',
       'T..*..*..*..*..T',
       'T..............T',
       'T....=====.....T',
@@ -557,7 +573,10 @@ export const SCREENS: Screen[] = [
         ],
       },
     ],
-    portals: [{ col: 2, row: 5, to: 'secret-shop', spawnCol: 7, spawnRow: 8 }],
+    portals: [
+      { col: 2, row: 5, to: 'secret-shop', spawnCol: 7, spawnRow: 8 },
+      { col: 12, row: 5, to: 'd4-entrance', spawnCol: 7, spawnRow: 8 },
+    ],
     spawns: [
       { kind: 'flyer', col: 5, row: 2 },
       { kind: 'flyer', col: 11, row: 7 },
@@ -996,6 +1015,331 @@ export const SCREENS: Screen[] = [
     gates: [{ gateId: 'd2-door-4', col: 3, row: 8 }],
     portals: [{ col: 7, row: 10, to: 'd2-approach', spawnCol: 7, spawnRow: 3 }],
     spawns: [{ kind: 'boss2', col: 7, row: 3 }],
+  },
+  // ------------------------------------------- dungeon three: the Ember Vault
+  {
+    id: 'd3-entrance',
+    name: 'The Ember Vault',
+    region: 'Ember Vault',
+    rows: [
+      '#######DD#######',
+      '#..............#',
+      '#..RR......RR..#',
+      '#..RR......RR..#',
+      '#......==......#',
+      '#......,,......#',
+      '#..............#',
+      '#..XX......XX..#',
+      '#..............#',
+      '#######..#######',
+      '#######..#######',
+    ],
+    exits: {},
+    dark: true,
+    gates: [{ gateId: 'd3-door-1', col: 7, row: 4, opens: [{ col: 7, row: 4 }, { col: 8, row: 4 }] }],
+    portals: [
+      { col: 7, row: 10, to: 'waterfall', spawnCol: 7, spawnRow: 6 },
+      { col: 7, row: 0, to: 'd3-hall', spawnCol: 7, spawnRow: 9 },
+      { col: 3, row: 7, to: 'd3-cache', spawnCol: 7, spawnRow: 9 },
+    ],
+    spawns: [
+      { kind: 'caster', col: 6, row: 2 },
+      { kind: 'shooter', col: 11, row: 8 },
+    ],
+  },
+  {
+    id: 'd3-cache',
+    name: 'A Blasted Alcove',
+    region: 'Ember Vault',
+    rows: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#....######....#',
+      '#....#....#....#',
+      '#....#....#....#',
+      '#....######....#',
+      '#..............#',
+      '#..............#',
+      '#######..#######',
+      '#######..#######',
+    ],
+    exits: {},
+    dark: true,
+    gates: [{ gateId: 'ember-chest', col: 7, row: 4 }],
+    portals: [{ col: 7, row: 10, to: 'd3-entrance', spawnCol: 3, spawnRow: 8 }],
+    spawns: [{ kind: 'flyer', col: 3, row: 8 }],
+  },
+  {
+    id: 'd3-hall',
+    name: 'The Ember Gallery',
+    region: 'Ember Vault',
+    rows: [
+      '####DD#####DD###',
+      '#..............#',
+      '#.RRR......RRR.#',
+      '#.RRR......RRR.#',
+      '#......==......#',
+      '#......,,......#',
+      '#.RRR......RRR.#',
+      '#.RRR......RRR.#',
+      '#..............#',
+      '#######..#######',
+      '#######..#######',
+    ],
+    exits: {},
+    dark: true,
+    gates: [{ gateId: 'd3-door-2', col: 7, row: 4, opens: [{ col: 7, row: 4 }, { col: 8, row: 4 }] }],
+    portals: [
+      { col: 7, row: 10, to: 'd3-entrance', spawnCol: 7, spawnRow: 1 },
+      { col: 4, row: 0, to: 'd3-treasury', spawnCol: 7, spawnRow: 9 },
+      { col: 11, row: 0, to: 'd3-approach', spawnCol: 7, spawnRow: 9 },
+    ],
+    spawns: [
+      { kind: 'caster', col: 5, row: 5 },
+      { kind: 'caster', col: 10, row: 5 },
+    ],
+  },
+  {
+    id: 'd3-treasury',
+    name: 'The Ember Treasury',
+    region: 'Ember Vault',
+    rows: [
+      '################',
+      '#..............#',
+      '#...########...#',
+      '#...#......#...#',
+      '#...#......#...#',
+      '#...###..###...#',
+      '#......==......#',
+      '#......,,......#',
+      '#..............#',
+      '#######..#######',
+      '#######..#######',
+    ],
+    exits: {},
+    dark: true,
+    gates: [
+      { gateId: 'd3-door-3', col: 7, row: 6, opens: [{ col: 7, row: 6 }, { col: 8, row: 6 }] },
+      { gateId: 'd3-chest', col: 7, row: 3 },
+    ],
+    portals: [{ col: 7, row: 10, to: 'd3-hall', spawnCol: 4, spawnRow: 1 }],
+    spawns: [{ kind: 'chaser', col: 3, row: 8 }],
+  },
+  {
+    id: 'd3-approach',
+    name: 'Before the Ember',
+    region: 'Ember Vault',
+    rows: [
+      '#######DD#######',
+      '#......==......#',
+      '#......,,......#',
+      '#..............#',
+      '#.RR........RR.#',
+      '#..............#',
+      '#.RR........RR.#',
+      '#..............#',
+      '#..............#',
+      '#######..#######',
+      '#######..#######',
+    ],
+    exits: {},
+    dark: true,
+    gates: [{ gateId: 'd3-boss', col: 7, row: 1, opens: [{ col: 7, row: 1 }, { col: 8, row: 1 }] }],
+    portals: [
+      { col: 7, row: 10, to: 'd3-hall', spawnCol: 11, spawnRow: 1 },
+      { col: 7, row: 0, to: 'd3-boss-room', spawnCol: 7, spawnRow: 9 },
+    ],
+    spawns: [
+      { kind: 'caster', col: 4, row: 5 },
+      { kind: 'chaser', col: 11, row: 5 },
+    ],
+  },
+  {
+    id: 'd3-boss-room',
+    name: 'The Ember Heart',
+    region: 'Ember Vault',
+    rows: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#######..#######',
+      '#######..#######',
+    ],
+    exits: {},
+    portals: [{ col: 7, row: 10, to: 'd3-approach', spawnCol: 7, spawnRow: 3 }],
+    spawns: [{ kind: 'boss3', col: 7, row: 3 }],
+  },
+
+  // ----------------------------------------- dungeon four: the Sunless Spire
+  {
+    id: 'd4-entrance',
+    name: 'The Sunless Spire',
+    region: 'Sunless Spire',
+    rows: [
+      '#######DD#######',
+      '#..............#',
+      '#..####..####..#',
+      '#..#........#..#',
+      '#......==......#',
+      '#......,,......#',
+      '#..#........#..#',
+      '#..####..####..#',
+      '#..............#',
+      '#######..#######',
+      '#######..#######',
+    ],
+    exits: {},
+    dark: true,
+    gates: [{ gateId: 'd4-door-1', col: 7, row: 4, opens: [{ col: 7, row: 4 }, { col: 8, row: 4 }] }],
+    portals: [
+      { col: 7, row: 10, to: 'graveyard-1', spawnCol: 11, spawnRow: 5 },
+      { col: 7, row: 0, to: 'd4-hall', spawnCol: 7, spawnRow: 9 },
+    ],
+    spawns: [
+      { kind: 'caster', col: 4, row: 8 },
+      { kind: 'chaser', col: 11, row: 8 },
+    ],
+  },
+  {
+    id: 'd4-hall',
+    name: 'The Spiral Stair',
+    region: 'Sunless Spire',
+    rows: [
+      '####DD#####DD###',
+      '#......==......#',
+      '#......,,......#',
+      '#.RRRR....RRRR.#',
+      '#..............#',
+      '#....RRRRRR....#',
+      '#..............#',
+      '#.RRRR....RRRR.#',
+      '#..............#',
+      '#######..#######',
+      '#######..#######',
+    ],
+    exits: {},
+    dark: true,
+    gates: [{ gateId: 'd4-door-2', col: 7, row: 1, opens: [{ col: 7, row: 1 }, { col: 8, row: 1 }] }],
+    portals: [
+      { col: 7, row: 10, to: 'd4-entrance', spawnCol: 7, spawnRow: 1 },
+      { col: 4, row: 0, to: 'd4-treasury', spawnCol: 7, spawnRow: 9 },
+      { col: 11, row: 0, to: 'd4-approach', spawnCol: 7, spawnRow: 9 },
+    ],
+    spawns: [
+      { kind: 'caster', col: 3, row: 4 },
+      { kind: 'flyer', col: 12, row: 6 },
+      { kind: 'chaser', col: 7, row: 8 },
+    ],
+  },
+  {
+    id: 'd4-treasury',
+    name: 'The Spire Treasury',
+    region: 'Sunless Spire',
+    rows: [
+      '################',
+      '#..............#',
+      '#..##########..#',
+      '#..#........#..#',
+      '#..#........#..#',
+      '#..####..####..#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#######..#######',
+      '#######..#######',
+    ],
+    exits: {},
+    dark: true,
+    gates: [{ gateId: 'd4-chest', col: 7, row: 3 }],
+    portals: [{ col: 7, row: 10, to: 'd4-hall', spawnCol: 4, spawnRow: 1 }],
+    spawns: [{ kind: 'caster', col: 3, row: 7 }],
+  },
+  {
+    id: 'd4-approach',
+    name: 'The Spire Landing',
+    region: 'Sunless Spire',
+    rows: [
+      '#######DD#######',
+      '#......==......#',
+      '#......,,......#',
+      '#..............#',
+      '#.RR........RR.#',
+      '#......==......#',
+      '#......,,......#',
+      '#.RR........RR.#',
+      '#..............#',
+      '#######..#######',
+      '#######..#######',
+    ],
+    exits: {},
+    dark: true,
+    gates: [
+      { gateId: 'd4-door-3', col: 7, row: 5, opens: [{ col: 7, row: 5 }, { col: 8, row: 5 }] },
+      { gateId: 'd4-boss', col: 7, row: 1, opens: [{ col: 7, row: 1 }, { col: 8, row: 1 }] },
+    ],
+    portals: [
+      { col: 7, row: 10, to: 'd4-hall', spawnCol: 11, spawnRow: 1 },
+      { col: 7, row: 0, to: 'd4-boss-room', spawnCol: 7, spawnRow: 9 },
+    ],
+    spawns: [
+      { kind: 'caster', col: 4, row: 3 },
+      { kind: 'caster', col: 11, row: 3 },
+      { kind: 'chaser', col: 7, row: 8 },
+    ],
+  },
+  {
+    id: 'd4-boss-room',
+    name: 'The Sunless Peak',
+    region: 'Sunless Spire',
+    rows: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#######..#######',
+      '#######..#######',
+    ],
+    exits: {},
+    portals: [{ col: 7, row: 10, to: 'd4-approach', spawnCol: 7, spawnRow: 3 }],
+    spawns: [{ kind: 'boss4', col: 7, row: 3 }],
+  },
+
+  // ------------------------------------------- caves opened with a bomb
+  {
+    id: 'bomb-shop',
+    name: 'A Blasted-Open Cave',
+    region: 'Village',
+    rows: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#######..#######',
+      '#######..#######',
+      '#######..#######',
+    ],
+    exits: {},
+    shop: 'secret',
+    dark: true,
+    portals: [{ col: 7, row: 10, to: 'village-east', spawnCol: 11, spawnRow: 8 }],
+    props: [{ sprite: 'shopkeeper', col: 7, row: 3 }],
+    gates: [{ gateId: 'bomb-shop', col: 7, row: 4 }],
   },
 ]
 

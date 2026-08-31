@@ -10,6 +10,8 @@ export interface InputState {
   dy: number
   attack: boolean
   useItem: boolean
+  /** Step to the next item in the B slot. */
+  cycleItem: boolean
   confirm: boolean
   pause: boolean
   /** Where the player last clicked, in world pixels, or undefined. */
@@ -27,6 +29,7 @@ const MOVE_KEYS: Record<string, [number, number]> = {
 
 const ATTACK_KEYS = new Set([' ', 'z', 'Z', 'Enter', '0', 'Control'])
 const ITEM_KEYS = new Set(['x', 'X', 'Shift', '5'])
+const CYCLE_KEYS = new Set(['c', 'C', 'Tab', '.'])
 const PAUSE_KEYS = new Set(['Escape', 'p', 'P'])
 
 export class Input {
@@ -34,6 +37,7 @@ export class Input {
   private attackEdge = false
   private itemEdge = false
   private pauseEdge = false
+  private cycleEdge = false
   private target: { x: number; y: number } | undefined
   private pointerHeld = false
 
@@ -71,7 +75,13 @@ export class Input {
     // Never swallow keys the browser or a form field needs.
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
 
-    if (MOVE_KEYS[event.key] || ATTACK_KEYS.has(event.key) || ITEM_KEYS.has(event.key) || PAUSE_KEYS.has(event.key)) {
+    if (
+      MOVE_KEYS[event.key] ||
+      ATTACK_KEYS.has(event.key) ||
+      ITEM_KEYS.has(event.key) ||
+      CYCLE_KEYS.has(event.key) ||
+      PAUSE_KEYS.has(event.key)
+    ) {
       event.preventDefault()
     }
     if (this.held.has(event.key)) return
@@ -80,6 +90,7 @@ export class Input {
     if (ATTACK_KEYS.has(event.key)) this.attackEdge = true
     if (ITEM_KEYS.has(event.key)) this.itemEdge = true
     if (PAUSE_KEYS.has(event.key)) this.pauseEdge = true
+    if (CYCLE_KEYS.has(event.key)) this.cycleEdge = true
   }
 
   private onKeyUp = (event: KeyboardEvent): void => {
@@ -132,6 +143,7 @@ export class Input {
       dy,
       attack: this.attackEdge,
       useItem: this.itemEdge,
+      cycleItem: this.cycleEdge,
       confirm: this.held.has('Enter'),
       pause: this.pauseEdge,
       ...(this.target ? { moveTarget: this.target } : {}),
@@ -140,6 +152,7 @@ export class Input {
     this.attackEdge = false
     this.itemEdge = false
     this.pauseEdge = false
+    this.cycleEdge = false
     return state
   }
 
@@ -181,7 +194,11 @@ export class Input {
 
     const actions = document.createElement('div')
     actions.className = 'action-buttons'
-    actions.append(makeButton('B', 'x', 'pad action item'), makeButton('A', 'z', 'pad action attack'))
+    actions.append(
+      makeButton('↻', 'c', 'pad cycle'),
+      makeButton('B', 'x', 'pad action item'),
+      makeButton('A', 'z', 'pad action attack'),
+    )
 
     pad.append(dpad, actions)
     container.append(pad)
@@ -195,6 +212,7 @@ export class Input {
       this.held.add(key)
       if (ATTACK_KEYS.has(key)) this.attackEdge = true
       if (ITEM_KEYS.has(key)) this.itemEdge = true
+      if (CYCLE_KEYS.has(key)) this.cycleEdge = true
     }
   }
 

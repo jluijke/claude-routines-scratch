@@ -214,6 +214,14 @@ for (const screen of SCREENS) {
       if (tile && TILES[tile]?.solid) {
         fail(`${where}: portal to "${portal.to}" would drop the player inside a solid tile`)
       }
+      // Returning the player onto the doorway they just used sends them
+      // straight back through it.
+      const back = (target.portals ?? []).find(
+        (p) => p.to === screen.id && p.col === portal.spawnCol && p.row === portal.spawnRow,
+      )
+      if (back) {
+        fail(`${where}: portal to "${portal.to}" lands on that screen's way back, trapping the player in a loop`)
+      }
     }
   }
 

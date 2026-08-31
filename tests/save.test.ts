@@ -93,3 +93,28 @@ describe('save data', () => {
     expect(restored.world.openedGates).toEqual(['gate-bridge'])
   })
 })
+
+describe('schema migration', () => {
+  it('upgrades a version 1 save from before bombs existed', () => {
+    // A child mid-curriculum must not lose their game when the game is updated.
+    const old = {
+      version: 1,
+      player: { rupees: 310, hearts: 4, maxHearts: 6, screenId: 'forest-2', equippedSword: 'metalSword' },
+      inventory: { metalSword: 1, blueCandle: 1 },
+      world: { openedGates: ['forest-seal'], defeatedBosses: [], takenChests: [], visitedScreens: ['forest-2'] },
+      spelling: { completedExercises: [1, 2, 3, 4, 5, 6], mastery: { concepts: {} } },
+      pacing: { playSeconds: 1200, exerciseSeconds: 1100 },
+    }
+    const migrated = migrate(old as unknown as Record<string, unknown>)
+
+    expect(migrated.version).toBe(SAVE_VERSION)
+    expect(migrated.world.brokenTiles).toEqual([])
+    // Everything they had earned is still there.
+    expect(migrated.player.rupees).toBe(310)
+    expect(migrated.player.maxHearts).toBe(6)
+    expect(migrated.inventory.blueCandle).toBe(1)
+    expect(migrated.world.openedGates).toEqual(['forest-seal'])
+    expect(migrated.spelling.completedExercises).toHaveLength(6)
+    expect(migrated.pacing.playSeconds).toBe(1200)
+  })
+})

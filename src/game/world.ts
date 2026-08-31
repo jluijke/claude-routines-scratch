@@ -18,7 +18,7 @@ import { Player, PLAYER_SIZE, type Facing } from './entities/player'
 import { SCREEN_H, SCREEN_W, TILE, TILES, isSolidChar, toTile, type TileChar } from './world/tiles'
 import { screenById, START_SCREEN, type Screen } from './world/screens'
 import { gateById, type Gate } from './gates'
-import { ITEMS, type ItemId } from './items'
+import { ITEMS, TOOL_SLOT, type ItemId } from './items'
 import { dropMultiplier, opensFreely } from './pacing'
 import type { SaveData } from '../core/save'
 import { TOTAL_EXERCISES } from '../content/exercises'
@@ -43,6 +43,21 @@ interface Drop {
   life: number
 }
 
+/** A bomb waiting to go off. */
+interface Bomb {
+  x: number
+  y: number
+  fuse: number
+}
+
+/** The flash after a bomb, or the candle's flame. */
+interface Burst {
+  x: number
+  y: number
+  life: number
+  kind: 'explosion' | 'flame'
+}
+
 const DARK_RADIUS = 46
 const LIT_RADIUS = 78
 
@@ -59,6 +74,10 @@ export class World {
   private enemies: Enemy[] = []
   private projectiles: Projectile[] = []
   private drops: Drop[] = []
+  private bombs: Bomb[] = []
+  private bursts: Burst[] = []
+  /** The candle lights one flame per room, as the blue one always did. */
+  private candleUsedHere = false
   private frame = 0
   private transition = 0
   private message = ''
@@ -211,6 +230,9 @@ export class World {
     this.enemies = []
     this.projectiles = []
     this.drops = []
+    this.bombs = []
+    this.bursts = []
+    this.candleUsedHere = false
     this.transition = 12
 
     const cleared = this.save.world.defeatedBosses
@@ -226,8 +248,29 @@ export class World {
     if (next.shop) this.callbacks.onShop(next.shop)
   }
 
+  /** Key for a tile the child has permanently cleared on this screen. */
+  private brokenKey(col: number, row: number): string {
+    return `${this.screen.id}:${col},${row}`
+  }
+
+  private isBroken(col: number, row: number): boolean {
+    return this.save.world.brokenTiles.includes(this.brokenKey(col, row))
+  }
+
+  /** Records a cracked wall blown open or a bush burned away, for good. */
+  private breakTile(col: number, row: number): void {
+    const key = this.brokenKey(col, row)
+    if (this.save.world.brokenTiles.includes(key)) return
+    this.save.world.brokenTiles.push(key)
+    this.callbacks.onChange()
+  }
+
   private openedTiles(): Set<string> {
     const opened = new Set<string>()
+    for (const key of this.save.world.brokenTiles) {
+      const [screenId, coords] = key.split(':')
+      if (screenId === this.screen.id && coords) opened.add(coords)
+    }
     for (const placement of this.screen.gates ?? []) {
       const isOpen =
         this.save.world.openedGates.includes(placement.gateId) ||
@@ -292,6 +335,7 @@ export class World {
       sfx.play('swordSwing')
     }
     if (state.useItem) this.useItem()
+    if (state.cycleItem) this.cycleTool()
 
     const opened = this.openedTiles()
     const canCrossWater = this.save.inventory.wings !== undefined
@@ -311,6 +355,7 @@ export class World {
     this.resolveCombat()
     this.updateProjectiles(step)
     this.updateDrops(step)
+    this.updateBombs(step)
 
     if (this.messageTimer > 0) {
       this.messageTimer -= 1
@@ -383,6 +428,11 @@ export class World {
       if (portal.col !== col || portal.row !== row) continue
       // A doorway that a barrier still seals cannot be walked through.
       if (this.tileStillSealed(col, row)) return
+      // A stairway hidden under a bush stays hidden until the bush is burned.
+      // Bushes are walkable, so without this he would fall down it by accident
+      // and the candle would have nothing to find.
+      const char = ((this.screen.rows[row] ?? '')[col] ?? '.') as TileChar
+      if (TILES[char]?.bush && !this.isBroken(col, row)) return
       this.loadScreen(portal.to)
       this.player.placeAtTile(portal.spawnCol, portal.spawnRow)
       this.input.clearTarget()
@@ -489,12 +539,19 @@ export class World {
     const playerBox = { x: this.player.x, y: this.player.y, w: PLAYER_SIZE, h: PLAYER_SIZE }
     const survivors: Projectile[] = []
 
+    const opened = this.openedTiles()
+    const canCrossWater = this.save.inventory.wings !== undefined
+
     for (const shot of this.projectiles) {
       shot.x += shot.vx * step
       shot.y += shot.vy * step
       shot.life -= 1
       if (shot.life <= 0) continue
       if (shot.x < -8 || shot.y < -8 || shot.x > SCREEN_W + 8 || shot.y > SCREEN_H + 8) continue
+
+      // Only the caster's magic passes through rock; everything else stops at
+      // it, so taking cover behind a wall actually works.
+      if (!shot.throughWalls && this.isSolidAt(shot.x + 4, shot.y + 4, opened, canCrossWater)) continue
 
       const box = { x: shot.x, y: shot.y, w: 8, h: 8 }
       if (overlaps(playerBox, box)) {
@@ -538,30 +595,194 @@ export class World {
     this.drops = remaining
   }
 
-  /** Uses whatever is in the B slot: bait, a candle, a recovery heart. */
+  /** Tools he actually owns, in cycle order. */
+  private ownedTools(): ItemId[] {
+    return TOOL_SLOT.filter((id) => (this.save.inventory[id] ?? 0) > 0)
+  }
+
+  /** The item in the B slot, falling back to the first one he owns. */
+  selectedTool(): ItemId | undefined {
+    const owned = this.ownedTools()
+    const chosen = this.save.player.equippedTool
+    if (chosen && owned.includes(chosen)) return chosen
+    return owned[0]
+  }
+
+  /** Steps to the next tool he owns. */
+  cycleTool(): void {
+    const owned = this.ownedTools()
+    if (owned.length === 0) {
+      this.showMessage('You have no items to use yet.', 80)
+      return
+    }
+    // selectedTool() falls back to the first item he owns, so before he has
+    // ever chosen one the "current" tool is already owned[0]. Starting from 0
+    // makes the first press actually move to the next item.
+    const current = this.selectedTool()
+    const index = current ? owned.indexOf(current) : 0
+    const next = owned[(index + 1) % owned.length] as ItemId
+    this.save.player.equippedTool = next
+    sfx.play('select')
+    this.showMessage(`${ITEMS[next].name} ready.`, 70)
+    this.callbacks.onChange()
+  }
+
+  /** Uses whatever is in the B slot. */
   private useItem(): void {
-    const inventory = this.save.inventory
-
-    if ((inventory.recoveryHeart ?? 0) > 0 && this.player.hearts < this.player.maxHearts) {
-      inventory.recoveryHeart = (inventory.recoveryHeart ?? 0) - 1
-      this.player.heal(1)
-      sfx.play('heart')
-      this.showMessage('You feel better.', 90)
-      this.callbacks.onChange()
+    const tool = this.selectedTool()
+    if (!tool) {
+      this.showMessage('Nothing to use yet. Buy something at the shop.', 80)
       return
     }
 
-    if ((inventory.bait ?? 0) > 0 && this.enemies.length > 0) {
-      inventory.bait = (inventory.bait ?? 0) - 1
-      const centre = this.player.centre()
-      const spot = this.pointAhead(centre, this.player.facing, 24)
-      for (const enemy of this.enemies) enemy.distract(spot.x, spot.y)
-      this.showMessage('The monsters stop to eat.', 120)
-      this.callbacks.onChange()
+    switch (tool) {
+      case 'bomb':
+        return this.placeBomb()
+      case 'blueCandle':
+        return this.lightCandle()
+      case 'bait':
+        return this.dropBait()
+      case 'recoveryHeart':
+        return this.eatHeart()
+      default:
+        this.showMessage('You cannot use that here.', 70)
+    }
+  }
+
+  private placeBomb(): void {
+    if ((this.save.inventory.bomb ?? 0) <= 0) {
+      this.showMessage('You are out of bombs.', 80)
       return
     }
+    // One at a time, so a handful of bombs cannot clear a whole room at once.
+    if (this.bombs.length > 0) return
 
-    this.showMessage('Nothing to use yet.', 70)
+    this.save.inventory.bomb = (this.save.inventory.bomb ?? 0) - 1
+    const centre = this.player.centre()
+    const spot = this.pointAhead(centre, this.player.facing, 14)
+    this.bombs.push({ x: spot.x - 4, y: spot.y - 4, fuse: 100 })
+    sfx.play('select')
+    this.callbacks.onChange()
+  }
+
+  private lightCandle(): void {
+    if (this.candleUsedHere) {
+      this.showMessage('The blue candle only lights once in each room.', 90)
+      return
+    }
+    this.candleUsedHere = true
+    const centre = this.player.centre()
+    const ahead = this.pointAhead(centre, this.player.facing, 18)
+    this.bursts.push({ x: ahead.x - 4, y: ahead.y - 4, life: 34, kind: 'flame' })
+    sfx.play('swordSwing')
+
+    // Burn the bush in front, or the one he is standing in. Demanding exact
+    // alignment from a nine-year-old turns a nice discovery into a chore.
+    this.burnAt(ahead.x, ahead.y, centre.x, centre.y)
+  }
+
+  private dropBait(): void {
+    if (this.enemies.length === 0) {
+      this.showMessage('Nothing here is hungry.', 70)
+      return
+    }
+    this.save.inventory.bait = (this.save.inventory.bait ?? 0) - 1
+    const centre = this.player.centre()
+    const spot = this.pointAhead(centre, this.player.facing, 24)
+    for (const enemy of this.enemies) enemy.distract(spot.x, spot.y)
+    this.showMessage('The monsters stop to eat.', 120)
+    this.callbacks.onChange()
+  }
+
+  private eatHeart(): void {
+    if (this.player.hearts >= this.player.maxHearts) {
+      this.showMessage('You are already at full health.', 70)
+      return
+    }
+    this.save.inventory.recoveryHeart = (this.save.inventory.recoveryHeart ?? 0) - 1
+    this.player.heal(1)
+    sfx.play('heart')
+    this.showMessage('You feel better.', 90)
+    this.callbacks.onChange()
+  }
+
+  /** The candle's flame burns away a bush and singes anything standing in it. */
+  private burnAt(x: number, y: number, fallbackX?: number, fallbackY?: number): void {
+    const candidates: { col: number; row: number }[] = [toTile(x, y)]
+    if (fallbackX !== undefined && fallbackY !== undefined) {
+      candidates.push(toTile(fallbackX, fallbackY))
+    }
+
+    const bush = candidates.find(({ col, row }) => {
+      const char = ((this.screen.rows[row] ?? '')[col] ?? '.') as TileChar
+      return TILES[char]?.bush === true && !this.isBroken(col, row)
+    })
+
+    if (bush) {
+      this.breakTile(bush.col, bush.row)
+      sfx.play('secret')
+      this.showMessage('The bush burns away.')
+    } else {
+      this.showMessage('The flame gutters out.', 70)
+    }
+
+    for (const enemy of [...this.enemies]) {
+      const centre = enemy.centre()
+      if (Math.hypot(centre.x - x, centre.y - y) > 16) continue
+      if (enemy.hurt(1)) {
+        sfx.play('enemyHit')
+        if (enemy.isDead()) this.defeat(enemy)
+      }
+    }
+  }
+
+  private updateBombs(step: number): void {
+    for (const bomb of [...this.bombs]) {
+      bomb.fuse -= step * 60
+      if (bomb.fuse > 0) continue
+      this.bombs = this.bombs.filter((b) => b !== bomb)
+      this.explode(bomb.x + 4, bomb.y + 4)
+    }
+
+    for (const burst of [...this.bursts]) {
+      burst.life -= step * 60
+      if (burst.life <= 0) this.bursts = this.bursts.filter((b) => b !== burst)
+    }
+  }
+
+  private explode(x: number, y: number): void {
+    this.bursts.push({ x: x - 8, y: y - 8, life: 26, kind: 'explosion' })
+    sfx.play('playerHurt')
+
+    // Open any cracked wall the blast touches.
+    let opened = false
+    const { col, row } = toTile(x, y)
+    for (let dc = -1; dc <= 1; dc++) {
+      for (let dr = -1; dr <= 1; dr++) {
+        const c = col + dc
+        const r = row + dr
+        const char = ((this.screen.rows[r] ?? '')[c] ?? '.') as TileChar
+        if (!TILES[char]?.cracked || this.isBroken(c, r)) continue
+        this.breakTile(c, r)
+        opened = true
+      }
+    }
+
+    if (opened) {
+      sfx.play('secret')
+      this.showMessage('The cracked rock blows apart, revealing a way through.')
+    }
+
+    // Bombs hurt monsters, not the child. Getting the placement slightly wrong
+    // should cost a bomb, not a heart.
+    for (const enemy of [...this.enemies]) {
+      const centre = enemy.centre()
+      if (Math.hypot(centre.x - x, centre.y - y) > 26) continue
+      if (enemy.hurt(3)) {
+        sfx.play('enemyHit')
+        if (enemy.isDead()) this.defeat(enemy)
+      }
+    }
   }
 
   // ------------------------------------------------------------------ render
@@ -587,11 +808,24 @@ export class World {
 
     for (const enemy of this.enemies) {
       const flashing = enemy.hurtTimer > 0 && Math.floor(this.frame / 3) % 2 === 0
-      if (!flashing) this.atlas.draw(ctx, enemy.sprite, enemy.x, enemy.y)
+      const blinking = enemy.isBlinking && Math.floor(this.frame / 2) % 2 === 0
+      if (!flashing && !blinking) this.atlas.draw(ctx, enemy.sprite, enemy.x, enemy.y)
     }
 
     for (const shot of this.projectiles) {
       this.atlas.draw(ctx, shot.magic ? 'magicBolt' : 'projectile', shot.x, shot.y)
+    }
+
+    for (const bomb of this.bombs) {
+      // Flashes faster as the fuse runs down.
+      const urgency = bomb.fuse < 34 ? 3 : bomb.fuse < 66 ? 6 : 10
+      const lit = Math.floor(this.frame / urgency) % 2 === 0
+      this.atlas.draw(ctx, lit ? 'bombLit' : 'bomb', bomb.x, bomb.y)
+    }
+
+    for (const burst of this.bursts) {
+      if (Math.floor(this.frame / 3) % 2 === 0 && burst.life < 10) continue
+      this.atlas.draw(ctx, burst.kind === 'explosion' ? 'explosion' : 'flame', burst.x, burst.y)
     }
 
     this.drawPlayer(ctx)
@@ -608,15 +842,14 @@ export class World {
 
     ctx.restore()
 
-    drawHud(
-      ctx,
-      this.atlas,
-      this.player,
-      this.save.player.rupees,
-      this.screen.name,
-      this.save.spelling.completedExercises.length,
-      TOTAL_EXERCISES,
-    )
+    const tool = this.selectedTool()
+    drawHud(ctx, this.atlas, this.player, {
+      rupees: this.save.player.rupees,
+      screenName: this.screen.name,
+      exercisesDone: this.save.spelling.completedExercises.length,
+      totalExercises: TOTAL_EXERCISES,
+      ...(tool ? { tool: { name: ITEMS[tool].name, count: this.save.inventory[tool] ?? 0 } } : {}),
+    })
 
     if (this.message) this.drawMessageBar(ctx)
   }

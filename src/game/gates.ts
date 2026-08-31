@@ -238,23 +238,29 @@ const GATE_LIST: Gate[] = [
   // --- dungeon one: the Sunken Hall --------------------------------------
   {
     id: 'd1-door-1',
-    kind: 'door',
-    message: 'A rune-sealed door. The runes are letters, jumbled.',
-    openMessage: 'The letters settle. The door grinds open.',
+    kind: 'bridge',
+    message:
+      'The floor of the hall has fallen away. Planks lie stacked against the wall, waiting to be laid.',
+    openMessage:
+      'Plank by plank, a walkway lays itself across the gap.',
     reward: { rupees: 45 },
   },
   {
     id: 'd1-door-2',
     kind: 'door',
-    message: 'Another sealed door, the runes deeper cut than the last.',
-    openMessage: 'The seal breaks.',
+    message:
+      'A sluice gate holds back the water. The wheel that opens it has letters cut around the rim.',
+    openMessage:
+      'The wheel turns, the sluice lifts, and the water drains away.',
     reward: { rupees: 50 },
   },
   {
     id: 'd1-door-3',
     kind: 'door',
-    message: 'This door has three seals, one above the other.',
-    openMessage: 'All three seals fall at once.',
+    message:
+      'Three stone faces guard the passage, and each has an empty mouth waiting for a word.',
+    openMessage:
+      'One after another, the three faces speak and step aside.',
     reward: { rupees: 55, hearts: 3 },
   },
   {
@@ -276,29 +282,37 @@ const GATE_LIST: Gate[] = [
   {
     id: 'd2-door-1',
     kind: 'door',
-    message: 'A keep door, sealed with writing far older than the last dungeon.',
-    openMessage: 'The old writing gives way.',
+    message:
+      "The keep's inner door has a word carved across it in letters older than the village.",
+    openMessage:
+      'The old carving loosens and the door swings inward.',
     reward: { rupees: 55 },
   },
   {
     id: 'd2-door-2',
-    kind: 'door',
-    message: 'The seal on this door rewrites itself as you watch.',
-    openMessage: 'It stops rewriting, and opens.',
+    kind: 'bridge',
+    message:
+      'A chasm splits the gallery. A rope bridge lies coiled on this side, its knots undone.',
+    openMessage:
+      'The knots pull themselves tight and the rope bridge stretches across.',
     reward: { rupees: 60 },
   },
   {
     id: 'd2-door-3',
     kind: 'door',
-    message: 'A door of seven seals. Only one of them is real.',
-    openMessage: 'The true seal breaks and the rest fade.',
+    message:
+      'Seven seals cover the door and only one of them is real writing. The rest are nonsense.',
+    openMessage:
+      'You pick out the true one. The six false seals crumble.',
     reward: { rupees: 65, hearts: 4 },
   },
   {
     id: 'd2-door-4',
     kind: 'door',
-    message: 'The last sealed door before the keep\'s heart.',
-    openMessage: 'The way to the heart of the keep is open.',
+    message:
+      'A mural covers this wall, and someone has chipped one word out of the middle of it.',
+    openMessage:
+      'The missing word settles back into the mural, and the wall opens.',
     reward: { rupees: 70 },
   },
   {
@@ -396,30 +410,140 @@ const GATE_LIST: Gate[] = [
   {
     id: 'd1-door-4',
     kind: 'door',
-    message: 'A flooded doorway, its seal half-worn away.',
-    openMessage: 'The worn seal gives up entirely.',
+    message:
+      'A lantern hangs unlit above the stair. The wick will not catch for a careless hand.',
+    openMessage:
+      'The lantern flares, and the stair beyond comes into view.',
     reward: { rupees: 55 },
   },
   {
     id: 'd1-door-5',
     kind: 'door',
-    message: 'The last door before the Sunken Hall\'s treasury.',
-    openMessage: 'The treasury door opens.',
+    message:
+      'The treasury lock has five dials, each one a letter deep.',
+    openMessage:
+      'Five dials click into place and the lock falls open.',
     reward: { rupees: 60 },
   },
   {
     id: 'd2-door-5',
     kind: 'door',
-    message: 'A door that has been sealed twice, by two different hands.',
-    openMessage: 'Both seals break together.',
+    message:
+      'The stair is blocked by a portcullis. Its counterweight chain hangs slack, waiting.',
+    openMessage:
+      'The chain snaps taut and the portcullis grinds upward.',
     reward: { rupees: 70 },
   },
   {
     id: 'd2-door-6',
     kind: 'door',
-    message: 'The guardian\'s antechamber. The seal here is the neatest writing you have ever seen.',
-    openMessage: 'The neat writing comes apart, letter by letter.',
+    message:
+      'The antechamber seal is the neatest writing you have ever seen. It expects the same back.',
+    openMessage:
+      'The neat writing comes apart, letter by letter.',
     reward: { rupees: 75, hearts: 4 },
+  },
+  // --- dungeon three: the Ember Vault -------------------------------------
+  {
+    id: 'd3-door-1',
+    kind: 'door',
+    message:
+      'A vault door, warm to the touch. Its lock is a ring of letters that has to be read right around.',
+    openMessage:
+      'The ring turns full circle and the vault door swings in.',
+    reward: { rupees: 60 },
+  },
+  {
+    id: 'd3-door-2',
+    kind: 'door',
+    message:
+      'The way is flooded to the ceiling. A pump stands beside it with a word painted on the handle.',
+    openMessage:
+      'The pump shudders, and the water drops away below your knees.',
+    reward: { rupees: 65 },
+  },
+  {
+    id: 'd3-door-3',
+    kind: 'bridge',
+    message:
+      'A collapsed stairway. The fallen blocks each carry a letter, and they will only stack one way.',
+    openMessage:
+      'The blocks rise and settle into a stair.',
+    reward: { rupees: 70, hearts: 4 },
+  },
+  {
+    id: 'd3-chest',
+    kind: 'chest',
+    message: 'The vault\'s own chest, still sealed after all this time.',
+    openMessage: 'The vault chest opens.',
+    reward: { rupees: 85, heartContainer: true },
+  },
+  {
+    id: 'd3-boss',
+    kind: 'boss',
+    message: 'Something enormous is breathing on the other side of this seal.',
+    openMessage: 'The seal breaks. Whatever is in there has noticed you.',
+    reward: { rupees: 90 },
+  },
+
+  // --- dungeon four: the Sunless Spire -------------------------------------
+  {
+    id: 'd4-door-1',
+    kind: 'door',
+    message:
+      'The spire door has no handle at all, only a line of writing where one should be.',
+    openMessage:
+      'The writing fades and the door opens inward.',
+    reward: { rupees: 70 },
+  },
+  {
+    id: 'd4-door-2',
+    kind: 'door',
+    message:
+      'A cage of iron letters blocks the spiral stair, rearranging itself as you watch.',
+    openMessage:
+      'The letters stop moving, agree on an order, and unlock.',
+    reward: { rupees: 75 },
+  },
+  {
+    id: 'd4-door-3',
+    kind: 'door',
+    message:
+      'The last landing is barred by a wheel of stone, its rim worn almost smooth.',
+    openMessage:
+      'The wheel turns for the first time in a very long while.',
+    reward: { rupees: 80, hearts: 5 },
+  },
+  {
+    id: 'd4-chest',
+    kind: 'chest',
+    message: 'A chest at the very top of the spire, waiting.',
+    openMessage: 'The spire chest opens on a heart container.',
+    reward: { rupees: 95, heartContainer: true },
+  },
+  {
+    id: 'd4-boss',
+    kind: 'boss',
+    message: 'The Sunless Spire\'s keeper is sealed behind the brightest writing you have seen.',
+    openMessage: 'The light parts. The keeper turns to face you.',
+    reward: { rupees: 120, heartContainer: true },
+  },
+
+  // --- reached by blowing a wall open --------------------------------------
+  {
+    id: 'bomb-shop',
+    kind: 'shop',
+    message: 'The trader in the blasted-open cave folds his arms. "Prove it, and I will deal."',
+    openMessage: '"Good enough. Have a look at the shelf."',
+    reward: { rupees: 50 },
+  },
+  {
+    id: 'ember-chest',
+    kind: 'chest',
+    message: 'A chest hidden behind the cracked rock, sealed with a charm.',
+    openMessage: 'The charm gives way.',
+    reward: { rupees: 90 },
+    optional: true,
   },
 ]
 

@@ -6,7 +6,23 @@
  * the brief warns against.
  */
 import { button, el } from '../../spelling/ui/dom'
-import type { Gate } from '../gates'
+import type { Gate, GateKind } from '../gates'
+
+/**
+ * What the child is being asked to do, in words. "DOOR" told them nothing;
+ * naming the task makes each barrier read as its own small quest.
+ */
+const KIND_LABEL: Record<GateKind, string> = {
+  door: 'A way is blocked',
+  seal: 'A spell of passage',
+  bridge: 'Something needs building',
+  boss: 'The chamber beyond',
+  npc: 'Someone is in your way',
+  chest: 'A sealed chest',
+  shop: 'The shopkeeper wants proof',
+  wall: 'Something is hidden behind here',
+  smith: 'At the forge',
+}
 
 export interface PromptOptions {
   gate: Gate
@@ -38,7 +54,7 @@ export function showGatePrompt(root: HTMLElement, options: PromptOptions): () =>
 
   const panel = el('div', { class: 'overlay' }, [
     el('section', { class: 'gate-prompt' }, [
-      el('p', { class: 'gate-kind' }, [gate.kind.toUpperCase()]),
+      el('p', { class: 'gate-kind' }, [KIND_LABEL[gate.kind]]),
       el('p', { class: 'gate-message' }, [gate.message]),
       el('p', { class: 'gate-exercise' }, [heading]),
       ...(rewardLine(gate) ? [el('p', { class: 'gate-reward' }, [rewardLine(gate) as string])] : []),

@@ -8,15 +8,22 @@ import { ITEMS } from '../items'
 
 export const HUD_H = 40
 
+export interface HudState {
+  rupees: number
+  screenName: string
+  exercisesDone: number
+  totalExercises: number
+  /** The item in the B slot, and how many are left. */
+  tool?: { name: string; count: number }
+}
+
 export function drawHud(
   ctx: CanvasRenderingContext2D,
   atlas: Atlas,
   player: Player,
-  rupees: number,
-  screenName: string,
-  exercisesDone: number,
-  totalExercises: number,
+  state: HudState,
 ): void {
+  const { rupees, screenName, exercisesDone, totalExercises } = state
   ctx.fillStyle = '#0b0d13'
   ctx.fillRect(0, 0, SCREEN_W, HUD_H)
 
@@ -54,10 +61,17 @@ export function drawHud(
   // Equipped gear, as two small icons with the material named beside them.
   ctx.fillStyle = '#5d6472'
   const sword = material(ITEMS[player.loadout.sword].name)
-  const shield = material(ITEMS[player.loadout.shield].name)
   ctx.fillText(`SWORD ${sword}`, 4, 32)
-  const shieldLabel = `SHIELD ${shield}`
-  ctx.fillText(shieldLabel, SCREEN_W - 4 - shieldLabel.length * 4.2, 32)
+
+  // The B slot, so he can see what the item button will do before pressing it.
+  if (state.tool) {
+    const label = `[B] ${state.tool.name.toUpperCase()}${state.tool.count > 1 ? ` x${state.tool.count}` : ''}`
+    ctx.fillStyle = '#c9a86a'
+    ctx.fillText(label, SCREEN_W - 4 - label.length * 4.2, 32)
+  } else {
+    const shieldLabel = `SHIELD ${material(ITEMS[player.loadout.shield].name)}`
+    ctx.fillText(shieldLabel, SCREEN_W - 4 - shieldLabel.length * 4.2, 32)
+  }
 }
 
 /** "Metal Sword" -> "METAL", so the bar shows the upgrade, not the noun. */

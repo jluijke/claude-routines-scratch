@@ -10,7 +10,14 @@ export type Facing = 'up' | 'down' | 'left' | 'right'
 export const PLAYER_SIZE = 12
 const WALK_SPEED = 62 // pixels per second
 const ATTACK_FRAMES = 14
-const INVULNERABLE_FRAMES = 60
+/**
+ * Frames of invulnerability after a hit — a second and a half.
+ *
+ * At one second, standing in a room with two enemies cost roughly a heart per
+ * second, which for a nine-year-old with three hearts is a death sentence for
+ * hesitating. This is also closer to what the games this borrows from did.
+ */
+const INVULNERABLE_FRAMES = 90
 const KNOCKBACK_SPEED = 140
 
 export interface Loadout {
