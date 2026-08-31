@@ -71,8 +71,15 @@ export class ExerciseEngine {
 
   /** Concepts answered right first time, unaided, during this exercise. */
   private readonly proved = new Set<ConceptId>()
-  /** Question ids already used, so a remediation never repeats a word. */
+  /** Question ids already used in this exercise. */
   private readonly usedQuestionIds = new Set<string>()
+  /**
+   * Words already put in front of the child. Re-testing a concept has to use a
+   * word they have not just seen, or "prove it independently" is really just
+   * "remember what you were shown a minute ago" — so this is tracked by word,
+   * not only by question id, since content may reuse a word across pools.
+   */
+  private readonly usedWords = new Set<string>()
   private readonly remediationCount = new Map<ConceptId, number>()
   private tailFilled = false
 
@@ -92,7 +99,7 @@ export class ExerciseEngine {
       rng: this.rng,
     })
     this.queue = scheduled.questions
-    for (const q of this.queue) this.usedQuestionIds.add(baseId(q.id))
+    for (const q of this.queue) this.markUsed(q)
   }
 
   current(): Question | undefined {
@@ -207,7 +214,7 @@ export class ExerciseEngine {
     if (!question) return undefined
 
     this.remediationCount.set(concept, taken + 1)
-    this.usedQuestionIds.add(baseId(question.id))
+    this.markUsed(question)
     // Place it a few questions ahead, so the child does the same concept again
     // only after some space — not as an immediate second guess.
     const gap = Math.min(3, Math.max(1, this.queue.length - this.index - 1))
@@ -227,8 +234,12 @@ export class ExerciseEngine {
    */
   private pickFreshQuestion(concept: ConceptId, preferEasy: boolean): Question | undefined {
     const pool = this.concepts.get(concept)?.reviewPool ?? []
-    const unused = pool.filter((q) => !this.usedQuestionIds.has(baseId(q.id)))
-    const source = unused.length > 0 ? unused : pool
+    const unused = pool.filter(
+      (q) => !this.usedQuestionIds.has(baseId(q.id)) && !this.usedWords.has(this.wordOf(q)),
+    )
+    // Only fall back to a seen word when the pool genuinely has nothing left.
+    const fallback = pool.filter((q) => !this.usedQuestionIds.has(baseId(q.id)))
+    const source = unused.length > 0 ? unused : fallback
 
     if (source.length === 0) return undefined
     if (preferEasy) {
@@ -252,7 +263,7 @@ export class ExerciseEngine {
     for (const concept of outstanding) {
       const question = this.pickFreshQuestion(concept, false)
       if (!question) continue
-      this.usedQuestionIds.add(baseId(question.id))
+      this.markUsed(question)
       this.queue.push({
         ...question,
         id: `${question.id}#final-${concept}`,
@@ -271,6 +282,16 @@ export class ExerciseEngine {
   private canTest(concept: ConceptId): boolean {
     const pool = this.concepts.get(concept)?.reviewPool ?? []
     return pool.length > 0
+  }
+
+  private markUsed(question: Question): void {
+    this.usedQuestionIds.add(baseId(question.id))
+    const word = this.wordOf(question)
+    if (word) this.usedWords.add(word)
+  }
+
+  private wordOf(question: Question): string {
+    return focusWord(question, this.bank).toLowerCase()
   }
 
   /** Concepts proved unaided this run — the exercise's reward payload. */

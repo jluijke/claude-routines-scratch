@@ -117,3 +117,15 @@ describe('cumulative review', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 })
+
+describe('review does not start early', () => {
+  it('leaves exercises 1 to 5 as their own lesson only', () => {
+    for (const exercise of EXERCISES.filter((e) => e.id < 6)) {
+      const queue = queueFor(exercise)
+      expect(queue.questions.some((q) => q.review)).toBe(false)
+      // And nothing the author wrote gets dropped to make room for it.
+      expect(queue.trimmed).toBe(0)
+      expect(queue.breakdown.current).toBe(exercise.activities.length)
+    }
+  })
+})

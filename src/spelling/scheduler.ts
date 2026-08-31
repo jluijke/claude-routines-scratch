@@ -24,6 +24,12 @@ const CURRENT_SHARE = 1 - REVIEW_SHARE
 const RECENT_SHARE = 0.625
 /** How many exercises back still counts as "recent". */
 const RECENT_WINDOW = 8
+/**
+ * Cumulative review begins at Exercise 6 (spec §4C). Before that the child is
+ * still meeting their first few patterns, and an exercise is only its own
+ * lesson.
+ */
+const REVIEW_STARTS_AT = 6
 
 export interface ScheduleParams {
   exercise: Exercise
@@ -158,7 +164,7 @@ export function buildQueue(params: ScheduleParams): ScheduledQueue {
   const currentSeconds = estimateTotalSeconds(current)
 
   const { recent, older } = reviewCandidates(exercise, concepts)
-  const hasReview = recent.length > 0 || older.length > 0
+  const hasReview = exercise.id >= REVIEW_STARTS_AT && (recent.length > 0 || older.length > 0)
 
   if (!hasReview) {
     return {
