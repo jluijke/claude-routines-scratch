@@ -5,7 +5,7 @@
  * exercise engine answers it, and rewards flow back. Neither knows anything
  * about how the other works.
  */
-import { load, save as persistSave, type SaveData } from './core/save'
+import { clear as clearSave, load, newSave, save as persistSave, type SaveData } from './core/save'
 import { WebSpeechEngine } from './core/audio/speech'
 import { sfx } from './core/audio/sfx'
 import { music } from './core/audio/music'
@@ -20,6 +20,7 @@ import { button, clear, el } from './spelling/ui/dom'
 import { World } from './game/world'
 import { showGatePrompt, showNotice } from './game/ui/prompt'
 import { showShop, type ShopKind } from './game/ui/shop'
+import { showHelp } from './game/ui/help'
 import type { Gate } from './game/gates'
 import { ITEMS } from './game/items'
 import type { Exercise } from './spelling/types'
@@ -88,7 +89,7 @@ function showTitle(): void {
   music.play('title')
 
   root.append(
-    el('section', { class: 'exercise-screen title-screen' }, [
+    el('section', { class: 'panel-game title-screen' }, [
       el('h1', { class: 'exercise-title' }, ['Zelda Spelling Quest']),
       el('p', { class: 'prompt' }, [
         'Explore the land, fight monsters and gather rupees — but every sealed door, ' +
@@ -127,6 +128,7 @@ function enterWorld(): void {
     onChange: () => persist(),
     onDefeat: () => handleDefeat(),
     onMessage: () => {},
+    onHelp: () => openHelp(),
   })
   world.start()
   fitStage()
@@ -350,6 +352,28 @@ function openShop(kind: ShopKind): void {
   })
 }
 
+function openHelp(): void {
+  world?.setPaused(true)
+  showHelp(root, () => world?.setPaused(false))
+}
+
+/**
+ * Wipes the save and starts again. The world is torn down *first*: it holds a
+ * reference to the old save and writes the hero's hearts and position back on
+ * the way out, which would otherwise land on top of the fresh one.
+ */
+function startNewQuest(): void {
+  teardownWorld()
+  activeEngine = undefined
+  gateInProgress = undefined
+  clearSave()
+  // A new createdAt matters — it seeds the question order, so reusing the old
+  // one would replay the same exercises in the same sequence.
+  state = newSave()
+  persistSave(state)
+  showTitle()
+}
+
 function handleDefeat(): void {
   world?.setPaused(true)
   showNotice(root, 'You have run out of hearts. A villager carries you back to the square.', () => {
@@ -378,13 +402,18 @@ window.addEventListener('keydown', (event) => {
   if (event.ctrlKey && event.shiftKey && (event.key === 'P' || event.key === 'p')) {
     event.preventDefault()
     world?.setPaused(true)
-    mountParentDashboard(root, {
+    const closeDashboard = mountParentDashboard(root, {
       save: state,
       voiceName: speech.voiceName(),
       onImport: (imported) => {
+        closeDashboard()
         state = imported
         persistSave(state)
         showTitle()
+      },
+      onReset: () => {
+        closeDashboard()
+        startNewQuest()
       },
       onClose: () => world?.setPaused(false),
     })
@@ -433,10 +462,7 @@ Object.assign(window as unknown as Record<string, unknown>, {
     pacing: () => describePacing(state.pacing),
     music,
     toggleMusic,
-    reset() {
-      localStorage.removeItem('zsq.save')
-      state = load()
-      showTitle()
-    },
+    reset: startNewQuest,
+    openHelp,
   },
 })

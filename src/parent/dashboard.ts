@@ -6,7 +6,7 @@
  * are shaky, which words keep going wrong, and whether the play-versus-spelling
  * balance is anywhere near the 50/50 it is meant to be.
  */
-import { button, el } from '../spelling/ui/dom'
+import { answerInput, button, el } from '../spelling/ui/dom'
 import { CONCEPTS } from '../content/concepts'
 import { EXERCISES, TOTAL_EXERCISES } from '../content/exercises'
 import { deserialise, serialise, type SaveData } from '../core/save'
@@ -24,10 +24,13 @@ export interface DashboardOptions {
   save: SaveData
   voiceName: string
   onImport: (save: SaveData) => void
+  /** Wipe everything and start the quest again. */
+  onReset: () => void
   onClose: () => void
 }
 
-export function mountParentDashboard(root: HTMLElement, options: DashboardOptions): void {
+/** Returns a function that closes the panel. */
+export function mountParentDashboard(root: HTMLElement, options: DashboardOptions): () => void {
   const { save } = options
 
   const conceptRows = [...CONCEPTS.values()].map((concept) => {
@@ -81,6 +84,22 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
   })
   const importNote = el('p', { class: 'q-hint-line' }, ['Load a progress file from another device.'])
 
+  // Starting over throws away every mastery record, and there is no undo, so
+  // it asks for a word rather than a click.
+  const resetField = answerInput('Type NEW', { class: 'answer reset-field' })
+  const resetButton = button('Start a new quest', () => {
+    if (resetField.value.trim().toUpperCase() !== 'NEW') {
+      resetNote.textContent = 'Type NEW in the box first. This cannot be undone.'
+      resetField.focus()
+      return
+    }
+    options.onReset()
+  }, { class: 'btn btn-quiet' })
+  const resetNote = el('p', { class: 'q-hint-line' }, [
+    'Wipes all progress, gear and rupees, and starts from the title screen. ' +
+      'Download the progress file first if you might want it back.',
+  ])
+
   const close = button('Close', () => {
     panel.remove()
     options.onClose()
@@ -127,6 +146,10 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
       el('div', { class: 'dash-actions' }, [exportButton, fileInput]),
       importNote,
 
+      el('h3', {}, ['Start again']),
+      el('div', { class: 'dash-actions' }, [resetField, resetButton]),
+      resetNote,
+
       el('h3', {}, ['Audio']),
       el('p', { class: 'q-hint-line' }, [`Currently speaking with: ${options.voiceName}.`]),
 
@@ -136,6 +159,8 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
 
   root.append(panel)
   window.setTimeout(() => close.focus(), 60)
+
+  return () => panel.remove()
 }
 
 function stat(label: string, value: string): HTMLElement {

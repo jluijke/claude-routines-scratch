@@ -10,6 +10,7 @@ import { ITEMS, SECRET_SHOP, VILLAGE_SHOP, type ItemDef, type ItemId } from '../
 import { gateById, type Gate } from '../gates'
 import type { SaveData } from '../../core/save'
 import { sfx } from '../../core/audio/sfx'
+import { itemIcon, spriteCanvas } from '../render/icons'
 
 export type ShopKind = 'village' | 'secret' | 'smith'
 
@@ -41,7 +42,7 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
   const { kind, save } = options
   const stock = kind === 'village' ? VILLAGE_SHOP : kind === 'secret' ? SECRET_SHOP : SMITH_STOCK
 
-  const rupeeLine = el('p', { class: 'shop-rupees' })
+  const rupeeLine = el('span', { class: 'shop-rupees' })
   const list = el('div', { class: 'shop-list' })
   const note = el('p', { class: 'shop-note', role: 'status', 'aria-live': 'polite' })
 
@@ -51,10 +52,10 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
   }, { class: 'btn btn-quiet' })
 
   const panel = el('div', { class: 'overlay' }, [
-    el('section', { class: 'shop' }, [
-      el('h2', { class: 'shop-title' }, [TITLES[kind]]),
+    el('section', { class: 'shop panel-game' }, [
+      el('h2', { class: 'panel-title' }, [TITLES[kind]]),
       el('p', { class: 'shop-greeting' }, [GREETINGS[kind]]),
-      rupeeLine,
+      el('div', { class: 'shop-purse' }, [spriteCanvas('rupee', 3), rupeeLine]),
       list,
       note,
       el('div', { class: 'gate-actions' }, [closeButton]),
@@ -71,7 +72,7 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
 
   function render(): void {
     clear(list)
-    rupeeLine.textContent = `You have ${save.player.rupees} rupees.`
+    rupeeLine.textContent = String(save.player.rupees).padStart(4, '0')
 
     for (const id of stock) {
       const item = ITEMS[id]
@@ -99,7 +100,7 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
           ? 'The shopkeeper wants to see you spell first'
           : !affordable
             ? `${price - save.player.rupees} rupees short`
-            : `${price} rupees`
+            : ''
 
     // A missing prerequisite is a different kind of "no" from a spelling
     // challenge, and the button should not promise one when it means the other.
@@ -126,14 +127,25 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
     )
     action.disabled = alreadyHave || Boolean(missingRequirement) || (gateOpen && !affordable)
 
-    return el('div', { class: 'shop-row' }, [
+    const row = el('div', { class: 'shop-row' }, [
+      el('div', { class: 'shop-icon' }, [itemIcon(item.id, 2)]),
       el('div', { class: 'shop-item' }, [
-        el('strong', {}, [item.name + (isStackable && already > 0 ? ` (${already})` : '')]),
+        el('span', { class: 'shop-name' }, [
+          item.name + (isStackable && already > 0 ? ` x${already}` : ''),
+        ]),
         el('span', { class: 'shop-desc' }, [item.description]),
+        ...(status ? [el('span', { class: 'shop-status' }, [status])] : []),
       ]),
-      el('span', { class: 'shop-price' }, [status]),
+      el('span', { class: 'shop-price' }, [
+        ...(alreadyHave ? [] : [spriteCanvas('rupee', 2)]),
+        alreadyHave ? 'OWNED' : String(price).padStart(3, '0'),
+      ]),
       action,
     ])
+    if (alreadyHave) row.classList.add('is-owned')
+    else if (!gateOpen) row.classList.add('is-locked')
+    else if (!affordable || missingRequirement) row.classList.add('is-dear')
+    return row
   }
 
   function buy(item: ItemDef): void {

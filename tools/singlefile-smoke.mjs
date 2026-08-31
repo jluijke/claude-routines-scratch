@@ -19,7 +19,7 @@ page.on('pageerror', (e) => errors.push(String(e)))
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()) })
 
 await page.goto(file)
-await page.waitForSelector('.exercise-screen', { timeout: 10000 })
+await page.waitForSelector('.title-screen', { timeout: 10000 })
 const title = await page.locator('.exercise-title').textContent()
 
 await page.getByRole('button', { name: /begin your quest|continue/i }).click()

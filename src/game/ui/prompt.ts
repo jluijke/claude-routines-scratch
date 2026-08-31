@@ -53,7 +53,7 @@ export function showGatePrompt(root: HTMLElement, options: PromptOptions): () =>
   }, { class: 'btn btn-quiet' })
 
   const panel = el('div', { class: 'overlay' }, [
-    el('section', { class: 'gate-prompt' }, [
+    el('section', { class: 'gate-prompt panel-game' }, [
       el('p', { class: 'gate-kind' }, [KIND_LABEL[gate.kind]]),
       el('p', { class: 'gate-message' }, [gate.message]),
       el('p', { class: 'gate-exercise' }, [heading]),
@@ -89,7 +89,7 @@ export function showNotice(root: HTMLElement, text: string, onClose?: () => void
   }, { class: 'btn btn-primary' })
 
   const panel = el('div', { class: 'overlay' }, [
-    el('section', { class: 'gate-prompt' }, [
+    el('section', { class: 'gate-prompt panel-game' }, [
       el('p', { class: 'gate-message' }, [text]),
       el('div', { class: 'gate-actions' }, [ok]),
     ]),

@@ -36,6 +36,8 @@ export interface WorldCallbacks {
   onDefeat: () => void
   /** A line of text to show in the message bar. */
   onMessage: (text: string) => void
+  /** Control or Escape: show the controls, paused, until it is dismissed. */
+  onHelp: () => void
 }
 
 interface Drop {
@@ -164,6 +166,7 @@ export class World {
 
   destroy(): void {
     this.stop()
+    this.input.destroy()
     this.canvas.remove()
   }
 
@@ -334,8 +337,9 @@ export class World {
     }
 
     const state = this.input.read()
-    if (state.pause) {
-      this.callbacks.onMessage('')
+    if (state.help) {
+      this.callbacks.onHelp()
+      return
     }
 
     let dx = state.dx

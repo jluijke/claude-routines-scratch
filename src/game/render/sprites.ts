@@ -72,10 +72,8 @@ const TIER_COLOURS: Record<Tier, { body: string; edge: string; grip: string }> =
   magical: { body: 'c', edge: 'w', grip: 'p' },
 }
 
-/** Swaps the steel palette characters for another material's. */
-export function recolour(sprite: Sprite, tier: Tier): Sprite {
-  const { body, edge, grip } = TIER_COLOURS[tier]
-  const swap: Record<string, string> = { m: body, M: body, w: edge, y: grip }
+/** Rewrites palette characters, so one drawing can serve several colours. */
+export function mapColours(sprite: Sprite, swap: Record<string, string>): Sprite {
   return {
     width: sprite.width,
     height: sprite.height,
@@ -86,6 +84,12 @@ export function recolour(sprite: Sprite, tier: Tier): Sprite {
         .join(''),
     ),
   }
+}
+
+/** Swaps the steel palette characters for another material's. */
+export function recolour(sprite: Sprite, tier: Tier): Sprite {
+  const { body, edge, grip } = TIER_COLOURS[tier]
+  return mapColours(sprite, { m: body, M: body, w: edge, y: grip })
 }
 
 /** Mirrors a sprite vertically, so an up-pointing blade is free. */
@@ -660,6 +664,188 @@ const MAGIC_BOLT = S8([
   '...kk...',
 ])
 
+// --- things the shops sell ------------------------------------------------
+//
+// Drawn in steel so `recolour` can make each one wood, bronze, gold or magic,
+// the same way the swords are done. The shop draws these beside every line so
+// a nine-year-old can tell a shield from a candle without reading first.
+
+/**
+ * The sword as an item rather than as a swing. The in-world blade is eight
+ * pixels across so it fits a tile, which on a shelf reads as a stick; held
+ * diagonally it reads as a sword.
+ */
+const SWORD_ICON = S([
+  '.............kk.',
+  '............kwk.',
+  '...........kwmk.',
+  '..........kwmk..',
+  '.........kwmk...',
+  '........kwmk....',
+  '.......kwmk.....',
+  '..k...kwmk......',
+  '.kyk.kwmk.......',
+  'kyyykwmk........',
+  '.kyykmk.........',
+  '..kykk..........',
+  '.kykk...........',
+  'kyk.............',
+  'kk..............',
+  '................',
+])
+
+const SHIELD = S([
+  '..kkkkkkkkkkkk..',
+  '.kMMMMMMMMMMMMk.',
+  'kMwwwwwwwwwwwwMk',
+  'kMwmmmmmmmmmmwMk',
+  'kMwmmmmyymmmmwMk',
+  'kMwmmmyyyymmmwMk',
+  'kMwmmyyYYyymmwMk',
+  'kMwmmyyYYyymmwMk',
+  'kMwmmmyyyymmmwMk',
+  'kMwmmmmyymmmmwMk',
+  'kMwmmmmmmmmmmwMk',
+  '.kMwmmmmmmmmwMk.',
+  '.kMMwmmmmmmwMMk.',
+  '..kMMwwmmwwMMk..',
+  '...kkMMwwMMkk...',
+  '.....kkkkkk.....',
+])
+
+const CANDLE = S([
+  '................',
+  '.......k........',
+  '......kyk.......',
+  '.....kywyk......',
+  '.....kywyk......',
+  '......kyk.......',
+  '.......k........',
+  '....kkkkkk......',
+  '....kbbbbk......',
+  '....kbwwbk......',
+  '....kbbbbk......',
+  '....kbwwbk......',
+  '....kbbbbk......',
+  '...kkBBBBkk.....',
+  '...kBBBBBBk.....',
+  '...kkkkkkkk.....',
+])
+
+const BAIT = S([
+  '................',
+  '......kkkk......',
+  '....kkrrrrkk....',
+  '...krrrrrrrrk...',
+  '..krrrrrrrrrrk..',
+  '..krrRRrrrrrrk..',
+  '..krrRRrrrrrrk..',
+  '..krrrrrrrrrrk..',
+  '..kRRrrrrrrRRk..',
+  '...kRRRRRRRRk...',
+  '....kkxxxxkk....',
+  '......kxxk......',
+  '......kxxk......',
+  '.....kkxxkk.....',
+  '.....kxxxxk.....',
+  '......kkkk......',
+])
+
+const BOW = S([
+  '.....kkkk.......',
+  '....knnnnk......',
+  '...knnkkwk......',
+  '...knk..w.......',
+  '..knk...w.......',
+  '..knk...w.......',
+  '..knk...w.......',
+  '..knk...w.......',
+  '..knk...w.......',
+  '..knk...w.......',
+  '..knk...w.......',
+  '..knk...w.......',
+  '...knk..w.......',
+  '...knnkkwk......',
+  '....knnnnk......',
+  '.....kkkk.......',
+])
+
+const ARROW = S([
+  '.......kk.......',
+  '......kwwk......',
+  '.....kwwwwk.....',
+  '....kwwkkwwk....',
+  '...kwwk..kwwk...',
+  '...kkk.kk.kkk...',
+  '.......nn.......',
+  '.......nn.......',
+  '.......nn.......',
+  '.......nn.......',
+  '.......nn.......',
+  '.....k.nn.k.....',
+  '....kw.nn.wk....',
+  '...kww.nn.wwk...',
+  '...kw..nn..wk...',
+  '.......kk.......',
+])
+
+const WINGS = S([
+  '................',
+  '...kk......kk...',
+  '..kwwk....kwwk..',
+  '.kwwwwk..kwwwwk.',
+  'kwwwwwwkkwwwwwwk',
+  'kwwwwwwkkwwwwwwk',
+  'kwwwwwwkkwwwwwwk',
+  'kwwwwwwkkwwwwwwk',
+  'kMwwwwwkkwwwwwMk',
+  '.kMwwwwkkwwwwMk.',
+  '..kMwwwkkwwwMk..',
+  '...kMwwkkwwMk...',
+  '....kMwkkwMk....',
+  '.....kMkkMk.....',
+  '......kkkk......',
+  '................',
+])
+
+const RING = S([
+  '................',
+  '.......kk.......',
+  '......kbbk......',
+  '.....kbwwbk.....',
+  '......kbbk......',
+  '....kkyyyykk....',
+  '...kyyYYYYyyk...',
+  '..kyyk....kyyk..',
+  '..kyk......kyk..',
+  '..kyk......kyk..',
+  '..kyyk....kyyk..',
+  '...kyyYYYYyyk...',
+  '....kkyyyykk....',
+  '................',
+  '................',
+  '................',
+])
+
+const TUNIC = S([
+  '..kkk......kkk..',
+  '.kgggk....kgggk.',
+  '.kggggkkkkggggk.',
+  '.kggggggggggggk.',
+  '.kggggggggggggk.',
+  '.kgGggggggggGgk.',
+  '.kgGggggggggGgk.',
+  '.kggggggggggggk.',
+  '.kddddddddddddk.',
+  '.kddyyddddyyddk.',
+  '.kddddddddddddk.',
+  '.kggggggggggggk.',
+  '.kggggggggggggk.',
+  '.kggggggggggggk.',
+  '..kkkkkkkkkkkk..',
+  '................',
+])
+
 const SWORD_BASE = {
   Right: SWORD_RIGHT,
   Left: mirror(SWORD_RIGHT),
@@ -687,8 +873,10 @@ type SwordVariants = {
 type HeroVariants = {
   [T in Tier as `hero${Cap<T>}${keyof typeof HERO_BASE & string}`]: Sprite
 }
+type ShieldVariants = { [T in Tier as `shield${Cap<T>}`]: Sprite }
+type IconVariants = { [T in Tier as `swordIcon${Cap<T>}`]: Sprite }
 
-function buildVariants(): SwordVariants & HeroVariants {
+function buildVariants(): SwordVariants & HeroVariants & ShieldVariants & IconVariants {
   const out: Record<string, Sprite> = {}
   for (const tier of TIERS) {
     const name = tier[0]!.toUpperCase() + tier.slice(1)
@@ -698,8 +886,10 @@ function buildVariants(): SwordVariants & HeroVariants {
     for (const [frame, sprite] of Object.entries(HERO_BASE)) {
       out[`hero${name}${frame}`] = recolour(sprite, tier)
     }
+    out[`shield${name}`] = recolour(SHIELD, tier)
+    out[`swordIcon${name}`] = recolour(SWORD_ICON, tier)
   }
-  return out as SwordVariants & HeroVariants
+  return out as SwordVariants & HeroVariants & ShieldVariants & IconVariants
 }
 
 export const SPRITES = {
@@ -727,6 +917,14 @@ export const SPRITES = {
   bombLit: BOMB_LIT,
   explosion: EXPLOSION,
   flame: FLAME,
+  candle: CANDLE,
+  bait: BAIT,
+  bow: BOW,
+  arrow: ARROW,
+  wings: WINGS,
+  ring: RING,
+  tunicBlue: mapColours(TUNIC, { g: 'b', G: 'B' }),
+  tunicRed: mapColours(TUNIC, { g: 'r', G: 'R' }),
 } as const
 
 export type SpriteName = keyof typeof SPRITES

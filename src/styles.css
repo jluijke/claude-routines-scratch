@@ -19,6 +19,16 @@
   --muted: #5d6472;
   --focus: #2f6fd0;
 
+  /* The game frame, lifted from the canvas HUD in game/render/hud.ts. */
+  --hud-ink: #0b0d13;
+  --hud-slab: #151824;
+  --hud-edge: #3a4150;
+  --hud-edge-soft: #2a2f3d;
+  --hud-text: #f6f3e7;
+  --hud-dim: #8f98a8;
+  --hud-faint: #5d6472;
+  --hud-gold: #c9a86a;
+
   --font-ui: 'Trebuchet MS', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-word: 'Andale Mono', 'DejaVu Sans Mono', ui-monospace, monospace;
 
@@ -383,8 +393,12 @@ textarea.answer { width: 100%; line-height: 1.5; resize: vertical; }
   cursor: crosshair;
 }
 
-.title-screen { max-width: 640px; }
+.title-screen { width: min(640px, 94vw); margin: 2rem auto; }
+.title-screen .exercise-title { color: var(--hud-gold); text-transform: uppercase; letter-spacing: 0.12em; }
+.title-screen .prompt { font-family: var(--font-ui); color: var(--hud-dim); }
 .controls-help { border-top: 2px solid var(--paper-edge); padding-top: 0.8rem; margin-top: 0.4rem; }
+.panel-game .controls-help { border-top-color: var(--hud-edge-soft); font-family: var(--font-ui); }
+.panel-game .controls { border-top-color: var(--hud-edge-soft); }
 
 /* Touch pad — hidden on anything with a real pointer. */
 .touch-controls {
@@ -433,7 +447,7 @@ textarea.answer { width: 100%; line-height: 1.5; resize: vertical; }
   overflow-y: auto;
 }
 
-.gate-prompt, .shop, .dashboard {
+.dashboard {
   width: min(680px, 96vw);
   background: var(--paper);
   color: var(--ink);
@@ -445,6 +459,64 @@ textarea.answer { width: 100%; line-height: 1.5; resize: vertical; }
   overflow-y: auto;
 }
 
+/*
+ * The pixel panel. Square corners, the HUD's palette, and the monospace face,
+ * so a shop or a sealed door reads as part of the game rather than as part of
+ * the spelling worksheet. Exercise screens never wear this.
+ */
+.panel-game {
+  width: min(680px, 96vw);
+  background: var(--hud-ink);
+  color: var(--hud-text);
+  border: 3px solid var(--hud-edge);
+  border-radius: 0;
+  padding: 1.2rem 1.3rem;
+  box-shadow: 0 0 0 3px var(--hud-ink), 0 18px 50px rgba(0, 0, 0, 0.75);
+  max-height: 92vh;
+  overflow-y: auto;
+  font-family: var(--font-word);
+}
+.panel-game .panel-title, .panel-game h1, .panel-game h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--hud-gold);
+}
+.panel-game p { color: var(--hud-dim); }
+.panel-game .btn {
+  border-radius: 0;
+  font-family: var(--font-word);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.5rem 0.9rem;
+}
+.panel-game .btn-quiet {
+  border-color: var(--hud-edge);
+  color: var(--hud-dim);
+  background: var(--hud-slab);
+}
+.panel-game .btn-quiet:hover:not(:disabled) { color: var(--hud-text); border-color: var(--hud-gold); }
+
+.sprite-icon { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+.panel-title { display: flex; align-items: center; gap: 0.5rem; }
+
+/* A key as it looks on the keyboard, for the help panel. */
+.key {
+  display: inline-block;
+  min-width: 1.7em;
+  text-align: center;
+  padding: 0.12rem 0.4rem;
+  background: var(--hud-edge-soft);
+  border: 2px solid var(--hud-edge);
+  border-bottom-width: 3px;
+  color: var(--hud-text);
+  font-family: var(--font-word);
+  font-size: 0.78rem;
+}
+
 .gate-kind {
   font-size: 0.72rem;
   letter-spacing: 0.16em;
@@ -452,6 +524,10 @@ textarea.answer { width: 100%; line-height: 1.5; resize: vertical; }
   margin: 0 0 0.5rem;
 }
 .gate-message { font-size: 1.2rem; line-height: 1.6; margin: 0 0 1rem; }
+.panel-game .gate-kind { text-transform: uppercase; color: var(--hud-faint); }
+.panel-game .gate-message { font-family: var(--font-ui); color: var(--hud-text); }
+.panel-game .gate-exercise { color: var(--hud-gold); }
+.panel-game .gate-reward { color: var(--hud-dim); }
 .gate-exercise {
   font-weight: 700;
   color: var(--brand-dark);
@@ -470,24 +546,73 @@ textarea.answer { width: 100%; line-height: 1.5; resize: vertical; }
 
 /* ------------------------------------------------------------------- shop */
 
-.shop-title { margin: 0 0 0.3rem; color: var(--brand-dark); }
-.shop-greeting { color: var(--muted); font-style: italic; margin: 0 0 0.8rem; }
-.shop-rupees { font-weight: 700; margin: 0 0 1rem; }
-.shop-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.shop-greeting { color: var(--hud-dim); font-style: italic; margin: 0 0 0.9rem; font-family: var(--font-ui); }
+.shop-purse {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.9rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 2px solid var(--hud-edge-soft);
+}
+.shop-rupees { font-size: 1.1rem; letter-spacing: 0.12em; color: var(--rupee); }
+.shop-list { display: flex; flex-direction: column; gap: 4px; }
 .shop-row {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
-  padding: 0.6rem 0.7rem;
-  border: 2px solid var(--paper-edge);
-  border-radius: 9px;
-  background: #fffdf7;
+  gap: 0.8rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--hud-slab);
+  border: 2px solid var(--hud-edge-soft);
   flex-wrap: wrap;
 }
-.shop-item { flex: 1 1 240px; display: flex; flex-direction: column; gap: 0.15rem; }
-.shop-desc { font-size: 0.88rem; color: var(--muted); }
-.shop-price { font-family: var(--font-word); font-size: 0.9rem; color: var(--muted); min-width: 12ch; text-align: right; }
-.shop-note { min-height: 1.4rem; color: var(--brand-dark); font-weight: 600; }
+.shop-row:hover { border-color: var(--hud-gold); }
+.shop-row.is-owned { opacity: 0.6; }
+.shop-icon { flex: 0 0 32px; width: 32px; height: 32px; display: grid; place-items: center; }
+.shop-item { flex: 1 1 220px; display: flex; flex-direction: column; gap: 0.15rem; }
+.shop-name { text-transform: uppercase; letter-spacing: 0.08em; color: var(--hud-text); font-size: 0.92rem; }
+.shop-desc { font-family: var(--font-ui); font-size: 0.85rem; color: var(--hud-dim); }
+.shop-status {
+  font-size: 0.72rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--hud-gold);
+}
+.shop-price {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  justify-content: flex-end;
+  min-width: 6ch;
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  color: var(--rupee);
+}
+.shop-row.is-dear .shop-price { color: var(--heart); }
+.shop-row.is-owned .shop-price { color: var(--hud-faint); }
+.shop-note {
+  min-height: 1.4rem;
+  margin: 0.7rem 0 0;
+  color: var(--gold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.82rem;
+}
+
+/* ------------------------------------------------------------------- help */
+
+.help-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0 1.6rem; }
+.help-section {
+  margin: 0.9rem 0 0.4rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--hud-gold);
+}
+.help-grid { display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 0.8rem; align-items: center; }
+.help-keys { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+.help-what { font-family: var(--font-ui); font-size: 0.88rem; color: var(--hud-dim); }
+.help-footnote { font-family: var(--font-ui); font-size: 0.85rem; margin: 1rem 0 0; }
 
 /* -------------------------------------------------------------- dashboard */
 
@@ -521,3 +646,5 @@ tr.mastery-shaky td:nth-child(2) { color: var(--wrong); font-weight: 600; }
 tr.mastery-unseen { opacity: 0.55; }
 .dash-actions { display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap; }
 .file-input { font: inherit; font-size: 0.85rem; }
+
+.reset-field { max-width: 9ch; }

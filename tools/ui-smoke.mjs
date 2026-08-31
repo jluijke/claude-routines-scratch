@@ -58,13 +58,114 @@ const dashRows = await page.locator('.mastery-table tbody tr').count()
 const balance = await page.locator('.dashboard p').nth(1).textContent()
 const shakyShown = await page.locator('tr.mastery-shaky .missed').first().textContent()
 
+const dashActions = await page.locator('.dash-actions').count()
+await page.getByRole('button', { name: /close/i }).click()
+await page.waitForTimeout(250)
+
+// ---------------------------------------------------------------- the help
+//
+// Control used to swing the sword. It now opens the controls, and the two
+// must not both happen: a child asking what the keys are should not attack.
+
+const failures = []
+const check = (name, ok) => { if (!ok) failures.push(name) }
+
+await page.keyboard.press('Control')
+await page.waitForTimeout(250)
+check('Control opens the help panel', Boolean(await page.$('.help-panel')))
+await page.screenshot({ path: `${OUT}/S03-help.png` })
+const helpRows = await page.locator('.help-grid .help-what').count()
+check('the help panel lists every binding', helpRows >= 8)
+
+await page.keyboard.press('Escape')
+await page.waitForTimeout(250)
+check('Escape closes it', !(await page.$('.help-panel')))
+
+await page.keyboard.press('Escape')
+await page.waitForTimeout(250)
+check('Escape opens it too', Boolean(await page.$('.help-panel')))
+await page.keyboard.press('Escape')
+await page.waitForTimeout(250)
+
+// Held as a modifier, Control belongs to the combination, not to the help.
+await page.keyboard.down('Control')
+await page.keyboard.down('Shift')
+await page.keyboard.press('P')
+await page.keyboard.up('Shift')
+await page.keyboard.up('Control')
+await page.waitForTimeout(350)
+check('Ctrl+Shift+P still reaches the dashboard', Boolean(await page.$('.dashboard')))
+check('and does not flash the help panel', !(await page.$('.help-panel')))
+
+// --------------------------------------------------------------- the reset
+
+await page.getByRole('button', { name: /start a new quest/i }).click()
+await page.waitForTimeout(250)
+check('the reset refuses without the word', Boolean(await page.$('.dashboard')))
+
+await page.fill('.reset-field', 'NEW')
+await page.getByRole('button', { name: /start a new quest/i }).click()
+await page.waitForTimeout(500)
+const fresh = await page.evaluate(() => ({
+  rupees: window.zsq.state.player.rupees,
+  done: window.zsq.state.spelling.completedExercises.length,
+  sword: window.zsq.state.player.equippedSword,
+  storedRupees: JSON.parse(localStorage.getItem('zsq.save') ?? '{}')?.player?.rupees,
+  dashboardGone: !document.querySelector('.dashboard'),
+}))
+check('the reset clears rupees', fresh.rupees === 0)
+check('the reset clears progress', fresh.done === 0)
+check('the reset un-equips the bought sword', fresh.sword === 'woodenSword')
+// The world holds the old save and writes it back when it stops, so a reset
+// that tears down in the wrong order resurrects the old rupees on disk.
+check('the old save does not come back', fresh.storedRupees === 0)
+check('the dashboard closes behind it', fresh.dashboardGone)
+check('the title screen offers a fresh start',
+  (await page.getByRole('button', { name: /begin your quest/i }).count()) === 1)
+
+// ------------------------------------------------- Control must not attack
+//
+// Stand next to a monster, tap Control twenty times, and check nothing died.
+
+await page.getByRole('button', { name: /begin your quest/i }).click()
+await page.waitForSelector('.game-canvas')
+await page.evaluate(() => { for (let i = 0; i < 20; i++) window.zsq.world.grantHeartContainer() })
+await page.evaluate(() => window.zsq.goTo('d3-hall', 5, 6))
+await page.waitForTimeout(400)
+const monstersBefore = (await page.evaluate(() => window.zsq.world.debugState())).enemies
+for (let i = 0; i < 20; i++) {
+  await page.keyboard.press('Control')
+  await page.waitForTimeout(40)
+  if (await page.$('.help-panel')) await page.keyboard.press('Escape')
+  await page.waitForTimeout(40)
+}
+const monstersAfterControl = (await page.evaluate(() => window.zsq.world.debugState())).enemies
+check('tapping Control never swings the sword', monstersAfterControl === monstersBefore)
+
+// Face the monster before swinging, or this proves nothing about the key.
+for (let i = 0; i < 6; i++) {
+  await page.keyboard.down('ArrowUp')
+  await page.waitForTimeout(50)
+  await page.keyboard.up('ArrowUp')
+  await page.keyboard.press('z')
+  await page.waitForTimeout(220)
+}
+const monstersAfterZ = (await page.evaluate(() => window.zsq.world.debugState())).enemies
+check('Z still swings it', monstersAfterZ < monstersBefore)
+
 console.log(JSON.stringify({
   shopRows, buyable,
   purchase: { spent: before - after.rupees, equipped: after.sword, owns: after.owns },
   gatedLabel: gatedLabel?.trim(),
-  dashboard: { rows: dashRows, balance: balance?.trim(), shakyWords: shakyShown?.trim() },
+  dashboard: { rows: dashRows, actionRows: dashActions, balance: balance?.trim(), shakyWords: shakyShown?.trim() },
+  help: { rows: helpRows },
+  reset: fresh,
+  combat: { monstersBefore, monstersAfterControl, monstersAfterZ },
+  failures,
   errors,
 }, null, 2))
 
+for (const failure of failures) console.log(`  FAILED: ${failure}`)
+
 await browser.close()
-process.exit(errors.length === 0 ? 0 : 1)
+process.exit(failures.length === 0 && errors.length === 0 ? 0 : 1)

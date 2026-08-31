@@ -13,7 +13,8 @@ export interface InputState {
   /** Step to the next item in the B slot. */
   cycleItem: boolean
   confirm: boolean
-  pause: boolean
+  /** Show the controls, and pause while they are up. */
+  help: boolean
   /** Where the player last clicked, in world pixels, or undefined. */
   moveTarget?: { x: number; y: number }
 }
@@ -27,19 +28,42 @@ const MOVE_KEYS: Record<string, [number, number]> = {
   '7': [-1, -1], '9': [1, -1], '1': [-1, 1], '3': [1, 1],
 }
 
-const ATTACK_KEYS = new Set([' ', 'z', 'Z', 'Enter', '0', 'Control'])
+// Control used to swing the sword, which made it useless as a "what are the
+// controls?" key. Space, Z, Enter and the keypad zero still do.
+const ATTACK_KEYS = new Set([' ', 'z', 'Z', 'Enter', '0'])
 const ITEM_KEYS = new Set(['x', 'X', 'Shift', '5'])
 const CYCLE_KEYS = new Set(['c', 'C', 'Tab', '.'])
-const PAUSE_KEYS = new Set(['Escape', 'p', 'P'])
+const HELP_KEYS = new Set(['Escape', 'p', 'P', 'h', 'H', '?'])
+
+/**
+ * The bindings, in the order they are worth learning. The help panel reads
+ * this, so the list a child sees cannot drift away from what the keys do.
+ */
+export const BINDINGS: { keys: string[]; what: string; group: 'Moving' | 'Doing' | 'The rest' }[] = [
+  { group: 'Moving', keys: ['↑', '↓', '←', '→'], what: 'Walk' },
+  { group: 'Moving', keys: ['W', 'A', 'S', 'D'], what: 'Walk, the other way round' },
+  { group: 'Moving', keys: ['8', '4', '2', '6'], what: 'Walk with the number pad — 7 9 1 3 go diagonally' },
+  { group: 'Doing', keys: ['Space', 'Z'], what: 'Swing your sword' },
+  { group: 'Doing', keys: ['X'], what: 'Use the item in the B slot' },
+  { group: 'Doing', keys: ['C', 'Tab'], what: 'Swap to your next item' },
+  { group: 'The rest', keys: ['Ctrl', 'Esc'], what: 'This list, and pause the game' },
+  { group: 'The rest', keys: ['M'], what: 'Music on and off' },
+]
 
 export class Input {
   private readonly held = new Set<string>()
   private attackEdge = false
   private itemEdge = false
-  private pauseEdge = false
+  private helpEdge = false
   private cycleEdge = false
   private target: { x: number; y: number } | undefined
   private pointerHeld = false
+  /**
+   * Control opens the help panel, but only when it is *tapped*. Held down as a
+   * modifier it belongs to whatever it is modifying — Ctrl+Shift+P opens the
+   * parent dashboard, and should not flash the controls list on the way.
+   */
+  private controlTainted = false
 
   /** Set while an exercise or menu owns the keyboard. */
   private suspended = false
@@ -51,12 +75,34 @@ export class Input {
   ) {
     window.addEventListener('keydown', this.onKeyDown)
     window.addEventListener('keyup', this.onKeyUp)
-    window.addEventListener('blur', () => this.held.clear())
+    window.addEventListener('blur', this.onBlur)
 
     canvas.addEventListener('pointerdown', this.onPointerDown)
     canvas.addEventListener('pointermove', this.onPointerMove)
     window.addEventListener('pointerup', this.onPointerUp)
-    canvas.addEventListener('contextmenu', (e) => e.preventDefault())
+    canvas.addEventListener('contextmenu', this.onContextMenu)
+  }
+
+  /**
+   * Every exercise destroys the world and builds a new one. Without this, each
+   * round trip left another set of window listeners behind.
+   */
+  destroy(): void {
+    window.removeEventListener('keydown', this.onKeyDown)
+    window.removeEventListener('keyup', this.onKeyUp)
+    window.removeEventListener('blur', this.onBlur)
+    window.removeEventListener('pointerup', this.onPointerUp)
+    this.canvas.removeEventListener('pointerdown', this.onPointerDown)
+    this.canvas.removeEventListener('pointermove', this.onPointerMove)
+    this.canvas.removeEventListener('contextmenu', this.onContextMenu)
+  }
+
+  private onBlur = (): void => {
+    this.held.clear()
+  }
+
+  private onContextMenu = (event: Event): void => {
+    event.preventDefault()
   }
 
   suspend(): void {
@@ -80,21 +126,27 @@ export class Input {
       ATTACK_KEYS.has(event.key) ||
       ITEM_KEYS.has(event.key) ||
       CYCLE_KEYS.has(event.key) ||
-      PAUSE_KEYS.has(event.key)
+      HELP_KEYS.has(event.key)
     ) {
       event.preventDefault()
     }
+
+    // Anything pressed while Control is down makes it a modifier, not a tap.
+    if (event.key !== 'Control' && this.held.has('Control')) this.controlTainted = true
+    if (event.key === 'Control') this.controlTainted = event.shiftKey || event.altKey || event.metaKey
+
     if (this.held.has(event.key)) return
     this.held.add(event.key)
 
     if (ATTACK_KEYS.has(event.key)) this.attackEdge = true
     if (ITEM_KEYS.has(event.key)) this.itemEdge = true
-    if (PAUSE_KEYS.has(event.key)) this.pauseEdge = true
+    if (HELP_KEYS.has(event.key)) this.helpEdge = true
     if (CYCLE_KEYS.has(event.key)) this.cycleEdge = true
   }
 
   private onKeyUp = (event: KeyboardEvent): void => {
     this.held.delete(event.key)
+    if (event.key === 'Control' && !this.controlTainted && !this.suspended) this.helpEdge = true
   }
 
   private onPointerDown = (event: PointerEvent): void => {
@@ -145,13 +197,13 @@ export class Input {
       useItem: this.itemEdge,
       cycleItem: this.cycleEdge,
       confirm: this.held.has('Enter'),
-      pause: this.pauseEdge,
+      help: this.helpEdge,
       ...(this.target ? { moveTarget: this.target } : {}),
     }
 
     this.attackEdge = false
     this.itemEdge = false
-    this.pauseEdge = false
+    this.helpEdge = false
     this.cycleEdge = false
     return state
   }
@@ -195,6 +247,7 @@ export class Input {
     const actions = document.createElement('div')
     actions.className = 'action-buttons'
     actions.append(
+      makeButton('?', 'Escape', 'pad help'),
       makeButton('↻', 'c', 'pad cycle'),
       makeButton('B', 'x', 'pad action item'),
       makeButton('A', 'z', 'pad action attack'),

@@ -48,7 +48,11 @@ Both input methods work everywhere; neither is a second-class citizen.
 | Use item | X | On-screen button |
 | Swap item | C or Tab | On-screen ↻ button |
 | Music on/off | M | — |
-| Pause | Escape | — |
+| The controls, and pause | Control or Escape | On-screen ? button |
+
+Tapping **Control** pauses the game and shows every key on one screen, so he
+never has to be told twice. Held down as a modifier it does nothing — the help
+only opens on a tap.
 
 The item in the B slot is shown in the status bar, so he can see what the item
 button will do before pressing it.
@@ -77,6 +81,11 @@ bomb on it is a better moment than being told.
 shaky, how many hints were used, which words keep going wrong, and the real
 balance between playing and spelling. It also exports and imports the progress
 file so he can play on more than one device.
+
+**Starting over** is in that dashboard, under "Start again". It wipes progress,
+gear and rupees and returns to the title screen, and asks you to type NEW first
+because there is no undo — download the progress file if you might want it
+back. The game otherwise saves continuously, so closing the tab loses nothing.
 
 Everything stays in the browser's local storage. Nothing is uploaded anywhere.
 
