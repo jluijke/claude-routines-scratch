@@ -35,6 +35,14 @@ export function mountExerciseScreen(
 
   let view: QuestionView | undefined
   let noteIndex = 0
+  /**
+   * True between accepting an answer and drawing the next question. Choice
+   * buttons submit on click, so without this a second click — or an impatient
+   * double-tap on Check — would submit an empty answer against the *next*
+   * question and record a mistake the child never made. Mistakes block mastery
+   * here, so this matters.
+   */
+  let locked = false
 
   const title = el('h1', { class: 'exercise-title' }, [engine.exercise.title])
   const progressDots = el('div', { class: 'progress-dots' })
@@ -70,6 +78,7 @@ export function mountExerciseScreen(
     const question = engine.current()
     if (!question) return finish()
 
+    locked = false
     clear(activity)
     clear(hintBox)
     hintBox.hidden = true
@@ -77,6 +86,13 @@ export function mountExerciseScreen(
     feedback.className = 'feedback'
 
     promptLine.textContent = promptFor(question)
+
+    // Publish what is actually on screen. The engine's pointer moves as soon as
+    // an answer is accepted, but the child still sees the previous question for
+    // half a second while the feedback shows — so anything reading the UI needs
+    // the rendered question, not the engine's.
+    activity.dataset['questionId'] = question.id
+    activity.dataset['questionType'] = question.type
 
     view = renderQuestion({
       question,
@@ -96,6 +112,7 @@ export function mountExerciseScreen(
     hintButton.hidden = false
     hintButton.textContent = 'Need a hint?'
     hintButton.disabled = !engine.canHint()
+    checkButton.disabled = false
 
     renderDots()
 
@@ -116,6 +133,7 @@ export function mountExerciseScreen(
   }
 
   function takeHint(): void {
+    if (locked) return
     const hint = engine.nextHint()
     if (!hint) return
     renderHint(hint)
@@ -148,11 +166,15 @@ export function mountExerciseScreen(
   }
 
   function check(): void {
-    if (!view) return
+    if (!view || locked) return
     const result = engine.submit(view.read())
     view.showResult(result.grade)
 
     if (!result.grade.correct) return showWrong(result.grade)
+
+    locked = true
+    checkButton.disabled = true
+    hintButton.disabled = true
 
     sfx.play('correct')
     feedback.textContent = CORRECT_NOTES[noteIndex++ % CORRECT_NOTES.length] as string

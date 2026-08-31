@@ -50,3 +50,21 @@ describe('normalise', () => {
     expect(differsOnlyByCase('septamber', 'september')).toBe(false)
   })
 })
+
+describe('words a child clicks on', () => {
+  it('keeps the apostrophe when a contraction is clicked, curly or straight', () => {
+    // The find-the-mistake and proofreading activities strip punctuation from
+    // the word a child clicks. If that strips the apostrophe, "it's" becomes
+    // "its" and the child can never match the expected answer.
+    const strip = (token: string) => token.replace(/^[^A-Za-z'’-]+|[^A-Za-z'’-]+$/g, '')
+    expect(strip('it’s')).toBe('it’s')
+    expect(strip("it's,")).toBe("it's")
+    expect(strip('"couldn’t."')).toBe('couldn’t')
+    expect(strip('well-known!')).toBe('well-known')
+  })
+
+  it('matches a clicked curly-apostrophe word against a straight-quoted answer', () => {
+    expect(matches('it’s', "it's")).toBe(true)
+    expect(matches('could’nt', "could'nt")).toBe(true)
+  })
+})

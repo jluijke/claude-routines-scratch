@@ -183,3 +183,23 @@ describe('exercise engine', () => {
     expect(injected).toBeGreaterThan(0)
   })
 })
+
+describe('accidental double submission', () => {
+  it('a second submit on an already-answered question does not record a mistake', () => {
+    // Choice buttons submit on click, and a child may also hit Check. The UI
+    // locks between accepting an answer and drawing the next question; this
+    // test pins the consequence of that lock failing.
+    const engine = newEngine(1)
+    const first = engine.current() as Question
+    engine.submit(correctResponse(first))
+
+    const second = engine.current() as Question
+    expect(second.id).not.toBe(first.id)
+
+    // Submitting an empty answer here is exactly what an unguarded double
+    // click would do, and it would cost the child a concept they had right.
+    const empty = engine.submit({ kind: 'text', value: '' })
+    expect(empty.grade.correct).toBe(false)
+    expect(engine.provedConcepts()).toContain('syllables')
+  })
+})

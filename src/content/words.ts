@@ -119,7 +119,7 @@ const level2Words: Spec[] = [
   'kick-[ed]', 'shout-[ed]', 'clean-[ed]', 'paint-[ed]', 'wait-[ed]', 'help-[ed]',
   'paint', 'shout', 'want', 'land',
   // plural endings that sound like /s/, /z/ and /iz/
-  'lamps', 'beds', 'ro-ses', 'ta-bles', 'clocks', 'bir-ds', 'hor-ses', 'sna-kes',
+  'lamp[s]', 'bed[s]', 'ro-s[es]', 'ta-ble[s]', 'clock[s]', 'bird[s]', 'hor-s[es]', 'snake[s]',
   // -er and -est
   'fast', 'fast-[er]', 'fast-[est]', 'tall', 'tall-[er]', 'tall-[est]',
   'quick', 'quick-[er]', 'quick-[est]', 'big', 'bi[g-g]er', 'bi[g-g]est',
@@ -143,6 +143,109 @@ const level2Words: Spec[] = [
   // tch and ch
   'ca[tch]', 'pi[tch]', 'ma[tch]', 'wi[tch]', 'sti[tch]', 'sket[ch]', 'scra[tch]',
   'mu[ch]', 'bea[ch]', 'ri[ch]', 'su[ch]', 'tea[ch]', 'lun[ch]', 'ben[ch]',
+  'lo[dge]', 'e[dge]s', 'san-dcas-tle',
+]
+
+
+// --- Level 3: Word Engineers ----------------------------------------------
+const level3Words: Spec[] = [
+  // re- and un-
+  '[re]-do', '[re]-read', '[re]-build', '[re]-turn', '[re]-play', '[re]-fill',
+  '[un]-hap-py', '[un]-fair', '[un]-kind', '[un]-tie', '[un]-lock', '[un]-well',
+  'fair', 'kind', 'lock', 'tie', 'well', 'do', 'build', 'turn',
+  // mis-, dis-, pre-
+  '[mis]-be-have', '[mis]-take', '[mis]-count', '[mis]-place', '[mis]-spell',
+  '[dis]-a-gree', '[dis]-ap-pear', '[dis]-like', '[dis]-hon-est', '[dis]-obey',
+  '[pre]-view', '[pre]-pay', '[pre]-heat', '[pre]-school', '[pre]-pare',
+  'be-have', 'a-gree', 'ap-pear', 'view', 'heat', 'o-bey', 'hon-est',
+  // sub-, under-, de-, anti-
+  '[sub]-ma-rine', '[sub]-way', '[sub]-tract', '[sub]-head-ing',
+  '[under]-ground', '[under]-wa-ter', '[under]-stand', '[under]-line',
+  '[de]-ac-ti-vate', '[de]-frost', '[de]-part', '[anti]-ven-om', '[anti]-clock-wise',
+  // -ful and -less
+  'help-[ful]', 'care-[ful]', 'col-our-[ful]', 'cheer-[ful]', 'use-[ful]', 'play-[ful]',
+  'fear-[less]', 'care-[less]', 'hope-[less]', 'end-[less]', 'use-[less]', 'harm-[less]',
+  'help', 'care', 'cheer', 'harm', 'fear', 'end', 'use',
+  // -ness
+  'kind-[ness]', 'dark-[ness]', 'hap-pi-[ness]', 'sad-[ness]', 'ill-[ness]',
+  'good-[ness]', 'fit-[ness]', 'weak-[ness]', 'bright-[ness]', 'lazi-[ness]',
+  'dark', 'sad', 'good', 'bright', 'weak',
+  // -ment
+  'en-joy-[ment]', 'move-[ment]', 'ex-cite-[ment]', 'meas-ure-[ment]',
+  'pay-[ment]', 'a-gree-[ment]', 'treat-[ment]', 'e-quip-[ment]', 'ar-gu-[ment]',
+  'en-joy', 'ex-cite', 'meas-ure', 'treat', 'pay',
+  // -ous
+  'dan-ger-[ous]', 'fam-[ous]', 'nerv-[ous]', 'cour-age-[ous]', 'poi-son-[ous]',
+  'joy-[ous]', 'ser-i-[ous]', 'jeal-[ous]', 'mount-ain-[ous]', 'hu-mor-[ous]',
+  'dan-ger', 'poi-son', 'cour-age', 'moun-tain',
+  // word families
+  'un-help-ful', 'help-ful-ness', 'un-help-ful-ness', 'un-kind-ness', 'care-less-ness',
+  'un-care-ful', 'hope-ful-ness', 'thought-ful', 'thought-less', 'thought',
+]
+
+
+// --- Level 4: Meaning Masters ---------------------------------------------
+// Homophones live and die by their sentence, so nearly every entry here
+// carries one: the audio must be able to give the word in context.
+const level4Words: Spec[] = [
+  ['there', { sentence: 'Put your bag over there.', confusions: ['their', "they're"] }],
+  ['their', { sentence: 'The children lost their ball.', confusions: ['there', "they're"] }],
+  ["they're", { sentence: "They're playing outside already.", confusions: ['there', 'their'] }],
+  ['your', { sentence: 'Is this your jumper?', confusions: ["you're"] }],
+  ["you're", { sentence: "You're going to love this.", confusions: ['your'] }],
+  ['its', { sentence: 'The dog wagged its tail.', confusions: ["it's"] }],
+  ["it's", { sentence: "It's raining again.", confusions: ['its'] }],
+  ['one', { sentence: 'I only need one more.', confusions: ['won'] }],
+  ['won', { sentence: 'Our team won the final.', confusions: ['one'] }],
+  ['right', { sentence: 'Turn right at the corner.', confusions: ['write'] }],
+  ['knew', { sentence: 'I knew the answer straight away.', confusions: ['new'] }],
+  ['new', { sentence: 'She has a new bike.', confusions: ['knew'] }],
+  ['no', { sentence: 'There is no milk left.', confusions: ['know'] }],
+  ['blue', { sentence: 'The sky was bright blue.', confusions: ['blew'] }],
+  ['blew', { sentence: 'The wind blew all night.', confusions: ['blue'] }],
+  ['flour', { sentence: 'We need flour for the cake.', confusions: ['flower'] }],
+  ['flower', { sentence: 'She picked a yellow flower.', confusions: ['flour'] }],
+  // contractions
+  ["could-n['t]", {}], ["would-n['t]", {}], ["did-n['t]", {}], ["do[n't]", {}],
+  ["is-n['t]", {}], ["was-n['t]", {}], ["have-n['t]", {}], ["ca[n't]", {}],
+  ["I['ll]", {}], ["we['ll]", {}], ["they['ll]", {}], ["I['m]", {}], ["I['ve]", {}],
+  ["she['s]", {}], ["we['re]", {}], ["let['s]", {}],
+  'could', 'would', 'not', 'will', 'have', 'are',
+  // the lazy vowel — schwa
+  'a-b[ou]t', 'prob-l[e]m', 'sup-p[o]rt', 'an-i-m[a]l', 'fam-i-l[y]',
+  'sep-[a]-rate', 'dif-f[e]-rent', 'in-t[e]-rest', 'gen-[e]-ral', 'choc-[o]-late',
+  'veg-[e]-ta-ble', 'cam-[e]-ra', 'par-[e]nt', 'gar-d[e]n', 'mem-[o]-ry',
+  // splitting long words two ways
+  'un-for-tu-nate-ly', 'in-ter-est-ing', 'com-fort-a-ble', 'ex-tra-or-di-nar-y',
+  'dis-ap-point-ment', 'un-be-liev-a-ble', 'in-de-pend-ent',
+]
+
+
+// --- Level 5: Spelling Detectives -----------------------------------------
+const level5Words: Spec[] = [
+  // soft c and soft g
+  '[c]i-ty', '[c]y-cle', '[c]ent', '[c]ir-cle', '[c]el-ery', '[c]en-tre', '[c]ir-cus',
+  '[g]i-ant', '[g]ym', '[g]em', '[g]en-tle', '[g]in-ger', '[g]er-m', '[g]i-raffe',
+  'cat', 'cup', 'cot', 'gate', 'goat', 'gum',
+  // the /shun/ ending
+  'ac-[tion]', 'col-lec-[tion]', 'in-ven-[tion]', 'sta-[tion]', 'ques-[tion]',
+  'at-ten-[tion]', 'di-rec-[tion]', 'frac-[tion]', 'men-[tion]', 'sec-[tion]',
+  'cel-e-bra-[tion]', 'in-struc-[tion]', 'de-scrip-[tion]', 'im-ag-i-na-[tion]',
+  'act', 'col-lect', 'in-vent', 'di-rect', 'in-struct',
+  // Greek and Latin roots
+  '[tele]-phone', '[tele]-scope', '[tele]-vi-sion', '[photo]-graph', '[photo]-graph-er',
+  '[geo]-gra-phy', '[micro]-scope', '[micro]-phone', '[auto]-graph', '[bi]-cy-cle',
+  '[aqua]-ri-um', '[trans]-port', '[port]-a-ble', '[dict]-ion-a-ry',
+  // Australian spellings
+  'col-[our]', 'fav-our-ite', 'hon-[our]', 'har-b[our]', 'neigh-b[our]', 'fla-v[our]',
+  'cen-t[re]', 'me-t[re]', 'thea-t[re]', 'lit-[re]', 'fi-b[re]',
+  're-a-li[se]', 'or-gan-i[se]', 'rec-og-ni[se]', 'a-pol-o-gi[se]', 'prac-ti[se]',
+  'trav-el-[led]', 'trav-el-[ling]', 'jew-el-[lery]',
+  // sentences worth dictating
+  'weath-er', 'be-cause', 'friend', 'thought', 'through', 'en-ough', 'a-noth-er',
+  'me-t[res]', 'buy', 'shelf', 'climbed', 'rain-ing', 'sleep-ing', 'com-plete-ly',
+  'an-swers', 'ap-ol-o-gised', 'mis-placed', 'changed', 'paint-ed', 'fence',
+  'to-geth-er', 'per-haps', 'a-gainst', 'be-lieve', 'oc-ca-sion', 'straight',
 ]
 
 export const WORD_BANK = buildWordBank([
@@ -156,4 +259,7 @@ export const WORD_BANK = buildWordBank([
   ...dropEWords,
   ...contextWords,
   ...level2Words,
+  ...level3Words,
+  ...level4Words,
+  ...level5Words,
 ])

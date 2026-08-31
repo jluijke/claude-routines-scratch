@@ -99,6 +99,11 @@ function findInput(inputs: Map<string, HTMLInputElement>, word: string): HTMLInp
   return undefined
 }
 
+/**
+ * Trims the punctuation around a clicked word while keeping the characters
+ * that are part of its spelling. Curly apostrophes count: a child clicking
+ * "it's" must submit the apostrophe, or they can never match the answer.
+ */
 function stripPunctuation(token: string): string {
-  return token.replace(/^[^A-Za-z']+|[^A-Za-z']+$/g, '')
+  return token.replace(/^[^A-Za-z'’-]+|[^A-Za-z'’-]+$/g, '')
 }

@@ -156,13 +156,23 @@ function checkQuestion(question: Question, where: string): void {
   }
 
   // The mistake being fixed has to actually appear in the sentence.
-  if (question.type === 'findMistake' && !question.sentence.includes(question.wrong)) {
-    fail(`${where}: "${question.id}" says "${question.wrong}" is wrong, but it is not in the sentence`)
+  if (question.type === 'findMistake') {
+    if (!question.sentence.includes(question.wrong)) {
+      fail(`${where}: "${question.id}" says "${question.wrong}" is wrong, but it is not in the sentence`)
+    }
+    if (question.wrong === question.right) {
+      fail(`${where}: "${question.id}" says "${question.wrong}" is wrong, but its correction is the same word`)
+    }
   }
   if (question.type === 'proofread') {
     for (const error of question.errors) {
       if (!question.text.includes(error.wrong)) {
         fail(`${where}: "${question.id}" lists "${error.wrong}" as a mistake, but it is not in the paragraph`)
+      }
+      // A "mistake" whose correction is the same word is unanswerable: the
+      // child is asked to fix something that is already right.
+      if (error.wrong === error.right) {
+        fail(`${where}: "${question.id}" lists "${error.wrong}" as a mistake, but its correction is the same word`)
       }
     }
   }

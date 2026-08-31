@@ -27,9 +27,11 @@ await page.goto(BASE, { waitUntil: 'networkidle' })
 await page.screenshot({ path: shot('01-title') })
 
 await page.getByRole('button', { name: /begin your quest|continue/i }).click()
-await page.waitForSelector('.exercise-screen')
-await page.screenshot({ path: shot('02-menu') })
+await page.waitForSelector('.game-canvas')
+await page.waitForTimeout(400)
+await page.screenshot({ path: shot('02-world') })
 
+// Jump straight into the exercise under test, bypassing the world.
 await page.evaluate((id) => window.zsq.startExercise(id), EXERCISE)
 await page.waitForSelector('.activity .q')
 await page.waitForTimeout(500)
@@ -95,8 +97,9 @@ while (steps++ < 80) {
     }
     case 'findMistake': {
       await page.evaluate((wrong) => {
+        const norm = (t) => t.replace(/[^A-Za-z'’-]/g, '').replace(/’/g, "'").toLowerCase()
         const token = [...document.querySelectorAll('.word-token')].find(
-          (n) => n.textContent.replace(/[^A-Za-z']/g, '') === wrong,
+          (n) => norm(n.textContent) === norm(wrong),
         )
         token?.click()
       }, question.wrong)
@@ -107,8 +110,9 @@ while (steps++ < 80) {
       for (let i = 0; i < question.errors.length; i++) {
         const error = question.errors[i]
         await page.evaluate((wrong) => {
+          const norm = (t) => t.replace(/[^A-Za-z'’-]/g, '').replace(/’/g, "'").toLowerCase()
           const token = [...document.querySelectorAll('.word-token')].find(
-            (n) => n.textContent.replace(/[^A-Za-z']/g, '') === wrong,
+            (n) => norm(n.textContent) === norm(wrong),
           )
           token?.click()
         }, error.wrong)
@@ -120,6 +124,10 @@ while (steps++ < 80) {
     case 'wordFamily': {
       const inputs = await page.$$('.q-family input.answer')
       for (let i = 0; i < answer.length; i++) await inputs[i]?.fill(answer[i])
+      break
+    }
+    case 'wordBuild': {
+      await page.fill('.q-build input.answer', answer[0])
       break
     }
     case 'visualMemory': {
@@ -146,6 +154,14 @@ while (steps++ < 80) {
   const check = await page.$('button.btn-primary')
   if (check && (await check.isVisible())) await check.click()
   await page.waitForTimeout(600)
+
+  // Report the first question that refuses to accept its own expected answer.
+  const after = await page.evaluate(() => window.zsq.currentQuestion()?.id)
+  if (after === question.id) {
+    const feedback = await page.textContent('.feedback').catch(() => '')
+    console.error(`STALLED on ${question.id} (${question.type}) expected=${JSON.stringify(answer)} feedback=${feedback}`)
+    break
+  }
 }
 
 await page.screenshot({ path: shot('04-end') })

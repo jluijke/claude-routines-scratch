@@ -70,7 +70,7 @@ export function renderWordSort(ctx: RenderContext): QuestionView {
     const body = el('div', { class: 'sort-drop' })
     columnBodies.set(group.label, body)
 
-    const column = el('div', { class: 'sort-column' }, [
+    const column = el('div', { class: 'sort-column', 'data-label': group.label }, [
       el('div', { class: 'sort-heading' }, [
         el('span', { class: 'sort-key' }, [String(index + 1)]),
         group.label,
