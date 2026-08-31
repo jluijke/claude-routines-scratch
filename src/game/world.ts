@@ -12,6 +12,7 @@ import { sfx } from '../core/audio/sfx'
 import { music, type TrackName } from '../core/audio/music'
 import { Rng } from '../core/rng'
 import { Atlas } from './render/atlas'
+import type { SpriteName } from './render/sprites'
 import { drawHud, HUD_H } from './render/hud'
 import { drawDarkness, drawSeals, drawTiles, themeFor } from './render/world'
 import { Enemy, overlaps, type Projectile } from './entities/enemies'
@@ -19,7 +20,7 @@ import { Player, PLAYER_SIZE, type Facing } from './entities/player'
 import { SCREEN_H, SCREEN_W, TILE, TILES, isSolidChar, toTile, type TileChar } from './world/tiles'
 import { screenById, START_SCREEN, type Screen } from './world/screens'
 import { gateById, type Gate } from './gates'
-import { ITEMS, TOOL_SLOT, type ItemId } from './items'
+import { ITEMS, materialOf, TOOL_SLOT, type ItemId } from './items'
 import { dropMultiplier, opensFreely } from './pacing'
 import type { SaveData } from '../core/save'
 import { TOTAL_EXERCISES } from '../content/exercises'
@@ -885,11 +886,12 @@ export class World {
 
     const facing = this.player.facing
     const frame = this.player.animationFrame
-    const name = `hero${facing[0]?.toUpperCase()}${facing.slice(1)}${frame}` as
-      | 'heroUpA' | 'heroUpB' | 'heroDownA' | 'heroDownB'
-      | 'heroLeftA' | 'heroLeftB' | 'heroRightA' | 'heroRightB'
+    const way = capitalise(facing)
 
-    this.atlas.draw(ctx, name, this.player.x - 2, this.player.y - 4)
+    // The hero is drawn in the material of the shield he is carrying, and the
+    // blade in the material of the sword — so the wooden ones look wooden.
+    const shieldTier = capitalise(materialOf(this.player.loadout.shield))
+    this.atlas.draw(ctx, `hero${shieldTier}${way}${frame}` as SpriteName, this.player.x - 2, this.player.y - 4)
 
     // The blade, pointing the way he is facing. The sprite is a fixed length;
     // a better sword reaches slightly further than it draws, which is a fairer
@@ -898,18 +900,21 @@ export class World {
     if (!sword) return
     const centreX = this.player.x + PLAYER_SIZE / 2
     const centreY = this.player.y + PLAYER_SIZE / 2
+    const bladeTier = capitalise(materialOf(this.player.loadout.sword))
+    const blade = `sword${bladeTier}${way}` as SpriteName
+
     switch (facing) {
       case 'right':
-        this.atlas.draw(ctx, 'swordRight', sword.x, centreY - 4)
+        this.atlas.draw(ctx, blade, sword.x, centreY - 4)
         break
       case 'left':
-        this.atlas.draw(ctx, 'swordLeft', sword.x + sword.w - 16, centreY - 4)
+        this.atlas.draw(ctx, blade, sword.x + sword.w - 16, centreY - 4)
         break
       case 'down':
-        this.atlas.draw(ctx, 'swordDown', centreX - 4, sword.y)
+        this.atlas.draw(ctx, blade, centreX - 4, sword.y)
         break
       case 'up':
-        this.atlas.draw(ctx, 'swordUp', centreX - 4, sword.y + sword.h - 16)
+        this.atlas.draw(ctx, blade, centreX - 4, sword.y + sword.h - 16)
         break
     }
   }
@@ -1015,6 +1020,10 @@ export class World {
     this.syncSave()
     this.callbacks.onChange()
   }
+}
+
+function capitalise<T extends string>(value: T): Capitalize<T> {
+  return (value[0]?.toUpperCase() + value.slice(1)) as Capitalize<T>
 }
 
 function wrap(text: string, width: number): string[] {

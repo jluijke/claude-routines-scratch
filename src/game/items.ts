@@ -249,3 +249,25 @@ export function isTool(id: ItemId): boolean {
 export function itemPower(id: ItemId): number {
   return ITEMS[id].power ?? 0
 }
+
+/**
+ * What a piece of gear is made of, which is what the sprite is recoloured to.
+ * The starting sword is wood and should look like wood, not like the metal one
+ * he has not bought yet.
+ */
+export function materialOf(id: ItemId): 'wooden' | 'metal' | 'bronze' | 'golden' | 'magical' {
+  switch (id) {
+    case 'metalSword':
+    case 'metalShield':
+      return 'metal'
+    case 'bronzeSword':
+    case 'bronzeShield':
+      return 'bronze'
+    case 'goldenSword':
+      return 'golden'
+    case 'magicalShield':
+      return 'magical'
+    default:
+      return 'wooden'
+  }
+}

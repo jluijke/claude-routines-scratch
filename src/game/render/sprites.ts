@@ -18,6 +18,7 @@ export const PALETTE: Record<string, string> = {
   m: '#c8d0da', // metal
   M: '#79838f', // dark metal
   n: '#8a5a2b', // wood / brown
+  v: '#b5793d', // lighter wood, for a wooden blade's edge
   d: '#5a3a1b', // dark brown
   r: '#d5433f', // red
   R: '#8f2320', // dark red
@@ -53,6 +54,38 @@ export function defineSprite(width: number, height: number, rows: SpriteRows): S
     padded.push(row.length >= width ? row.slice(0, width) : row.padEnd(width, '.'))
   }
   return { width, height, rows: padded }
+}
+
+/**
+ * The materials a sword or shield can be made of. The art is drawn once in
+ * steel and recoloured, so a wooden sword actually looks like wood rather than
+ * like the metal one he has not bought yet.
+ */
+export type Tier = 'wooden' | 'metal' | 'bronze' | 'golden' | 'magical'
+
+/** body, edge, and the grip or boss. */
+const TIER_COLOURS: Record<Tier, { body: string; edge: string; grip: string }> = {
+  wooden: { body: 'n', edge: 'v', grip: 'd' },
+  metal: { body: 'm', edge: 'w', grip: 'y' },
+  bronze: { body: 'o', edge: 'y', grip: 'Y' },
+  golden: { body: 'y', edge: 'w', grip: 'Y' },
+  magical: { body: 'c', edge: 'w', grip: 'p' },
+}
+
+/** Swaps the steel palette characters for another material's. */
+export function recolour(sprite: Sprite, tier: Tier): Sprite {
+  const { body, edge, grip } = TIER_COLOURS[tier]
+  const swap: Record<string, string> = { m: body, M: body, w: edge, y: grip }
+  return {
+    width: sprite.width,
+    height: sprite.height,
+    rows: sprite.rows.map((row) =>
+      row
+        .split('')
+        .map((ch) => swap[ch] ?? ch)
+        .join(''),
+    ),
+  }
 }
 
 /** Mirrors a sprite vertically, so an up-pointing blade is free. */
@@ -627,15 +660,50 @@ const MAGIC_BOLT = S8([
   '...kk...',
 ])
 
+const SWORD_BASE = {
+  Right: SWORD_RIGHT,
+  Left: mirror(SWORD_RIGHT),
+  Down: SWORD_DOWN,
+  Up: flipVertical(SWORD_DOWN),
+} as const
+
+const HERO_BASE = {
+  DownA: HERO_DOWN_A,
+  DownB: HERO_DOWN_B,
+  UpA: HERO_UP_A,
+  UpB: HERO_UP_B,
+  RightA: HERO_RIGHT_A,
+  RightB: HERO_RIGHT_B,
+  LeftA: mirror(HERO_RIGHT_A),
+  LeftB: mirror(HERO_RIGHT_B),
+} as const
+
+const TIERS: Tier[] = ['wooden', 'metal', 'bronze', 'golden', 'magical']
+
+type Cap<T extends string> = Capitalize<T>
+type SwordVariants = {
+  [T in Tier as `sword${Cap<T>}${keyof typeof SWORD_BASE & string}`]: Sprite
+}
+type HeroVariants = {
+  [T in Tier as `hero${Cap<T>}${keyof typeof HERO_BASE & string}`]: Sprite
+}
+
+function buildVariants(): SwordVariants & HeroVariants {
+  const out: Record<string, Sprite> = {}
+  for (const tier of TIERS) {
+    const name = tier[0]!.toUpperCase() + tier.slice(1)
+    for (const [facing, sprite] of Object.entries(SWORD_BASE)) {
+      out[`sword${name}${facing}`] = recolour(sprite, tier)
+    }
+    for (const [frame, sprite] of Object.entries(HERO_BASE)) {
+      out[`hero${name}${frame}`] = recolour(sprite, tier)
+    }
+  }
+  return out as SwordVariants & HeroVariants
+}
+
 export const SPRITES = {
-  heroDownA: HERO_DOWN_A,
-  heroDownB: HERO_DOWN_B,
-  heroUpA: HERO_UP_A,
-  heroUpB: HERO_UP_B,
-  heroRightA: HERO_RIGHT_A,
-  heroRightB: HERO_RIGHT_B,
-  heroLeftA: mirror(HERO_RIGHT_A),
-  heroLeftB: mirror(HERO_RIGHT_B),
+  ...buildVariants(),
   shooterA: SHOOTER_A,
   shooterB: SHOOTER_B,
   chaserA: CHASER_A,
@@ -655,10 +723,6 @@ export const SPRITES = {
   seal: SEAL,
   projectile: PROJECTILE,
   magicBolt: MAGIC_BOLT,
-  swordRight: SWORD_RIGHT,
-  swordLeft: mirror(SWORD_RIGHT),
-  swordDown: SWORD_DOWN,
-  swordUp: flipVertical(SWORD_DOWN),
   bomb: BOMB,
   bombLit: BOMB_LIT,
   explosion: EXPLOSION,
