@@ -752,7 +752,6 @@ export const SCREENS: Screen[] = [
       '#######..#######',
     ],
     exits: {},
-    dark: true,
     gates: [{ gateId: 'd1-door-1', col: 7, row: 5, opens: [{ col: 7, row: 5 }, { col: 8, row: 5 }] }],
     portals: [
       { col: 7, row: 10, to: 'forest-6', spawnCol: 7, spawnRow: 6 },
@@ -778,7 +777,6 @@ export const SCREENS: Screen[] = [
       '#######..#######',
     ],
     exits: {},
-    dark: true,
     gates: [{ gateId: 'd1-door-2', col: 7, row: 4, opens: [{ col: 7, row: 4 }, { col: 8, row: 4 }] }],
     portals: [
       { col: 7, row: 10, to: 'd1-entrance', spawnCol: 7, spawnRow: 1 },
@@ -834,7 +832,6 @@ export const SCREENS: Screen[] = [
       '#######..#######',
     ],
     exits: {},
-    dark: true,
     gates: [
       { gateId: 'd1-door-3', col: 7, row: 7, opens: [{ col: 7, row: 7 }, { col: 8, row: 7 }] },
       { gateId: 'd1-boss', col: 7, row: 1, opens: [{ col: 7, row: 1 }, { col: 8, row: 1 }] },
@@ -890,7 +887,6 @@ export const SCREENS: Screen[] = [
       '#######..#######',
     ],
     exits: {},
-    dark: true,
     gates: [{ gateId: 'd2-door-1', col: 7, row: 5, opens: [{ col: 7, row: 5 }, { col: 8, row: 5 }] }],
     portals: [
       { col: 7, row: 10, to: 'mountain-2', spawnCol: 7, spawnRow: 4 },
@@ -953,7 +949,6 @@ export const SCREENS: Screen[] = [
       '#######..#######',
     ],
     exits: {},
-    dark: true,
     gates: [
       { gateId: 'd2-door-5', col: 7, row: 6, opens: [{ col: 7, row: 6 }, { col: 8, row: 6 }] },
       { gateId: 'd2-chest', col: 7, row: 3 },
@@ -979,7 +974,6 @@ export const SCREENS: Screen[] = [
       '#######..#######',
     ],
     exits: {},
-    dark: true,
     gates: [
       { gateId: 'd2-door-6', col: 7, row: 7, opens: [{ col: 7, row: 7 }, { col: 8, row: 7 }] },
       { gateId: 'd2-boss', col: 7, row: 1, opens: [{ col: 7, row: 1 }, { col: 8, row: 1 }] },
@@ -1035,7 +1029,6 @@ export const SCREENS: Screen[] = [
       '#######..#######',
     ],
     exits: {},
-    dark: true,
     gates: [{ gateId: 'd3-door-1', col: 7, row: 4, opens: [{ col: 7, row: 4 }, { col: 8, row: 4 }] }],
     portals: [
       { col: 7, row: 10, to: 'waterfall', spawnCol: 7, spawnRow: 6 },
@@ -1088,7 +1081,6 @@ export const SCREENS: Screen[] = [
       '#######..#######',
     ],
     exits: {},
-    dark: true,
     gates: [{ gateId: 'd3-door-2', col: 7, row: 4, opens: [{ col: 7, row: 4 }, { col: 8, row: 4 }] }],
     portals: [
       { col: 7, row: 10, to: 'd3-entrance', spawnCol: 7, spawnRow: 1 },
@@ -1118,7 +1110,6 @@ export const SCREENS: Screen[] = [
       '#######..#######',
     ],
     exits: {},
-    dark: true,
     gates: [
       { gateId: 'd3-door-3', col: 7, row: 6, opens: [{ col: 7, row: 6 }, { col: 8, row: 6 }] },
       { gateId: 'd3-chest', col: 7, row: 3 },
@@ -1144,7 +1135,6 @@ export const SCREENS: Screen[] = [
       '#######..#######',
     ],
     exits: {},
-    dark: true,
     gates: [{ gateId: 'd3-boss', col: 7, row: 1, opens: [{ col: 7, row: 1 }, { col: 8, row: 1 }] }],
     portals: [
       { col: 7, row: 10, to: 'd3-hall', spawnCol: 11, spawnRow: 1 },
@@ -1196,7 +1186,6 @@ export const SCREENS: Screen[] = [
       '#######..#######',
     ],
     exits: {},
-    dark: true,
     gates: [{ gateId: 'd4-door-1', col: 7, row: 4, opens: [{ col: 7, row: 4 }, { col: 8, row: 4 }] }],
     portals: [
       { col: 7, row: 10, to: 'graveyard-1', spawnCol: 11, spawnRow: 5 },
@@ -1225,7 +1214,6 @@ export const SCREENS: Screen[] = [
       '#######..#######',
     ],
     exits: {},
-    dark: true,
     gates: [{ gateId: 'd4-door-2', col: 7, row: 1, opens: [{ col: 7, row: 1 }, { col: 8, row: 1 }] }],
     portals: [
       { col: 7, row: 10, to: 'd4-entrance', spawnCol: 7, spawnRow: 1 },
@@ -1279,7 +1267,6 @@ export const SCREENS: Screen[] = [
       '#######..#######',
     ],
     exits: {},
-    dark: true,
     gates: [
       { gateId: 'd4-door-3', col: 7, row: 5, opens: [{ col: 7, row: 5 }, { col: 8, row: 5 }] },
       { gateId: 'd4-boss', col: 7, row: 1, opens: [{ col: 7, row: 1 }, { col: 8, row: 1 }] },

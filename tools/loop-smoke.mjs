@@ -24,7 +24,9 @@ await page.waitForSelector('.game-canvas')
 await page.waitForTimeout(500)
 
 // Walk to the sealed stone at the north gate.
-await page.evaluate(() => window.zsq.goTo(process.env.SCREEN ?? 'village-north', 7, 3))
+// The walk-up geometry below is specific to the north gate. Other barriers
+// are covered by quest-smoke, which approaches each one on its own terms.
+await page.evaluate(() => window.zsq.goTo('village-north', 7, 3))
 await page.waitForTimeout(300)
 let prompted = false
 for (let i = 0; i < 8 && !prompted; i++) {
