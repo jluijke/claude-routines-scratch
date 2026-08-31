@@ -103,6 +103,9 @@ const DUNGEON_REGIONS = ['Sunken Hall', 'Hollow Keep', 'Ember Vault', 'Sunless S
 /** Which look a screen wears. Derived so no screen has to say it twice. */
 export function themeFor(screen: Screen): Theme {
   if (DUNGEON_REGIONS.includes(screen.region)) return 'dungeon'
+  // Anywhere the sun does not reach is underground, whatever it is called.
+  // Matching on the id alone once gave a cave a grass floor.
+  if (screen.dark) return 'cave'
   if (screen.shop || /grotto|cave|interior|secret/.test(screen.id)) return 'cave'
   return 'overworld'
 }

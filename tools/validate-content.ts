@@ -18,6 +18,8 @@ import {
   brokenExits,
   bypassableBarriers,
   layoutConflicts,
+  strandedTreasure,
+  trappingGates,
   unreachableDoors,
 } from '../src/game/world/analysis'
 import { ITEMS, SECRET_SHOP, VILLAGE_SHOP } from '../src/game/items'
@@ -268,6 +270,10 @@ for (const problem of unreachableDoors()) {
 }
 for (const problem of bypassableBarriers()) {
   fail(`Barrier: ${problem}`)
+}
+for (const screen of SCREENS) {
+  for (const problem of strandedTreasure(screen)) fail(`Treasure: ${problem}`)
+  for (const problem of trappingGates(screen)) fail(`Barrier: ${problem}`)
 }
 
 for (const [gateId, screens] of gateUsage) {

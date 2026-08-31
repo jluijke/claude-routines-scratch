@@ -372,3 +372,26 @@ export function trappingGates(screen: Screen): string[] {
   }
   return problems
 }
+
+
+/**
+ * Chests nobody can reach. A treasure walled in is worse than no treasure: the
+ * child sees it through the dark and cannot get to it.
+ */
+export function strandedTreasure(screen: Screen): string[] {
+  const treasure = screen.treasure
+  if (!treasure) return []
+  const { col, row } = treasure
+  if (isSolid(screen, col, row)) {
+    return [`${screen.id}: the chest "${treasure.id}" sits inside a solid tile`]
+  }
+  const reachable =
+    !isSolid(screen, col, row - 1) ||
+    !isSolid(screen, col, row + 1) ||
+    !isSolid(screen, col - 1, row) ||
+    !isSolid(screen, col + 1, row)
+  if (!reachable) {
+    return [`${screen.id}: the chest "${treasure.id}" is walled in on every side`]
+  }
+  return []
+}

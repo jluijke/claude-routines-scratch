@@ -50,6 +50,20 @@ export interface Portal {
   guardedBy?: string
 }
 
+/**
+ * A chest that opens simply for being found. Every other chest in the game is
+ * sealed behind an exercise; this one is the reward for exploring, which is
+ * what makes a cave worth walking into in the first place.
+ */
+export interface Treasure {
+  /** Remembered in the save, so it pays once. */
+  id: string
+  col: number
+  row: number
+  rupees: number
+  message: string
+}
+
 export interface Screen {
   id: string
   name: string
@@ -62,6 +76,8 @@ export interface Screen {
   portals?: Portal[]
   /** Pitch dark without the Blue Candle. */
   dark?: boolean
+  /** An unsealed chest, opened by walking into it. */
+  treasure?: Treasure
   /** Opens the shop interface on entry. */
   shop?: 'village' | 'secret' | 'smith'
 }
@@ -74,7 +90,7 @@ export const SCREENS: Screen[] = [
     region: 'Village',
     rows: [
       'TTTTTTT..TTTTTTT',
-      'T.#####........T',
+      'T.#####.....C..T',
       'T.##H##........T',
       '......,...,.....',
       '.......SS.......',
@@ -86,10 +102,67 @@ export const SCREENS: Screen[] = [
       'TTTTTTTTTTTTTTTT',
     ],
     exits: { up: 'village-north', left: 'village-west', right: 'village-east' },
-    portals: [{ col: 4, row: 2, to: 'shop-interior', spawnCol: 7, spawnRow: 8 }],
+    portals: [
+      { col: 4, row: 2, to: 'shop-interior', spawnCol: 7, spawnRow: 8 },
+      { col: 12, row: 1, to: 'hollow-cave', spawnCol: 7, spawnRow: 8 },
+    ],
     props: [
       { sprite: 'scribe', col: 3, row: 5, talk: 'Welcome, traveller. The sealed stones open only for a careful speller.' },
     ],
+  },
+  {
+    id: 'hollow-cave',
+    name: 'The Hollow',
+    region: 'Village',
+    rows: [
+      '################',
+      '#..............#',
+      '#..RR......RR..#',
+      '#..............#',
+      '#.......^......#',
+      '#..............#',
+      '#..RR......RR..#',
+      '#..............#',
+      '#..............#',
+      '#######..#######',
+      '#######..#######',
+    ],
+    exits: {},
+    dark: true,
+    spawns: [{ kind: 'chaser', col: 4, row: 5 }],
+    portals: [
+      { col: 7, row: 10, to: 'village-square', spawnCol: 12, spawnRow: 2 },
+      { col: 8, row: 4, to: 'hollow-cave-deep', spawnCol: 7, spawnRow: 8 },
+    ],
+  },
+  {
+    id: 'hollow-cave-deep',
+    name: 'Deep in the Hollow',
+    region: 'Village',
+    rows: [
+      '################',
+      '#..............#',
+      '#..RR......RR..#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..RR......RR..#',
+      '#..............#',
+      '#..............#',
+      '#######..#######',
+      '#######..#######',
+    ],
+    exits: {},
+    dark: true,
+    spawns: [{ kind: 'chaser', col: 11, row: 4 }],
+    treasure: {
+      id: 'hollow-hoard',
+      col: 7,
+      row: 1,
+      rupees: 100,
+      message: 'A hoard of rupees, left here a very long time ago.',
+    },
+    portals: [{ col: 7, row: 10, to: 'hollow-cave', spawnCol: 7, spawnRow: 5 }],
   },
   {
     id: 'village-west',

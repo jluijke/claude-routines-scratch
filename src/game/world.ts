@@ -439,6 +439,7 @@ export class World {
     // something does, he is out of it on the next frame rather than for good.
     this.ensureFree()
     this.checkGateContact(opened)
+    this.checkTreasure()
     this.checkPortals()
     this.checkEdges()
 
@@ -542,6 +543,31 @@ export class World {
       this.callbacks.onChange()
       return
     }
+  }
+
+  /**
+   * An unsealed chest, opened by walking into it. No spelling, no key: this one
+   * pays for having gone and looked, which is the reason to go down a hole in
+   * the ground in the first place.
+   */
+  private checkTreasure(): void {
+    const treasure = this.screen.treasure
+    if (!treasure) return
+    if (this.save.world.takenChests.includes(treasure.id)) return
+
+    const ahead = this.pointAhead(this.player.centre(), this.player.facing, 8)
+    const { col, row } = toTile(ahead.x, ahead.y)
+    const here = toTile(this.player.centre().x, this.player.centre().y)
+    const touching =
+      (col === treasure.col && row === treasure.row) ||
+      (here.col === treasure.col && here.row === treasure.row)
+    if (!touching) return
+
+    this.save.world.takenChests.push(treasure.id)
+    this.save.player.rupees += treasure.rupees
+    sfx.play('fanfare')
+    this.showMessage(`${treasure.message} +${treasure.rupees} rupees.`)
+    this.callbacks.onChange()
   }
 
   private tileStillSealed(col: number, row: number): boolean {
@@ -905,6 +931,12 @@ export class World {
       this.atlas.draw(ctx, prop.sprite, prop.col * TILE, prop.row * TILE)
     }
 
+    const treasure = this.screen.treasure
+    if (treasure) {
+      const taken = this.save.world.takenChests.includes(treasure.id)
+      this.atlas.draw(ctx, taken ? 'chestOpen' : 'chestClosed', treasure.col * TILE, treasure.row * TILE)
+    }
+
     for (const drop of this.drops) {
       // Blink when it is about to disappear, so it does not simply vanish.
       if (drop.life < 120 && Math.floor(this.frame / 6) % 2 === 0) continue
@@ -1082,6 +1114,10 @@ export class World {
         hp: e.hp,
       })),
       sword: this.player.swordBox(),
+      // How far he can see here, so a check can tell a dark room from a lit one.
+      litRadius: this.screen.dark
+        ? (this.save.inventory.blueCandle ? LIT_RADIUS : DARK_RADIUS)
+        : undefined,
       pendingGate: this.pendingGate?.id,
       paused: this.paused,
     }

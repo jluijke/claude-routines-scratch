@@ -82,6 +82,13 @@ about where to use it.
 Neither is signposted. Finding out what is behind a cracked rock by trying a
 bomb on it is a better moment than being told.
 
+**The Hollow** is a cave mouth on the village square, in plain sight from the
+first minute. Nothing has to be spelled to go in — it is there to be a game
+before it is a lesson. It is pitch dark, so the Blue Candle is what turns
+stumbling into exploring, and two rooms down there is an unsealed chest holding
+a hundred rupees. That is the whole early loop: earn enough for the candle,
+light the cave, come out able to afford the Metal Sword.
+
 ## For the parent
 
 **Ctrl+Shift+P** (or **⌘+Shift+P** on a Mac) opens a dashboard showing which patterns have stuck, which are
