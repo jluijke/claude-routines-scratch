@@ -14,6 +14,9 @@ import { chromium } from 'playwright'
 const BASE = process.env.BASE ?? 'http://localhost:5199/'
 const SWING_BUDGET = 14
 const SECONDS_BUDGET = 25
+// Within this many pixels an axis counts as lined up, so the hunt turns to
+// close the other one instead of overshooting.
+const ALIGNED = 10
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROME ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
@@ -50,7 +53,6 @@ async function hunt(screen, col, row, label) {
   const start = await state()
   const began = Date.now()
   let swings = 0
-  let lastAxis = 'x'
 
   while (Date.now() - began < SECONDS_BUDGET * 1000 && swings < SWING_BUDGET * 3) {
     const s = await state()
@@ -72,13 +74,20 @@ async function hunt(screen, col, row, label) {
       continue
     }
 
-    // Walk toward it, switching axis whenever a wall stops us. Without this
-    // the hunt gets wedged on a tree and reports a working sword as broken.
-    const primary = lastAxis === 'x' ? (dx < 0 ? 'left' : 'right') : dy < 0 ? 'up' : 'down'
+    // Close the axis that is still misaligned, longest gap first, and only
+    // hold an axis while it has ground left to cover. Walking one axis until
+    // a wall stops it deadlocks against anything that keeps its distance: the
+    // hero ping-pongs past the monster's column, forever a tile below it, and
+    // the check reports a perfectly killable monster as immortal.
+    const axis =
+      Math.abs(dx) <= ALIGNED ? 'y' : Math.abs(dy) <= ALIGNED ? 'x' : Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y'
+    const primary = axis === 'x' ? (dx < 0 ? 'left' : 'right') : dy < 0 ? 'up' : 'down'
     await step(primary, 110)
     const after = await state()
     if (Math.abs(after.x - s.x) < 1 && Math.abs(after.y - s.y) < 1) {
-      lastAxis = lastAxis === 'x' ? 'y' : 'x'
+      // Wall in the way: go round it on the other axis.
+      const detour = axis === 'x' ? (dy < 0 ? 'up' : 'down') : dx < 0 ? 'left' : 'right'
+      await step(detour, 110)
     }
   }
 
