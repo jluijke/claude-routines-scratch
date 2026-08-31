@@ -14,6 +14,12 @@ import { WORD_BANK } from '../src/content/words'
 import { SCREENS, screenById } from '../src/game/world/screens'
 import { SCREEN_COLS, SCREEN_ROWS, TILES, type TileChar } from '../src/game/world/tiles'
 import { allGates, gateById, majorGateCount, totalGateCount } from '../src/game/gates'
+import {
+  brokenExits,
+  bypassableBarriers,
+  layoutConflicts,
+  unreachableDoors,
+} from '../src/game/world/analysis'
 import { ITEMS, SECRET_SHOP, VILLAGE_SHOP } from '../src/game/items'
 import { buildQueue } from '../src/spelling/scheduler'
 import { emptyMasteryStore } from '../src/spelling/mastery'
@@ -242,6 +248,26 @@ for (const screen of SCREENS) {
       fail(`${where}: a ${spawn.kind} would spawn inside a solid tile at ${spawn.col},${spawn.row}`)
     }
   }
+}
+
+// --- how the screens join up ---------------------------------------------
+//
+// Every bug that actually reached the child was in the seams between screens
+// rather than inside one: exits that dropped him in a river, a shop door
+// walled in on four sides, barriers he could stroll around. None of it is
+// visible looking at one screen at a time.
+
+for (const problem of brokenExits()) {
+  fail(`Exit: ${problem}`)
+}
+for (const problem of layoutConflicts()) {
+  fail(`Map layout: ${problem}`)
+}
+for (const problem of unreachableDoors()) {
+  fail(`Door: ${problem}`)
+}
+for (const problem of bypassableBarriers()) {
+  fail(`Barrier: ${problem}`)
 }
 
 for (const [gateId, screens] of gateUsage) {
