@@ -101,8 +101,18 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
             ? `${price - save.player.rupees} rupees short`
             : `${price} rupees`
 
+    // A missing prerequisite is a different kind of "no" from a spelling
+    // challenge, and the button should not promise one when it means the other.
+    const label = alreadyHave
+      ? 'Owned'
+      : missingRequirement
+        ? 'Locked'
+        : !gateOpen
+          ? 'Prove it'
+          : 'Buy'
+
     const action = button(
-      alreadyHave ? 'Owned' : !gateOpen ? 'Prove it' : 'Buy',
+      label,
       () => {
         if (alreadyHave) return
         if (!gateOpen && gate) {
