@@ -24,6 +24,20 @@ export type PacingVerdict = 'play-ahead' | 'balanced' | 'spelling-ahead'
 
 /** Below this much total time, everything is "balanced" — too early to judge. */
 const WARM_UP_SECONDS = 240
+
+/**
+ * The most one sitting at an exercise can be worth. The engine measures wall
+ * clock, so a tab left open over lunch would otherwise credit an hour of
+ * "spelling" — which tips the verdict to spelling-ahead and hands out free
+ * barriers and 1.6x rupees for going to lunch.
+ */
+export const MAX_SITTING_SECONDS = 20 * 60
+
+/** Time actually worth crediting for one sitting. */
+export function creditSeconds(elapsed: number): number {
+  if (!Number.isFinite(elapsed) || elapsed <= 0) return 0
+  return Math.min(elapsed, MAX_SITTING_SECONDS)
+}
 /** How far from 50/50 counts as drifting. */
 const DRIFT = 0.12
 

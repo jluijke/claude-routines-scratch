@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { describe as summarise, dropMultiplier, opensFreely, ratio, verdict } from '../src/game/pacing'
+import {
+  creditSeconds,
+  describe as summarise,
+  dropMultiplier,
+  MAX_SITTING_SECONDS,
+  opensFreely,
+  ratio,
+  verdict,
+} from '../src/game/pacing'
 
 describe('pacing governor', () => {
   it('holds off judging until there is enough play to judge', () => {
@@ -32,5 +40,25 @@ describe('pacing governor', () => {
 
   it('summarises the split in minutes for the parent view', () => {
     expect(summarise({ playSeconds: 600, exerciseSeconds: 600 })).toContain('50% play')
+  })
+
+  it('credits a normal sitting in full', () => {
+    expect(creditSeconds(480)).toBe(480)
+    expect(creditSeconds(MAX_SITTING_SECONDS)).toBe(MAX_SITTING_SECONDS)
+  })
+
+  it('refuses to credit a tab left open over lunch', () => {
+    expect(creditSeconds(3600)).toBe(MAX_SITTING_SECONDS)
+
+    // The whole point of the clamp: fifteen minutes of play against an hour of
+    // "spelling" reads as spelling-ahead, which opens optional barriers for
+    // free. Against the credited twenty minutes it is simply balanced.
+    expect(opensFreely({ playSeconds: 900, exerciseSeconds: 3600 })).toBe(true)
+    expect(opensFreely({ playSeconds: 900, exerciseSeconds: creditSeconds(3600) })).toBe(false)
+  })
+
+  it('ignores nonsense clocks', () => {
+    expect(creditSeconds(-5)).toBe(0)
+    expect(creditSeconds(Number.NaN)).toBe(0)
   })
 })

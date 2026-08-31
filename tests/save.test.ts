@@ -117,4 +117,29 @@ describe('schema migration', () => {
     expect(migrated.spelling.completedExercises).toHaveLength(6)
     expect(migrated.pacing.playSeconds).toBe(1200)
   })
+
+  it('gives a version 2 save an empty paid-concepts list', () => {
+    const old = {
+      version: 2,
+      player: { rupees: 90 },
+      world: { openedGates: [], defeatedBosses: [], takenChests: [], visitedScreens: [], brokenTiles: [] },
+      spelling: { completedExercises: [1, 2], mastery: { concepts: {} } },
+      pacing: { playSeconds: 600, exerciseSeconds: 500 },
+    }
+    const migrated = migrate(old as unknown as Record<string, unknown>)
+
+    expect(migrated.version).toBe(SAVE_VERSION)
+    expect(migrated.spelling.paidConcepts).toEqual([])
+    // A child part-way through keeps what they had; they simply cannot be paid
+    // twice for a pattern from here on.
+    expect(migrated.player.rupees).toBe(90)
+    expect(migrated.spelling.completedExercises).toEqual([1, 2])
+  })
+
+  it('keeps the paid-concepts list across a save and load', () => {
+    const data = newSave()
+    data.spelling.paidConcepts.push('syllables', 'ee-sound')
+    const restored = migrate(JSON.parse(JSON.stringify(data)) as Record<string, unknown>)
+    expect(restored.spelling.paidConcepts).toEqual(['syllables', 'ee-sound'])
+  })
 })

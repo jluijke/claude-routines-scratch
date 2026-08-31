@@ -37,6 +37,10 @@
 
 * { box-sizing: border-box; }
 
+/* Any explicit `display` beats the browser's [hidden] rule, and several
+ * elements here are flex containers that need to actually disappear. */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   padding: 0;
@@ -77,6 +81,19 @@ button { font-family: inherit; }
 .btn-audio { background: #34495e; border-color: #22303d; }
 .btn-hint { background: #7a5c1e; border-color: #5b4415; }
 .btn-quiet { background: transparent; border-color: #3a4150; color: #aab; }
+/* On the cream exercise panel that grey is barely visible, and this is the
+ * button a stuck child needs to be able to find. */
+.exercise-screen .btn-quiet { color: var(--ink); border-color: var(--muted); }
+.btn-leave { background: transparent; border-color: var(--muted); color: var(--muted); }
+.btn-leave:hover:not(:disabled) { color: var(--ink); border-color: var(--ink); filter: none; }
+
+.leave-prompt {
+  margin-top: 1.2rem;
+  padding-top: 1rem;
+  border-top: 2px solid var(--paper-edge);
+}
+.leave-question { font-size: 1.05rem; line-height: 1.5; margin: 0 0 0.9rem; }
+.leave-actions { display: flex; gap: 0.7rem; flex-wrap: wrap; justify-content: flex-end; }
 
 /* ---------------------------------------------------------------- exercise */
 
@@ -648,3 +665,16 @@ tr.mastery-unseen { opacity: 0.55; }
 .file-input { font: inherit; font-size: 0.85rem; }
 
 .reset-field { max-width: 9ch; }
+
+/* A quiet way into the parent view, for when the browser eats the shortcut. */
+.grown-ups { margin-top: 0.6rem; }
+.link-button {
+  font: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--hud-dim);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.link-button:hover { color: var(--hud-text); }

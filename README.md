@@ -62,6 +62,13 @@ exercises everything works by keyboard alone: answers auto-focus, Enter
 submits, and word sorting accepts drag, click-then-click, or Tab plus the
 group's number.
 
+**Leaving an exercise.** "Leave for now" — or Escape — steps out of an exercise
+after asking first. The barrier stays shut, so nothing is skipped, but he is
+never stuck in front of a door he cannot spell past today: he can go and explore
+somewhere else and come back. The exercise starts again from the beginning next
+time, since a run he walked out of proves nothing. Rupees already earned are
+kept, and each pattern only ever pays once.
+
 ## Items worth knowing about
 
 **Bombs** blow open cracked walls. A cracked wall looks different from ordinary
@@ -77,10 +84,14 @@ bomb on it is a better moment than being told.
 
 ## For the parent
 
-**Ctrl+Shift+P** opens a dashboard showing which patterns have stuck, which are
+**Ctrl+Shift+P** (or **⌘+Shift+P** on a Mac) opens a dashboard showing which patterns have stuck, which are
 shaky, how many hints were used, which words keep going wrong, and the real
 balance between playing and spelling. It also exports and imports the progress
 file so he can play on more than one device.
+
+Firefox claims that key combination for its own private window before the page
+sees it, so there is also a **"For grown-ups"** link at the foot of the title
+screen that opens the same dashboard.
 
 **Starting over** is in that dashboard, under "Start again". It wipes progress,
 gear and rupees and returns to the title screen, and asks you to type NEW first

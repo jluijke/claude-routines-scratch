@@ -25,7 +25,7 @@ import type { Gate } from './game/gates'
 import { ITEMS } from './game/items'
 import type { Exercise } from './spelling/types'
 import { mountParentDashboard } from './parent/dashboard'
-import { describe as describePacing } from './game/pacing'
+import { creditSeconds, describe as describePacing } from './game/pacing'
 
 const root = document.getElementById('app') as HTMLElement
 const speech = new WebSpeechEngine()
@@ -101,7 +101,14 @@ function showTitle(): void {
       el('div', { class: 'controls' }, [start]),
       el('p', { class: 'q-hint-line controls-help' }, [
         'Move: arrow keys, WASD or the number pad · Sword: Z or Space · Item: X · Swap item: C · ' +
-          'Music on and off: M · Or click where you want to go, and click a monster to attack.',
+          'Control shows every key · Music on and off: M · Or click where you want to go.',
+      ]),
+      // Firefox takes Cmd/Ctrl+Shift+P for its own private window before the
+      // page ever sees it, so the shortcut cannot be the only way in.
+      el('p', { class: 'q-hint-line grown-ups' }, [
+        button('For grown-ups: progress and settings', () => openParentDashboard(), {
+          class: 'link-button',
+        }),
       ]),
     ]),
   )
@@ -206,8 +213,12 @@ function startExercise(exercise: Exercise, gate?: Gate): void {
     engine,
     bank: WORD_BANK,
     speech,
-    onConceptProved: () => {
-      // Rupees arrive as concepts are proved, so the payoff starts immediately.
+    onConceptProved: (concept) => {
+      // Rupees arrive as concepts are proved, so the payoff starts immediately
+      // — but each pattern pays once, ever. Paying per attempt turned leaving
+      // and restarting an exercise into a rupee printer.
+      if (state.spelling.paidConcepts.includes(concept)) return
+      state.spelling.paidConcepts.push(concept)
       state.player.rupees += 10
       sfx.play('rupee')
       persistSave(state)
@@ -217,16 +228,22 @@ function startExercise(exercise: Exercise, gate?: Gate): void {
         state.spelling.completedExercises.push(finished.id)
       }
       state.spelling.inProgress = undefined
-      state.pacing.exerciseSeconds += engine.elapsedSeconds()
+      state.pacing.exerciseSeconds += creditSeconds(engine.elapsedSeconds())
       activeEngine = undefined
       finishGate()
     },
     onExit: () => {
-      state.pacing.exerciseSeconds += engine.elapsedSeconds()
+      const abandoned = gateInProgress
+      state.pacing.exerciseSeconds += creditSeconds(engine.elapsedSeconds())
+      state.spelling.inProgress = undefined
       activeEngine = undefined
       gateInProgress = undefined
       persist()
       enterWorld()
+      // Otherwise the world rebuilds him against the door, facing an arbitrary
+      // way, and the prompt fires again on the first frame with no input —
+      // which is the opposite of letting him go and explore somewhere else.
+      if (abandoned) world?.suppressGate(abandoned.id)
     },
   })
 }
@@ -281,16 +298,22 @@ function startReviewChallenge(gate: Gate): void {
     bank: WORD_BANK,
     speech,
     onComplete: () => {
-      state.pacing.exerciseSeconds += engine.elapsedSeconds()
+      state.pacing.exerciseSeconds += creditSeconds(engine.elapsedSeconds())
       activeEngine = undefined
       finishGate()
     },
     onExit: () => {
-      state.pacing.exerciseSeconds += engine.elapsedSeconds()
+      const abandoned = gateInProgress
+      state.pacing.exerciseSeconds += creditSeconds(engine.elapsedSeconds())
+      state.spelling.inProgress = undefined
       activeEngine = undefined
       gateInProgress = undefined
       persist()
       enterWorld()
+      // Otherwise the world rebuilds him against the door, facing an arbitrary
+      // way, and the prompt fires again on the first frame with no input —
+      // which is the opposite of letting him go and explore somewhere else.
+      if (abandoned) world?.suppressGate(abandoned.id)
     },
   })
 }
@@ -398,27 +421,46 @@ window.addEventListener('keydown', (event) => {
     return
   }
 
-  // Ctrl+Shift+P opens the parent dashboard from anywhere.
-  if (event.ctrlKey && event.shiftKey && (event.key === 'P' || event.key === 'p')) {
+  // Ctrl+Shift+P — or Cmd+Shift+P, which is what a Mac keyboard actually has.
+  const parentChord = (event.ctrlKey || event.metaKey) && event.shiftKey
+  if (parentChord && (event.key === 'P' || event.key === 'p')) {
     event.preventDefault()
-    world?.setPaused(true)
-    const closeDashboard = mountParentDashboard(root, {
-      save: state,
-      voiceName: speech.voiceName(),
-      onImport: (imported) => {
-        closeDashboard()
-        state = imported
-        persistSave(state)
-        showTitle()
-      },
-      onReset: () => {
-        closeDashboard()
-        startNewQuest()
-      },
-      onClose: () => world?.setPaused(false),
-    })
+    openParentDashboard()
   }
 })
+
+/** One panel at a time; the shortcut used to stack them. */
+let dashboardOpen = false
+
+function openParentDashboard(): void {
+  if (dashboardOpen) return
+  dashboardOpen = true
+  world?.setPaused(true)
+  const closeDashboard = mountParentDashboard(root, {
+    save: state,
+    voiceName: speech.voiceName(),
+    onImport: (imported) => {
+      closeDashboard()
+      dashboardOpen = false
+      // An import can land mid-exercise, and the engine and barrier it leaves
+      // behind belong to a save that no longer exists.
+      activeEngine = undefined
+      gateInProgress = undefined
+      state = imported
+      persistSave(state)
+      showTitle()
+    },
+    onReset: () => {
+      closeDashboard()
+      dashboardOpen = false
+      startNewQuest()
+    },
+    onClose: () => {
+      dashboardOpen = false
+      world?.setPaused(false)
+    },
+  })
+}
 
 showTitle()
 

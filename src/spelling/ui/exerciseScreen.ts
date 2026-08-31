@@ -23,7 +23,11 @@ export interface ExerciseScreenOptions {
   /** Rupees paid the moment a concept is proved, so progress feels immediate. */
   onConceptProved?: (concept: string) => void
   onComplete: (exercise: Exercise) => void
-  /** Lets the child step out and come back; progress is kept. */
+  /**
+   * Lets the child walk away. The barrier stays shut and the exercise starts
+   * again from the beginning next time — an abandoned run proves nothing — but
+   * he is never stuck in front of a door he cannot face today.
+   */
   onExit?: () => void
 }
 
@@ -56,19 +60,63 @@ export function mountExerciseScreen(
   const hintButton = button('Need a hint?', takeHint, { class: 'btn btn-hint' })
   const checkButton = button('Check', check, { class: 'btn btn-primary' })
 
-  const controls = el('div', { class: 'controls' }, [replayButton, slowButton, hintButton, checkButton])
+  // Leaving lives beside Check, not hidden in the header corner, and says what
+  // it does. It asks first, because one stray click used to bin the lot.
+  const leaveButton = button('Leave for now', askToLeave, { class: 'btn btn-leave' })
+  const confirmLeave = button('Yes, leave', () => options.onExit?.(), { class: 'btn btn-leave' })
+  const keepGoing = button('Keep going', hideLeavePrompt, { class: 'btn btn-primary' })
+  const leavePrompt = el('div', { class: 'leave-prompt', hidden: true }, [
+    el('p', { class: 'leave-question' }, [
+      'Leave this exercise? The door stays shut, and you start this one again ' +
+        'from the beginning next time.',
+    ]),
+    el('div', { class: 'leave-actions' }, [confirmLeave, keepGoing]),
+  ])
+
+  const controls = el('div', { class: 'controls' }, [
+    replayButton,
+    slowButton,
+    hintButton,
+    ...(options.onExit ? [leaveButton] : []),
+    checkButton,
+  ])
+
+  function askToLeave(): void {
+    // Never while an answer is being graded: the last question's 500 ms pause
+    // is exactly when a finished exercise would be thrown away unrecorded.
+    if (locked) return
+    leavePrompt.hidden = false
+    controls.hidden = true
+    window.setTimeout(() => keepGoing.focus(), 40)
+  }
+
+  function hideLeavePrompt(): void {
+    leavePrompt.hidden = true
+    controls.hidden = false
+    window.setTimeout(() => view?.focus(), 40)
+  }
+
+  // Escape asks the same question, matching the world, where it opens the
+  // pause panel.
+  function onKey(event: KeyboardEvent): void {
+    if (event.key !== 'Escape' || !options.onExit) return
+    event.preventDefault()
+    if (leavePrompt.hidden) askToLeave()
+    else hideLeavePrompt()
+  }
+  window.addEventListener('keydown', onKey)
 
   const screen = el('section', { class: 'exercise-screen' }, [
     el('header', { class: 'exercise-header' }, [
       title,
       progressDots,
-      ...(options.onExit ? [button('Pause', () => options.onExit?.(), { class: 'btn btn-quiet' })] : []),
     ]),
     promptLine,
     activity,
     hintBox,
     feedback,
     controls,
+    leavePrompt,
   ])
 
   root.append(screen)
@@ -208,7 +256,10 @@ export function mountExerciseScreen(
   }
 
   return {
-    destroy: () => screen.remove(),
+    destroy: () => {
+      window.removeEventListener('keydown', onKey)
+      screen.remove()
+    },
   }
 }
 

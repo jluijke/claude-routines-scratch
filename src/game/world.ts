@@ -88,6 +88,12 @@ export class World {
   private messageTimer = 0
   /** Barrier the hero is standing against, if any. */
   private pendingGate: Gate | undefined
+  /**
+   * A barrier he has just declined or walked away from. It stays quiet until he
+   * is no longer standing against it, so he can turn round and go somewhere
+   * else instead of being asked the same question every frame.
+   */
+  private suppressedGate: string | undefined
   private paused = false
   private playAccumulator = 0
 
@@ -217,8 +223,19 @@ export class World {
 
   /** The child declined the challenge; do not re-prompt until they walk off. */
   declineGate(): void {
+    if (this.pendingGate) this.suppressedGate = this.pendingGate.id
     this.pendingGate = undefined
     this.nudgeAwayFromGate()
+    this.input.clearTarget()
+  }
+
+  /**
+   * Same idea across a world rebuild: after leaving an exercise part-way, the
+   * hero is restored standing against the door he just walked away from, so
+   * without this the prompt fires again before he can press anything.
+   */
+  suppressGate(gateId: string): void {
+    this.suppressedGate = gateId
     this.input.clearTarget()
   }
 
@@ -424,6 +441,7 @@ export class World {
     const ahead = this.pointAhead(centre, this.player.facing, 8)
     const { col, row } = toTile(ahead.x, ahead.y)
 
+    let touchingSuppressed = false
     for (const placement of this.screen.gates ?? []) {
       const tiles = placement.opens ?? [{ col: placement.col, row: placement.row }]
       const touching =
@@ -432,6 +450,10 @@ export class World {
       if (!touching) continue
       if (this.save.world.openedGates.includes(placement.gateId)) continue
       if (opened.has(`${col},${row}`)) continue
+      if (placement.gateId === this.suppressedGate) {
+        touchingSuppressed = true
+        continue
+      }
 
       const gate = gateById(placement.gateId)
       if (!gate) continue
@@ -439,6 +461,8 @@ export class World {
       this.callbacks.onGate(gate)
       return
     }
+    // He has stepped off it, so it may ask again next time he walks up.
+    if (!touchingSuppressed) this.suppressedGate = undefined
   }
 
   private pointAhead(from: { x: number; y: number }, facing: Facing, distance: number) {

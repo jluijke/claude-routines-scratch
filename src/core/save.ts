@@ -7,7 +7,7 @@ import type { ItemId } from '../game/items'
 import { emptyMasteryStore, type MasteryStore } from '../spelling/mastery'
 
 const STORAGE_KEY = 'zsq.save'
-export const SAVE_VERSION = 2
+export const SAVE_VERSION = 3
 
 export interface SaveData {
   version: number
@@ -45,6 +45,12 @@ export interface SaveData {
     mastery: MasteryStore
     /** Exercise the child is part-way through, if any. */
     inProgress?: number
+    /**
+     * Concepts that have already paid their rupee reward. Leaving an exercise
+     * and starting it again used to pay for the same pattern every time, which
+     * turned the exit button into a rupee printer.
+     */
+    paidConcepts: string[]
   }
   /** Minutes tracker behind the 50/50 pacing governor. */
   pacing: {
@@ -80,6 +86,7 @@ export function newSave(): SaveData {
     spelling: {
       completedExercises: [],
       mastery: emptyMasteryStore(),
+      paidConcepts: [],
     },
     pacing: { playSeconds: 0, exerciseSeconds: 0 },
   }
@@ -101,6 +108,15 @@ const MIGRATIONS: Record<number, Migration> = {
     const world = (data['world'] as Record<string, unknown>) ?? {}
     if (!Array.isArray(world['brokenTiles'])) world['brokenTiles'] = []
     data['world'] = world
+    return data
+  },
+
+  // 2 -> 3: leaving an exercise part-way became possible, so the rewards
+  // already paid out are remembered and never paid twice.
+  2: (data) => {
+    const spelling = (data['spelling'] as Record<string, unknown>) ?? {}
+    if (!Array.isArray(spelling['paidConcepts'])) spelling['paidConcepts'] = []
+    data['spelling'] = spelling
     return data
   },
 }
@@ -128,6 +144,7 @@ export function withDefaults(data: Record<string, unknown>): SaveData {
   merged.spelling = { ...base.spelling, ...(data['spelling'] as object) }
   merged.spelling.mastery = merged.spelling.mastery ?? emptyMasteryStore()
   merged.spelling.mastery.concepts = merged.spelling.mastery.concepts ?? {}
+  merged.spelling.paidConcepts = merged.spelling.paidConcepts ?? []
   merged.pacing = { ...base.pacing, ...(data['pacing'] as object) }
   merged.version = SAVE_VERSION
   return merged

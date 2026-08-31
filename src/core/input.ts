@@ -48,6 +48,7 @@ export const BINDINGS: { keys: string[]; what: string; group: 'Moving' | 'Doing'
   { group: 'Doing', keys: ['C', 'Tab'], what: 'Swap to your next item' },
   { group: 'The rest', keys: ['Ctrl', 'Esc'], what: 'This list, and pause the game' },
   { group: 'The rest', keys: ['M'], what: 'Music on and off' },
+  { group: 'The rest', keys: ['Esc'], what: 'In an exercise: leave it for now' },
 ]
 
 export class Input {
