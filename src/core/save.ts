@@ -1,0 +1,153 @@
+/**
+ * Save data — one child, one browser, localStorage only. Nothing leaves the
+ * device. The parent dashboard can export and re-import this file so he can
+ * play on more than one machine.
+ */
+import type { ItemId } from '../game/items'
+import { emptyMasteryStore, type MasteryStore } from '../spelling/mastery'
+
+const STORAGE_KEY = 'zsq.save'
+export const SAVE_VERSION = 1
+
+export interface SaveData {
+  version: number
+  createdAt: number
+  updatedAt: number
+  player: {
+    hearts: number
+    maxHearts: number
+    rupees: number
+    screenId: string
+    x: number
+    y: number
+    equippedSword: ItemId
+    equippedShield: ItemId
+    equippedTunic?: ItemId
+    equippedTool?: ItemId
+  }
+  /** Owned items; stackable items store their count, others store 1. */
+  inventory: Partial<Record<ItemId, number>>
+  world: {
+    openedGates: string[]
+    defeatedBosses: string[]
+    takenChests: string[]
+    visitedScreens: string[]
+  }
+  spelling: {
+    completedExercises: number[]
+    mastery: MasteryStore
+    /** Exercise the child is part-way through, if any. */
+    inProgress?: number
+  }
+  /** Minutes tracker behind the 50/50 pacing governor. */
+  pacing: {
+    playSeconds: number
+    exerciseSeconds: number
+  }
+}
+
+export function newSave(): SaveData {
+  const now = Date.now()
+  return {
+    version: SAVE_VERSION,
+    createdAt: now,
+    updatedAt: now,
+    player: {
+      hearts: 3,
+      maxHearts: 3,
+      rupees: 0,
+      screenId: 'village-square',
+      x: 128,
+      y: 120,
+      equippedSword: 'woodenSword',
+      equippedShield: 'woodenShield',
+    },
+    inventory: { woodenSword: 1, woodenShield: 1 },
+    world: {
+      openedGates: [],
+      defeatedBosses: [],
+      takenChests: [],
+      visitedScreens: [],
+    },
+    spelling: {
+      completedExercises: [],
+      mastery: emptyMasteryStore(),
+    },
+    pacing: { playSeconds: 0, exerciseSeconds: 0 },
+  }
+}
+
+type Migration = (data: Record<string, unknown>) => Record<string, unknown>
+
+/**
+ * Migrations run in order from the saved version up to SAVE_VERSION. Adding a
+ * field to SaveData means adding a migration here, so an existing save is never
+ * lost when the game is updated mid-curriculum.
+ */
+const MIGRATIONS: Record<number, Migration> = {
+  // 0 -> 1: the first released schema; anything older is treated as fresh.
+}
+
+export function migrate(raw: Record<string, unknown>): SaveData {
+  let data = raw
+  let version = typeof data['version'] === 'number' ? (data['version'] as number) : 0
+  while (version < SAVE_VERSION) {
+    const migration = MIGRATIONS[version]
+    if (migration) data = migration(data)
+    version += 1
+    data['version'] = version
+  }
+  return withDefaults(data)
+}
+
+/** Fills in anything a hand-edited or partial save is missing. */
+export function withDefaults(data: Record<string, unknown>): SaveData {
+  const base = newSave()
+  const merged = { ...base, ...(data as Partial<SaveData>) } as SaveData
+  merged.player = { ...base.player, ...(data['player'] as object) }
+  merged.inventory = { ...base.inventory, ...(data['inventory'] as object) }
+  merged.world = { ...base.world, ...(data['world'] as object) }
+  merged.spelling = { ...base.spelling, ...(data['spelling'] as object) }
+  merged.spelling.mastery = merged.spelling.mastery ?? emptyMasteryStore()
+  merged.spelling.mastery.concepts = merged.spelling.mastery.concepts ?? {}
+  merged.pacing = { ...base.pacing, ...(data['pacing'] as object) }
+  merged.version = SAVE_VERSION
+  return merged
+}
+
+export function load(storage: Storage = localStorage): SaveData {
+  try {
+    const raw = storage.getItem(STORAGE_KEY)
+    if (!raw) return newSave()
+    const parsed = JSON.parse(raw) as Record<string, unknown>
+    return migrate(parsed)
+  } catch {
+    // A corrupt save should never stop a nine-year-old from playing.
+    return newSave()
+  }
+}
+
+export function save(data: SaveData, storage: Storage = localStorage): void {
+  data.updatedAt = Date.now()
+  try {
+    storage.setItem(STORAGE_KEY, JSON.stringify(data))
+  } catch {
+    // Private browsing, quota, or storage disabled — keep playing in memory.
+  }
+}
+
+export function clear(storage: Storage = localStorage): void {
+  try {
+    storage.removeItem(STORAGE_KEY)
+  } catch {
+    // Nothing to do.
+  }
+}
+
+export function serialise(data: SaveData): string {
+  return JSON.stringify(data, null, 2)
+}
+
+export function deserialise(text: string): SaveData {
+  return migrate(JSON.parse(text) as Record<string, unknown>)
+}
