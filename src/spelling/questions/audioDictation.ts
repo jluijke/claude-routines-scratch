@@ -1,7 +1,7 @@
 import type { AudioDictationQuestion, Response } from '../types'
 import { answerInput, el, onEnter } from '../ui/dom'
 import { sentenceOf } from '../wordbank'
-import { speakWord } from '../../core/audio/speech'
+import { speakWord, speakWordSlowly, SLOW_SENTENCE_RATE } from '../../core/audio/speech'
 import type { QuestionView, RenderContext } from './index'
 
 /** The computer says a word; the child types it. Replays are unlimited. */
@@ -19,12 +19,15 @@ export function renderAudioDictation(ctx: RenderContext): QuestionView {
   const sentence = question.withSentence ? sentenceOf(question.word, ctx.bank) : undefined
 
   const replay = (slow: boolean): void => {
-    const rate = slow ? 0.6 : 1
+    if (slow) {
+      speakWordSlowly(ctx.speech, question.word)
+      if (sentence) {
+        window.setTimeout(() => ctx.speech.speak(sentence, { rate: SLOW_SENTENCE_RATE }), 2600)
+      }
+      return
+    }
     speakWord(ctx.speech, question.word, {
-      rate,
-      onEnd: sentence
-        ? () => window.setTimeout(() => ctx.speech.speak(sentence, { rate }), 320)
-        : undefined,
+      onEnd: sentence ? () => window.setTimeout(() => ctx.speech.speak(sentence), 320) : undefined,
     })
   }
 

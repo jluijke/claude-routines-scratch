@@ -1,7 +1,7 @@
 import type { Response, SyllableSplitQuestion } from '../types'
 import { answerInput, el, onEnter } from '../ui/dom'
 import { syllablesOf } from '../wordbank'
-import { speakWord } from '../../core/audio/speech'
+import { speakWord, SLOW_WORD_RATE } from '../../core/audio/speech'
 import type { QuestionView, RenderContext } from './index'
 
 /**
@@ -78,10 +78,10 @@ export function renderSyllableSplit(ctx: RenderContext): QuestionView {
     replay: (slow) => {
       if (slow) {
         // Slow replay says the word one beat at a time, which is the point.
-        const beats = syllablesOf(word, ctx.bank)
-        beats.forEach((beat, i) => {
-          window.setTimeout(() => ctx.speech.speak(beat, { rate: 0.7 }), i * 700)
-        })
+        // Chained rather than fired off on timers, so a slow beat is never cut
+        // short by the next one starting.
+        const beats = syllablesOf(word, ctx.bank).map((beat) => `${beat}.`)
+        ctx.speech.speakSequence(beats, { rate: SLOW_WORD_RATE, gapMs: 500 })
         return
       }
       speakWord(ctx.speech, word)

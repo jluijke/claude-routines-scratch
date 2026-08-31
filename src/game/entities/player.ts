@@ -8,6 +8,26 @@ import { ITEMS, itemPower } from '../items'
 export type Facing = 'up' | 'down' | 'left' | 'right'
 
 export const PLAYER_SIZE = 12
+/**
+ * The body is tested slightly smaller than a tile, so the player fits through a
+ * one-tile gap without pixel-perfect steering. Exported so the map checks can
+ * ask exactly the question the game asks.
+ */
+export const BODY_INSET = 2
+
+/** The four points the collision test samples for a body at (x, y). */
+export function bodyCorners(x: number, y: number): [number, number][] {
+  const left = x + BODY_INSET
+  const right = x + PLAYER_SIZE - BODY_INSET
+  const top = y + BODY_INSET
+  const bottom = y + PLAYER_SIZE - BODY_INSET
+  return [
+    [left, top],
+    [right, top],
+    [left, bottom],
+    [right, bottom],
+  ]
+}
 const WALK_SPEED = 62 // pixels per second
 const ATTACK_FRAMES = 14
 /** Reach beyond the body for the weakest sword: a full tile. */
@@ -200,23 +220,34 @@ export class Player {
       else if (dy !== 0) this.facing = dy < 0 ? 'up' : 'down'
     }
 
+    // If he is already inside a wall — which should never happen, but one
+    // unchecked shove left a child unable to move in any direction, ever — let
+    // him walk out. While stuck, any step that does not make the overlap worse
+    // is allowed, which is enough to reach open ground; a step must clear the
+    // wall entirely to be legal again once he is out. Strictly *reducing* the
+    // count does not work: he moves a pixel a frame, and a corner's tile does
+    // not change until it has crossed the boundary.
+    const trapped = this.blockedCorners(this.x, this.y, isBlocked)
+    const allowed = (x: number, y: number): boolean => {
+      const after = this.blockedCorners(x, y, isBlocked)
+      return after === 0 || (trapped > 0 && after <= trapped)
+    }
+
     const nextX = this.x + vx * step
-    if (!this.collides(nextX, this.y, isBlocked)) this.x = nextX
+    if (allowed(nextX, this.y)) this.x = nextX
     const nextY = this.y + vy * step
-    if (!this.collides(this.x, nextY, isBlocked)) this.y = nextY
+    if (allowed(this.x, nextY)) this.y = nextY
   }
 
-  private collides(x: number, y: number, isBlocked: (x: number, y: number) => boolean): boolean {
-    // Test the four corners of a body slightly smaller than a tile, so the
-    // player fits through a one-tile gap without pixel-perfect steering.
-    const inset = 2
-    const left = x + inset
-    const right = x + PLAYER_SIZE - inset
-    const top = y + inset
-    const bottom = y + PLAYER_SIZE - inset
-    return (
-      isBlocked(left, top) || isBlocked(right, top) || isBlocked(left, bottom) || isBlocked(right, bottom)
-    )
+  /** True if the body would overlap something solid at this position. */
+  overlaps(x: number, y: number, isBlocked: (x: number, y: number) => boolean): boolean {
+    return this.blockedCorners(x, y, isBlocked) > 0
+  }
+
+  private blockedCorners(x: number, y: number, isBlocked: (x: number, y: number) => boolean): number {
+    let count = 0
+    for (const [cx, cy] of bodyCorners(x, y)) if (isBlocked(cx, cy)) count++
+    return count
   }
 
   centre(): { x: number; y: number } {

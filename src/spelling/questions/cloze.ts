@@ -1,3 +1,4 @@
+import { SLOW_SENTENCE_RATE } from '../../core/audio/speech'
 import type { ClozeQuestion, Response } from '../types'
 import { answerInput, el, onEnter } from '../ui/dom'
 import type { QuestionView, RenderContext } from './index'
@@ -43,7 +44,7 @@ export function renderCloze(ctx: RenderContext): QuestionView {
         chosen = ''
       },
       ...(question.speakSentence
-        ? { replay: (slow: boolean) => ctx.speech.speak(spoken(question.sentence), { rate: slow ? 0.6 : 0.95 }) }
+        ? { replay: (slow: boolean) => ctx.speech.speak(spoken(question.sentence), { rate: slow ? SLOW_SENTENCE_RATE : 0.95 }) }
         : {}),
     }
   }
@@ -62,7 +63,7 @@ export function renderCloze(ctx: RenderContext): QuestionView {
       input.select()
     },
     ...(question.speakSentence
-      ? { replay: (slow: boolean) => ctx.speech.speak(spoken(question.sentence), { rate: slow ? 0.6 : 0.95 }) }
+      ? { replay: (slow: boolean) => ctx.speech.speak(spoken(question.sentence), { rate: slow ? SLOW_SENTENCE_RATE : 0.95 }) }
       : {}),
   }
 }

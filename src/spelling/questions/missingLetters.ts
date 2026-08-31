@@ -1,7 +1,7 @@
 import type { MissingLettersQuestion, Response } from '../types'
 import { answerInput, el, maskedWord, onEnter } from '../ui/dom'
 import { patternSpanOf } from '../wordbank'
-import { speakWord } from '../../core/audio/speech'
+import { speakWord, speakWordSlowly } from '../../core/audio/speech'
 import type { QuestionView, RenderContext } from './index'
 
 /**
@@ -32,7 +32,8 @@ export function renderMissingLetters(ctx: RenderContext): QuestionView {
       element.classList.remove('wrong')
       input.select()
     },
-    replay: (slow) => speakWord(ctx.speech, question.word, { rate: slow ? 0.6 : 1 }),
+    replay: (slow) =>
+      slow ? speakWordSlowly(ctx.speech, question.word) : speakWord(ctx.speech, question.word),
   }
 }
 

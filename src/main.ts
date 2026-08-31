@@ -18,10 +18,11 @@ import { mountExerciseScreen } from './spelling/ui/exerciseScreen'
 import { masteredCount } from './spelling/mastery'
 import { button, clear, el } from './spelling/ui/dom'
 import { World } from './game/world'
+import { SCREENS } from './game/world/screens'
 import { showGatePrompt, showNotice } from './game/ui/prompt'
 import { showShop, type ShopKind } from './game/ui/shop'
 import { showHelp } from './game/ui/help'
-import type { Gate } from './game/gates'
+import { gateById, type Gate } from './game/gates'
 import { ITEMS } from './game/items'
 import type { Exercise } from './spelling/types'
 import { mountParentDashboard } from './parent/dashboard'
@@ -501,6 +502,8 @@ Object.assign(window as unknown as Record<string, unknown>, {
     enterWorld,
     showTitle,
     goTo: (screenId: string, col = 7, row = 5) => world?.teleport(screenId, col, row),
+    screens: SCREENS,
+    gateById,
     pacing: () => describePacing(state.pacing),
     music,
     toggleMusic,

@@ -10,7 +10,8 @@
  * Used by tools/validate-content.ts and by the unit tests.
  */
 import { SCREENS, screenById, type Screen, type GatePlacement } from './screens'
-import { SCREEN_COLS, SCREEN_ROWS, TILES, type TileChar } from './tiles'
+import { SCREEN_COLS, SCREEN_ROWS, TILE, TILES, type TileChar } from './tiles'
+import { bodyCorners, PLAYER_SIZE } from '../entities/player'
 
 export type Direction = 'up' | 'down' | 'left' | 'right'
 
@@ -286,6 +287,86 @@ export function bypassableBarriers(screens: readonly Screen[] = SCREENS): string
             `${screen.id}: door to ${portal.to} should sit behind "${portal.guardedBy}", but coming in by ${label} you can reach it`,
           )
         }
+      }
+    }
+  }
+  return problems
+}
+
+
+// ---------------------------------------------------- standing in a doorway
+
+export interface Spot {
+  x: number
+  y: number
+}
+
+/** Whether the hero's body fits at these pixel coordinates. */
+export function bodyFits(screen: Screen, x: number, y: number): boolean {
+  for (const [cx, cy] of bodyCorners(x, y)) {
+    if (isSolid(screen, Math.floor(cx / TILE), Math.floor(cy / TILE))) return false
+  }
+  return true
+}
+
+/** How far back from a door the hero is placed once it opens. */
+export const STEP_BACK = 10
+
+/**
+ * Where to stand the hero after a barrier opens or is declined.
+ *
+ * The direction comes from the door, never from which way he happens to be
+ * facing: finishing an exercise rebuilds the world and facing resets, so a
+ * facing-based push sent him the wrong way and, unchecked, into solid rock —
+ * where nothing could move him again. Everything here is offered to `fits`
+ * first, and if nothing is free he simply stays in the doorway.
+ */
+export function stepBackFromGate(
+  gate: { col: number; row: number },
+  from: Spot,
+  fits: (x: number, y: number) => boolean,
+): Spot {
+  const centreX = from.x + PLAYER_SIZE / 2
+  const centreY = from.y + PLAYER_SIZE / 2
+  const dx = centreX - (gate.col * TILE + TILE / 2)
+  const dy = centreY - (gate.row * TILE + TILE / 2)
+  const away: [number, number] =
+    Math.abs(dx) >= Math.abs(dy)
+      ? [dx < 0 ? -STEP_BACK : STEP_BACK, 0]
+      : [0, dy < 0 ? -STEP_BACK : STEP_BACK]
+
+  const tries: [number, number][] = [
+    away,
+    [0, STEP_BACK],
+    [0, -STEP_BACK],
+    [STEP_BACK, 0],
+    [-STEP_BACK, 0],
+  ]
+  for (const [ox, oy] of tries) {
+    if (fits(from.x + ox, from.y + oy)) return { x: from.x + ox, y: from.y + oy }
+  }
+  return from
+}
+
+/**
+ * Barrier positions from which opening the door would leave the hero inside a
+ * wall. One unchecked ten-pixel shove did exactly that and cost a child his
+ * save, so this walks every place he could legally be standing.
+ */
+export function trappingGates(screen: Screen): string[] {
+  const problems: string[] = []
+  const fits = (x: number, y: number): boolean => bodyFits(screen, x, y)
+
+  for (const placement of screen.gates ?? []) {
+    for (let y = 0; y <= SCREEN_ROWS * TILE - PLAYER_SIZE; y += 2) {
+      for (let x = 0; x <= SCREEN_COLS * TILE - PLAYER_SIZE; x += 2) {
+        if (!fits(x, y)) continue
+        const landed = stepBackFromGate(placement, { x, y }, fits)
+        if (fits(landed.x, landed.y)) continue
+        problems.push(
+          `${screen.id}: opening "${placement.gateId}" from ${x},${y} leaves the hero inside a wall`,
+        )
+        break
       }
     }
   }

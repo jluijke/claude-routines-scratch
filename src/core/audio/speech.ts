@@ -7,15 +7,31 @@
  */
 
 export interface SpeakOptions {
-  /** 1 is normal. The slow replay button uses 0.6. */
+  /** 1 is normal. The slow replay button uses SLOW_WORD_RATE. */
   rate?: number
   onEnd?: () => void
 }
+
+export interface SequenceOptions extends SpeakOptions {
+  /** Silence between parts, in milliseconds. */
+  gapMs?: number
+}
+
+/**
+ * The Slower button. Half speed, and slow enough that the end of the word
+ * survives — on a spelling program the difference between "cat" and "cap" is
+ * the whole question.
+ */
+export const SLOW_WORD_RATE = 0.5
+/** Sentences turn to mud below this, so they get their own floor. */
+export const SLOW_SENTENCE_RATE = 0.55
 
 export interface SpeechEngine {
   /** True once a voice is available and the browser will actually speak. */
   ready(): boolean
   speak(text: string, options?: SpeakOptions): void
+  /** Speaks each part in turn with a gap, without one cutting off the next. */
+  speakSequence(parts: string[], options?: SequenceOptions): void
   cancel(): void
   /** Human-readable name of the chosen voice, for the parent dashboard. */
   voiceName(): string
@@ -38,6 +54,8 @@ const VOICE_PREFERENCE = [
 export class WebSpeechEngine implements SpeechEngine {
   private voice: SpeechSynthesisVoice | undefined
   private primed = false
+  /** Bumped by every new request, so an old sequence stops chaining. */
+  private turn = 0
   private readonly synth: SpeechSynthesis | undefined
 
   constructor() {
@@ -87,16 +105,54 @@ export class WebSpeechEngine implements SpeechEngine {
       return
     }
     this.synth.cancel()
+    this.turn += 1
+    this.utter(text, options.rate ?? 1, options.onEnd)
+  }
+
+  /**
+   * Says each part in turn, waiting for one to finish before starting the next.
+   * Chaining on the 'end' event rather than guessing with timers means a slow
+   * word is never clipped by the one behind it.
+   */
+  speakSequence(parts: string[], options: SequenceOptions = {}): void {
+    if (!this.synth || parts.length === 0) {
+      options.onEnd?.()
+      return
+    }
+    this.synth.cancel()
+    const mine = ++this.turn
+    const gap = options.gapMs ?? 450
+
+    const sayFrom = (index: number): void => {
+      // A newer request has taken over; abandon this one quietly.
+      if (mine !== this.turn) return
+      const part = parts[index]
+      if (part === undefined) {
+        options.onEnd?.()
+        return
+      }
+      this.utter(part, options.rate ?? 1, () => {
+        if (mine !== this.turn) return
+        window.setTimeout(() => sayFrom(index + 1), gap)
+      })
+    }
+    sayFrom(0)
+  }
+
+  private utter(text: string, rate: number, onEnd?: () => void): void {
+    if (!this.synth) return
     const utterance = new SpeechSynthesisUtterance(text)
     if (this.voice) utterance.voice = this.voice
     utterance.lang = this.voice?.lang ?? 'en-AU'
-    utterance.rate = options.rate ?? 1
+    utterance.rate = rate
     utterance.pitch = 1
-    if (options.onEnd) utterance.addEventListener('end', () => options.onEnd?.())
+    utterance.volume = 1
+    if (onEnd) utterance.addEventListener('end', onEnd)
     this.synth.speak(utterance)
   }
 
   cancel(): void {
+    this.turn += 1
     this.synth?.cancel()
   }
 }
@@ -109,6 +165,10 @@ export class SilentSpeechEngine implements SpeechEngine {
   }
   speak(text: string, options?: SpeakOptions): void {
     this.spoken.push(text)
+    options?.onEnd?.()
+  }
+  speakSequence(parts: string[], options?: SequenceOptions): void {
+    this.spoken.push(...parts)
     options?.onEnd?.()
   }
   cancel(): void {}
@@ -133,8 +193,22 @@ const PRONUNCIATION_FIXES: Record<string, string> = {
   close: 'klohz',
 }
 
+function sayable(word: string): string {
+  // The full stop matters: without it voices clip the final consonant, and
+  // hearing the end of the word is most of the task.
+  return `${PRONUNCIATION_FIXES[word.toLowerCase()] ?? word}.`
+}
+
 /** Speak a single word clearly, applying any pronunciation fix it needs. */
 export function speakWord(engine: SpeechEngine, word: string, options?: SpeakOptions): void {
-  const fixed = PRONUNCIATION_FIXES[word.toLowerCase()]
-  engine.speak(fixed ?? word, options)
+  engine.speak(sayable(word), options)
+}
+
+/**
+ * The Slower button on a single word: half speed, and said twice with a beat
+ * between, the way a teacher repeats a spelling word.
+ */
+export function speakWordSlowly(engine: SpeechEngine, word: string): void {
+  const said = sayable(word)
+  engine.speakSequence([said, said], { rate: SLOW_WORD_RATE, gapMs: 650 })
 }

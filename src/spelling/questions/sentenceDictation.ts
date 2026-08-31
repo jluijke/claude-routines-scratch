@@ -1,3 +1,4 @@
+import { SLOW_SENTENCE_RATE } from '../../core/audio/speech'
 import type { Response, SentenceDictationQuestion } from '../types'
 import { answerInput, el, onEnter } from '../ui/dom'
 import type { QuestionView, RenderContext } from './index'
@@ -58,6 +59,6 @@ export function renderSentenceDictation(ctx: RenderContext): QuestionView {
       element.classList.remove('wrong')
       ;(input as HTMLInputElement).focus()
     },
-    replay: (slow: boolean) => ctx.speech.speak(question.sentence, { rate: slow ? 0.6 : 0.95 }),
+    replay: (slow: boolean) => ctx.speech.speak(question.sentence, { rate: slow ? SLOW_SENTENCE_RATE : 0.95 }),
   }
 }

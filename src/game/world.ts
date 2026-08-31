@@ -19,6 +19,7 @@ import { Enemy, overlaps, type Projectile } from './entities/enemies'
 import { Player, PLAYER_SIZE, type Facing } from './entities/player'
 import { SCREEN_H, SCREEN_W, TILE, TILES, isSolidChar, toTile, type TileChar } from './world/tiles'
 import { screenById, START_SCREEN, type Screen } from './world/screens'
+import { stepBackFromGate } from './world/analysis'
 import { gateById, type Gate } from './gates'
 import { ITEMS, materialOf, TOOL_SLOT, type ItemId } from './items'
 import { dropMultiplier, opensFreely } from './pacing'
@@ -136,6 +137,9 @@ export class World {
     })
 
     this.loadScreen(this.screen.id, false)
+    // A save written before the doorway shove was fixed can hold a position
+    // inside a wall. Release him on load rather than making him start again.
+    this.ensureFree()
 
     this.loop = new GameLoop({
       update: (step) => this.update(step),
@@ -217,15 +221,18 @@ export class World {
     this.showMessage(gate.openMessage)
     this.pendingGate = undefined
     // Step the hero back so they are not standing inside the doorway.
-    this.nudgeAwayFromGate()
+    this.stepAwayFromGate(gate.id)
+    this.ensureFree()
     this.callbacks.onChange()
   }
 
   /** The child declined the challenge; do not re-prompt until they walk off. */
   declineGate(): void {
-    if (this.pendingGate) this.suppressedGate = this.pendingGate.id
+    const declined = this.pendingGate
+    if (declined) this.suppressedGate = declined.id
     this.pendingGate = undefined
-    this.nudgeAwayFromGate()
+    if (declined) this.stepAwayFromGate(declined.id)
+    this.ensureFree()
     this.input.clearTarget()
   }
 
@@ -239,14 +246,54 @@ export class World {
     this.input.clearTarget()
   }
 
-  private nudgeAwayFromGate(): void {
-    const push = 10
-    switch (this.player.facing) {
-      case 'up': this.player.y += push; break
-      case 'down': this.player.y -= push; break
-      case 'left': this.player.x += push; break
-      case 'right': this.player.x -= push; break
+  /** Solidity as the player experiences it right now. */
+  private blockedHere(): (x: number, y: number) => boolean {
+    const opened = this.openedTiles()
+    const canCrossWater = this.save.inventory.wings !== undefined
+    return (x, y) => this.isSolidAt(x, y, opened, canCrossWater)
+  }
+
+  private wouldOverlap(x: number, y: number): boolean {
+    return this.player.overlaps(x, y, this.blockedHere())
+  }
+
+  /**
+   * Steps back from a door so the hero is not standing in the doorway. The
+   * rule itself lives in world/analysis so the map checks can run it over
+   * every barrier rather than over a copy of it.
+   */
+  private stepAwayFromGate(gateId: string): void {
+    const placement = (this.screen.gates ?? []).find((g) => g.gateId === gateId)
+    if (!placement) return
+    const landed = stepBackFromGate(
+      placement,
+      { x: this.player.x, y: this.player.y },
+      (x, y) => !this.wouldOverlap(x, y),
+    )
+    this.player.x = landed.x
+    this.player.y = landed.y
+  }
+
+  /**
+   * Never leave the hero inside a wall. Any placement — a restored save, a
+   * doorway, a debug teleport — goes through this, so a bad position is
+   * corrected on the spot instead of becoming a save file nobody can play.
+   */
+  private ensureFree(): void {
+    if (!this.wouldOverlap(this.player.x, this.player.y)) return
+    let best: { x: number; y: number; distance: number } | undefined
+    for (let row = 0; row < 11; row++) {
+      for (let col = 0; col < 16; col++) {
+        const x = col * TILE + (TILE - PLAYER_SIZE) / 2
+        const y = row * TILE + (TILE - PLAYER_SIZE) / 2
+        if (this.wouldOverlap(x, y)) continue
+        const distance = Math.hypot(x - this.player.x, y - this.player.y)
+        if (!best || distance < best.distance) best = { x, y, distance }
+      }
     }
+    if (!best) return
+    this.player.x = best.x
+    this.player.y = best.y
   }
 
   // ------------------------------------------------------------ screen setup
@@ -384,11 +431,13 @@ export class World {
     if (state.cycleItem) this.cycleTool()
 
     const opened = this.openedTiles()
-    const canCrossWater = this.save.inventory.wings !== undefined
-    const blocked = (x: number, y: number): boolean => this.isSolidAt(x, y, opened, canCrossWater)
+    const blocked = this.blockedHere()
 
     this.player.update(step, dx, dy, blocked)
     this.clampToScreen()
+    // Belt and braces: nothing should ever put him inside a wall, but if
+    // something does, he is out of it on the next frame rather than for good.
+    this.ensureFree()
     this.checkGateContact(opened)
     this.checkPortals()
     this.checkEdges()
@@ -488,6 +537,7 @@ export class World {
       if (TILES[char]?.bush && !this.isBroken(col, row)) return
       this.loadScreen(portal.to)
       this.player.placeAtTile(portal.spawnCol, portal.spawnRow)
+      this.ensureFree()
       this.input.clearTarget()
       this.callbacks.onChange()
       return
@@ -530,6 +580,7 @@ export class World {
       case 'left': this.player.x = SCREEN_W - margin - PLAYER_SIZE; break
       case 'right': this.player.x = margin; break
     }
+    this.ensureFree()
     this.input.clearTarget()
     this.callbacks.onChange()
   }
@@ -1009,6 +1060,11 @@ export class World {
   }
 
   /** Live state, for the debug menu and the end-to-end checks. */
+  /** True if the hero's body overlaps something solid. Used by the checks. */
+  insideWall(): boolean {
+    return this.wouldOverlap(this.player.x, this.player.y)
+  }
+
   debugState(): Record<string, unknown> {
     return {
       screen: this.screen.id,
@@ -1035,6 +1091,7 @@ export class World {
   teleport(screenId: string, col: number, row: number): void {
     this.loadScreen(screenId)
     this.player.placeAtTile(col, row)
+    this.ensureFree()
     this.input.clearTarget()
     this.syncSave()
     this.callbacks.onChange()
@@ -1045,6 +1102,7 @@ export class World {
     this.player.invulnerable = 90
     this.loadScreen(START_SCREEN)
     this.player.placeAtTile(7, 5)
+    this.ensureFree()
     this.syncSave()
     this.callbacks.onChange()
   }

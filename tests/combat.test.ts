@@ -83,3 +83,38 @@ describe('the sword', () => {
     expect(golden.swordReach).toBeGreaterThan(wooden.swordReach)
   })
 })
+
+
+describe('getting out of a wall', () => {
+  // A child spent a session unable to move in any direction: a doorway shove
+  // put a corner of his body inside a rock, and the collision test only ever
+  // asked "is the destination legal", never "am I already stuck". Every
+  // direction was refused, forever.
+  const wall = (left: number, right: number, top: number, bottom: number) =>
+    (x: number, y: number): boolean => x >= left && x < right && y >= top && y < bottom
+
+  it('lets him climb out when he starts inside one', () => {
+    const player = new Player({ sword: 'woodenSword', shield: 'woodenShield' }, 3, 3)
+    // A wall filling everything above y = 80; he is buried 6 px into it.
+    const blocked = wall(-1000, 1000, -1000, 80)
+    player.x = 100
+    player.y = 74
+    expect(player.overlaps(player.x, player.y, blocked)).toBe(true)
+
+    for (let frame = 0; frame < 120 && player.overlaps(player.x, player.y, blocked); frame++) {
+      player.update(1 / 60, 0, 1, blocked)
+    }
+    expect(player.overlaps(player.x, player.y, blocked)).toBe(false)
+  })
+
+  it('still refuses to walk into one from outside', () => {
+    const player = new Player({ sword: 'woodenSword', shield: 'woodenShield' }, 3, 3)
+    const blocked = wall(-1000, 1000, -1000, 80)
+    player.x = 100
+    player.y = 90
+    const before = player.y
+    for (let frame = 0; frame < 60; frame++) player.update(1 / 60, 0, -1, blocked)
+    expect(player.y).toBeGreaterThanOrEqual(before - 12)
+    expect(player.overlaps(player.x, player.y, blocked)).toBe(false)
+  })
+})
