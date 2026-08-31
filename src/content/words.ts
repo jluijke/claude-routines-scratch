@@ -16,7 +16,7 @@ const syllableWords: Spec[] = [
   'di-no-saur', 'hos-pi-tal', 'ad-ven-ture', 'croc-o-dile', 'won-der-ful',
   'kan-ga-roo', 'but-ter-fly', 'Sep-tem-ber', 'im-por-tant', 'hol-i-day',
   'mag-net', 'rab-bit', 'gar-den', 'bas-ket', 'jum-per',
-  'ten-nis', 'win-dow', 'pic-nic', 'sand-wich', 'choc-o-late',
+  'ten-nis', 'win-dow', 'pic-n[ic]', 'sand-wich', 'choc-o-late',
   'yes-ter-day', 'af-ter-noon', 'bas-ket-ball', 'lem-on-ade', 'tel-e-scope',
 ]
 

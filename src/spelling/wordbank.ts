@@ -52,7 +52,14 @@ export function parseWordSpec(spec: string, options: WordSpecOptions = {}): Word
   return entry
 }
 
-/** Builds a bank from spec strings, keyed by the plain word. */
+/**
+ * Builds a bank from spec strings, keyed by the plain word.
+ *
+ * A word may legitimately be listed under more than one topic — "tree" belongs
+ * to both the /ee/ words and the plurals. Later entries merge into earlier ones
+ * rather than replacing them, so a bare mention never strips the syllables or
+ * pattern span that another section took the trouble to mark.
+ */
 export function buildWordBank(
   specs: (string | [string, WordSpecOptions])[],
 ): WordBank {
@@ -61,9 +68,26 @@ export function buildWordBank(
     const entry = typeof item === 'string'
       ? parseWordSpec(item)
       : parseWordSpec(item[0], item[1])
-    bank.set(entry.word.toLowerCase(), entry)
+    const key = entry.word.toLowerCase()
+    const existing = bank.get(key)
+    bank.set(key, existing ? mergeEntries(existing, entry) : entry)
   }
   return bank
+}
+
+/** Keeps whichever version of each field carries more information. */
+function mergeEntries(a: WordEntry, b: WordEntry): WordEntry {
+  const merged: WordEntry = {
+    word: a.word,
+    syllables: b.syllables.length > a.syllables.length ? b.syllables : a.syllables,
+  }
+  const span = a.patternSpan ?? b.patternSpan
+  if (span) merged.patternSpan = span
+  const sentence = a.sentence ?? b.sentence
+  if (sentence) merged.sentence = sentence
+  const confusions = [...new Set([...(a.confusions ?? []), ...(b.confusions ?? [])])]
+  if (confusions.length > 0) merged.confusions = confusions
+  return merged
 }
 
 export function entryOf(word: string, bank: WordBank): WordEntry | undefined {

@@ -1,0 +1,150 @@
+/**
+ * The parent view — hidden behind Ctrl+Shift+P.
+ *
+ * Everything here stays in this browser. Nothing is uploaded anywhere. It
+ * answers the questions a parent actually has: which patterns have stuck, which
+ * are shaky, which words keep going wrong, and whether the play-versus-spelling
+ * balance is anywhere near the 50/50 it is meant to be.
+ */
+import { button, el } from '../spelling/ui/dom'
+import { CONCEPTS } from '../content/concepts'
+import { EXERCISES, TOTAL_EXERCISES } from '../content/exercises'
+import { deserialise, serialise, type SaveData } from '../core/save'
+import { describe as describePacing, ratio } from '../game/pacing'
+import type { MasteryStatus } from '../spelling/mastery'
+
+const STATUS_LABEL: Record<MasteryStatus, string> = {
+  unseen: 'not met yet',
+  learning: 'still learning',
+  shaky: 'needs practice',
+  mastered: 'mastered',
+}
+
+export interface DashboardOptions {
+  save: SaveData
+  voiceName: string
+  onImport: (save: SaveData) => void
+  onClose: () => void
+}
+
+export function mountParentDashboard(root: HTMLElement, options: DashboardOptions): void {
+  const { save } = options
+
+  const conceptRows = [...CONCEPTS.values()].map((concept) => {
+    const record = save.spelling.mastery.concepts[concept.id]
+    const status = record?.status ?? 'unseen'
+    const attempts = record?.attempted ?? 0
+    const independent = record?.independentCorrect ?? 0
+    const hints = record?.hintsUsed ?? 0
+    const missed = record?.missedWords ?? []
+
+    return el('tr', { class: `mastery-${status}` }, [
+      el('td', {}, [concept.label]),
+      el('td', {}, [STATUS_LABEL[status]]),
+      el('td', {}, [`${independent} of ${attempts}`]),
+      el('td', {}, [String(hints)]),
+      el('td', { class: 'missed' }, [missed.length > 0 ? [...new Set(missed)].slice(-6).join(', ') : '—']),
+    ])
+  })
+
+  const shaky = [...CONCEPTS.values()].filter(
+    (c) => save.spelling.mastery.concepts[c.id]?.status === 'shaky',
+  )
+
+  const split = ratio(save.pacing)
+  const balanceNote =
+    save.pacing.playSeconds + save.pacing.exerciseSeconds < 240
+      ? 'Not enough time recorded yet to judge the balance.'
+      : split > 0.62
+        ? 'Play is running ahead. Rupee drops have thinned out and optional doors are staying shut, which nudges him toward the next sealed door.'
+        : split < 0.38
+          ? 'Spelling is running ahead. Optional doors are opening for free and rupees are falling generously, so he gets a longer stretch of play.'
+          : 'The balance is close to 50/50.'
+
+  const exportButton = button('Download progress file', () => {
+    const blob = new Blob([serialise(save)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = el('a', { href: url, download: `spelling-quest-${new Date().toISOString().slice(0, 10)}.json` })
+    link.click()
+    URL.revokeObjectURL(url)
+  }, { class: 'btn btn-quiet' })
+
+  const fileInput = el('input', { type: 'file', accept: 'application/json', class: 'file-input' })
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files?.[0]
+    if (!file) return
+    try {
+      options.onImport(deserialise(await file.text()))
+    } catch {
+      importNote.textContent = 'That file could not be read as a progress file.'
+    }
+  })
+  const importNote = el('p', { class: 'q-hint-line' }, ['Load a progress file from another device.'])
+
+  const close = button('Close', () => {
+    panel.remove()
+    options.onClose()
+  }, { class: 'btn btn-primary' })
+
+  const panel = el('div', { class: 'overlay' }, [
+    el('section', { class: 'dashboard' }, [
+      el('h2', {}, ['How the spelling is going']),
+      el('p', { class: 'q-hint-line' }, [
+        'This screen is for you, not for him. Everything below stays in this browser and is never sent anywhere.',
+      ]),
+
+      el('div', { class: 'dash-stats' }, [
+        stat('Exercises complete', `${save.spelling.completedExercises.length} of ${TOTAL_EXERCISES}`),
+        stat('Written so far', `${EXERCISES.length} exercises`),
+        stat('Patterns mastered', String(countMastered(save))),
+        stat('Needs practice', String(shaky.length)),
+        stat('Rupees', String(save.player.rupees)),
+        stat('Hearts', `${save.player.hearts} of ${save.player.maxHearts}`),
+      ]),
+
+      el('h3', {}, ['Play and spelling balance']),
+      el('p', {}, [describePacing(save.pacing)]),
+      el('p', { class: 'q-hint-line' }, [balanceNote]),
+
+      el('h3', {}, ['Pattern by pattern']),
+      el('table', { class: 'mastery-table' }, [
+        el('thead', {}, [
+          el('tr', {}, [
+            el('th', {}, ['Pattern']),
+            el('th', {}, ['Status']),
+            el('th', {}, ['Right first time']),
+            el('th', {}, ['Hints used']),
+            el('th', {}, ['Words missed']),
+          ]),
+        ]),
+        el('tbody', {}, conceptRows),
+      ]),
+      el('p', { class: 'q-hint-line' }, [
+        '"Right first time" counts only answers given with no hints and no second attempt — the program treats nothing else as mastery.',
+      ]),
+
+      el('h3', {}, ['Progress file']),
+      el('div', { class: 'dash-actions' }, [exportButton, fileInput]),
+      importNote,
+
+      el('h3', {}, ['Audio']),
+      el('p', { class: 'q-hint-line' }, [`Currently speaking with: ${options.voiceName}.`]),
+
+      el('div', { class: 'gate-actions' }, [close]),
+    ]),
+  ])
+
+  root.append(panel)
+  window.setTimeout(() => close.focus(), 60)
+}
+
+function stat(label: string, value: string): HTMLElement {
+  return el('div', { class: 'dash-stat' }, [
+    el('span', { class: 'dash-value' }, [value]),
+    el('span', { class: 'dash-label' }, [label]),
+  ])
+}
+
+function countMastered(save: SaveData): number {
+  return Object.values(save.spelling.mastery.concepts).filter((r) => r.status === 'mastered').length
+}
