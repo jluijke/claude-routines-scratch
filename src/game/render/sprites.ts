@@ -55,6 +55,11 @@ export function defineSprite(width: number, height: number, rows: SpriteRows): S
   return { width, height, rows: padded }
 }
 
+/** Mirrors a sprite vertically, so an up-pointing blade is free. */
+export function flipVertical(sprite: Sprite): Sprite {
+  return { width: sprite.width, height: sprite.height, rows: [...sprite.rows].reverse() }
+}
+
 /** Mirrors a sprite horizontally, so left-facing art is free. */
 export function mirror(sprite: Sprite): Sprite {
   return {
@@ -566,6 +571,40 @@ const SEAL = S([
   '.kkkkkkkkkkkkkk.',
 ])
 
+/**
+ * The sword, pointing away from the hero: grip, crossguard, tapering blade.
+ * It used to be drawn as a plain white rectangle, which read as a fridge.
+ */
+const SWORD_RIGHT = defineSprite(16, 8, [
+  '...k............',
+  '...k............',
+  '.kykkkkkkkkkkk..',
+  'kyykkmmmmmmmmwk.',
+  'kyykkmmmmmmmmmwk',
+  '.kykkkkkkkkkkk..',
+  '...k............',
+  '...k............',
+])
+
+const SWORD_DOWN = defineSprite(8, 16, [
+  '..kyyk..',
+  '..kyyk..',
+  'kkkkkkkk',
+  '.kmmmmk.',
+  '.kmmmmk.',
+  '.kmmmmk.',
+  '.kmmmmk.',
+  '.kmwwmk.',
+  '.kmwwmk.',
+  '.kmwwmk.',
+  '.kmwwmk.',
+  '.kmwwmk.',
+  '..kwwk..',
+  '..kwwk..',
+  '...kk...',
+  '........',
+])
+
 const PROJECTILE = S8([
   '..kkkk..',
   '.kMMMMk.',
@@ -616,6 +655,10 @@ export const SPRITES = {
   seal: SEAL,
   projectile: PROJECTILE,
   magicBolt: MAGIC_BOLT,
+  swordRight: SWORD_RIGHT,
+  swordLeft: mirror(SWORD_RIGHT),
+  swordDown: SWORD_DOWN,
+  swordUp: flipVertical(SWORD_DOWN),
   bomb: BOMB,
   bombLit: BOMB_LIT,
   explosion: EXPLOSION,

@@ -198,3 +198,10 @@ content validator fails the build if any of them break:
 All four exist because all four were violated at once, and a child got
 permanently stuck in a river. `tools/map-smoke.mjs` then walks all 68 crossings
 in a real browser and confirms he can still move after each one.
+
+`tools/combat-smoke.mjs` does the same for fighting: it hunts each enemy type
+down and fails if one takes more than fourteen swings. That check exists
+because the sword's blade used to stick out seven pixels — less than half a
+tile — so a child had to be almost touching a monster to hit it, and every
+other browser check drove exercises or walked the map without ever trying to
+hit anything.

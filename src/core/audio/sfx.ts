@@ -19,6 +19,7 @@ export type SfxName =
   | 'fanfare'
 
 interface Tone {
+  kind?: 'tone'
   freq: number
   /** Seconds from the start of the effect. */
   at: number
@@ -29,8 +30,32 @@ interface Tone {
   slideTo?: number
 }
 
-const PATCHES: Record<SfxName, Tone[]> = {
-  swordSwing: [{ freq: 720, at: 0, duration: 0.07, type: 'square', slideTo: 320, gain: 0.14 }],
+/**
+ * Filtered noise, for sounds that are air rather than pitch. A blade through
+ * the air is a band of noise sweeping downward — an oscillator can only ever
+ * make it a blip.
+ */
+interface Noise {
+  kind: 'noise'
+  at: number
+  duration: number
+  /** Bandpass centre at the start and at the end, in hertz. */
+  from: number
+  to: number
+  gain?: number
+  /** Higher is a narrower, more whistling sweep. */
+  q?: number
+}
+
+type Sound = Tone | Noise
+
+const PATCHES: Record<SfxName, Sound[]> = {
+  // A swoosh: a narrow band of noise falling away, with a touch of body under
+  // it so it carries on small speakers.
+  swordSwing: [
+    { kind: 'noise', at: 0, duration: 0.14, from: 2200, to: 420, gain: 0.16, q: 6 },
+    { freq: 380, at: 0.01, duration: 0.07, type: 'triangle', slideTo: 180, gain: 0.05 },
+  ],
   enemyHit: [{ freq: 180, at: 0, duration: 0.1, type: 'sawtooth', slideTo: 70, gain: 0.18 }],
   playerHurt: [
     { freq: 320, at: 0, duration: 0.09, type: 'square', slideTo: 160, gain: 0.2 },
@@ -96,7 +121,12 @@ export class Sfx {
     if (context.state === 'suspended') void context.resume()
 
     const start = context.currentTime
-    for (const tone of PATCHES[name]) {
+    for (const sound of PATCHES[name]) {
+      if (sound.kind === 'noise') {
+        this.playNoise(context, sound, start)
+        continue
+      }
+      const tone = sound
       const osc = context.createOscillator()
       const gain = context.createGain()
       osc.type = tone.type ?? 'square'
@@ -115,6 +145,35 @@ export class Sfx {
       osc.start(start + tone.at)
       osc.stop(start + tone.at + tone.duration + 0.02)
     }
+  }
+
+  /** White noise through a bandpass that sweeps, which is what a swoosh is. */
+  private playNoise(context: AudioContext, noise: Noise, start: number): void {
+    const at = start + noise.at
+    const frames = Math.max(1, Math.floor(context.sampleRate * noise.duration))
+    const buffer = context.createBuffer(1, frames, context.sampleRate)
+    const data = buffer.getChannelData(0)
+    for (let i = 0; i < frames; i++) data[i] = Math.random() * 2 - 1
+
+    const source = context.createBufferSource()
+    source.buffer = buffer
+
+    const filter = context.createBiquadFilter()
+    filter.type = 'bandpass'
+    filter.Q.value = noise.q ?? 4
+    filter.frequency.setValueAtTime(noise.from, at)
+    filter.frequency.exponentialRampToValueAtTime(Math.max(20, noise.to), at + noise.duration)
+
+    const gain = context.createGain()
+    const peak = noise.gain ?? 0.14
+    // Quick in, slow out: the swing is fastest at the start.
+    gain.gain.setValueAtTime(0.0001, at)
+    gain.gain.exponentialRampToValueAtTime(peak, at + 0.015)
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + noise.duration)
+
+    source.connect(filter).connect(gain).connect(context.destination)
+    source.start(at)
+    source.stop(at + noise.duration + 0.02)
   }
 }
 

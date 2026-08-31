@@ -891,13 +891,27 @@ export class World {
 
     this.atlas.draw(ctx, name, this.player.x - 2, this.player.y - 4)
 
-    // The blade, drawn as a simple bar in the facing direction.
+    // The blade, pointing the way he is facing. The sprite is a fixed length;
+    // a better sword reaches slightly further than it draws, which is a fairer
+    // way round than looking longer than it hits.
     const sword = this.player.swordBox()
     if (!sword) return
-    ctx.fillStyle = '#e8e8f0'
-    ctx.fillRect(sword.x, sword.y, sword.w, sword.h)
-    ctx.fillStyle = '#9aa2b0'
-    ctx.fillRect(sword.x + 1, sword.y + 1, Math.max(1, sword.w - 2), Math.max(1, sword.h - 2))
+    const centreX = this.player.x + PLAYER_SIZE / 2
+    const centreY = this.player.y + PLAYER_SIZE / 2
+    switch (facing) {
+      case 'right':
+        this.atlas.draw(ctx, 'swordRight', sword.x, centreY - 4)
+        break
+      case 'left':
+        this.atlas.draw(ctx, 'swordLeft', sword.x + sword.w - 16, centreY - 4)
+        break
+      case 'down':
+        this.atlas.draw(ctx, 'swordDown', centreX - 4, sword.y)
+        break
+      case 'up':
+        this.atlas.draw(ctx, 'swordUp', centreX - 4, sword.y + sword.h - 16)
+        break
+    }
   }
 
   private drawMessageBar(ctx: CanvasRenderingContext2D): void {
@@ -970,6 +984,15 @@ export class World {
       facing: this.player.facing,
       hearts: this.player.hearts,
       enemies: this.enemies.length,
+      // Positions and health, so a combat check can actually chase something
+      // down rather than swinging at thin air and calling the sword broken.
+      monsters: this.enemies.map((e) => ({
+        kind: e.kind,
+        x: Math.round(e.x),
+        y: Math.round(e.y),
+        hp: e.hp,
+      })),
+      sword: this.player.swordBox(),
       pendingGate: this.pendingGate?.id,
       paused: this.paused,
     }

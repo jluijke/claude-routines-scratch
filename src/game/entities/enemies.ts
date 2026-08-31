@@ -91,8 +91,14 @@ export class Enemy {
   private turnTimer = 0
   private phase = 0
   private readonly rng: Rng
-  /** Frames until the next blink, for enemies that teleport. */
-  private blinkTimer = 140
+  /**
+   * Frames until the next blink, for enemies that teleport.
+   *
+   * At the original two-and-a-half seconds it could cross the room faster than
+   * the player could walk to it, so it could never be cornered and killed — an
+   * enemy that is merely annoying rather than a fight.
+   */
+  private blinkTimer = 300
   /** Counts down while fading in or out of a blink. */
   private blinkPhase = 0
   /** Set while distracted by bait. */
@@ -213,9 +219,9 @@ export class Enemy {
         this.blinkTimer -= 1
         if (this.blinkPhase > 0) this.blinkPhase -= 1
         if (this.blinkTimer <= 0) {
-          this.blinkTimer = this.rng.int(150, 260)
+          this.blinkTimer = this.rng.int(280, 430)
           this.blinkPhase = 24
-          this.blinkTo(isBlocked)
+          this.blinkTo(isBlocked, me)
         }
         break
       }
@@ -258,14 +264,22 @@ export class Enemy {
     }
   }
 
-  /** Picks a free tile somewhere else on the screen and appears there. */
-  private blinkTo(isBlocked: (x: number, y: number) => boolean): void {
-    for (let attempt = 0; attempt < 24; attempt++) {
-      const col = this.rng.int(1, 14)
-      const row = this.rng.int(1, 9)
+  /**
+   * Reappears on a free tile nearby — not anywhere on the screen. Blinking
+   * clear across the room made it impossible to corner; staying in the
+   * neighbourhood keeps it slippery but beatable.
+   */
+  private blinkTo(isBlocked: (x: number, y: number) => boolean, from: { x: number; y: number }): void {
+    const fromCol = Math.round(from.x / TILE)
+    const fromRow = Math.round(from.y / TILE)
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const col = clamp(fromCol + this.rng.int(-4, 4), 1, 14)
+      const row = clamp(fromRow + this.rng.int(-3, 3), 1, 9)
       const x = col * TILE + (TILE - this.size) / 2
       const y = row * TILE + (TILE - this.size) / 2
       if (this.blockedAt(x, y, isBlocked)) continue
+      // Do not simply reappear where it already was.
+      if (Math.hypot(x - this.x, y - this.y) < TILE) continue
       this.x = x
       this.y = y
       return

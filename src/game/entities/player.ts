@@ -10,6 +10,13 @@ export type Facing = 'up' | 'down' | 'left' | 'right'
 export const PLAYER_SIZE = 12
 const WALK_SPEED = 62 // pixels per second
 const ATTACK_FRAMES = 14
+/** Reach beyond the body for the weakest sword: a full tile. */
+const BLADE_LENGTH = 14
+/**
+ * How wide the swing is across the facing direction. Matched to the monsters,
+ * which are 14 px, so a hit is not lost to being three pixels too high.
+ */
+const SWING_WIDTH = 14
 /**
  * Frames of invulnerability after a hit — a second and a half.
  *
@@ -57,9 +64,17 @@ export class Player {
     return itemPower(this.loadout.sword)
   }
 
-  /** How far the blade reaches beyond the body — better swords reach further. */
+  /**
+   * How far the blade reaches *beyond the body*, in pixels.
+   *
+   * This used to be measured from the player's centre, which meant half of it
+   * was inside him and only seven pixels stuck out — less than half a tile.
+   * Standing and swinging at a two-hit monster took over a hundred swings,
+   * because you had to be almost touching it and perfectly lined up. A tile of
+   * reach is the least that feels like a sword.
+   */
   get swordReach(): number {
-    return 10 + this.swordDamage * 3
+    return BLADE_LENGTH + this.swordDamage * 2
   }
 
   get isAttacking(): boolean {
@@ -82,21 +97,27 @@ export class Player {
     if (this.attackTimer <= 0) this.attackTimer = ATTACK_FRAMES
   }
 
-  /** The rectangle the sword sweeps, or undefined when not attacking. */
+  /**
+   * The rectangle the sword sweeps, or undefined when not attacking.
+   *
+   * Measured from the edge of the body outward, so the whole of it is in front
+   * of him and none of it wasted inside him.
+   */
   swordBox(): { x: number; y: number; w: number; h: number } | undefined {
     if (this.attackTimer <= 0) return undefined
     const reach = this.swordReach
     const cx = this.x + PLAYER_SIZE / 2
     const cy = this.y + PLAYER_SIZE / 2
+    const half = SWING_WIDTH / 2
     switch (this.facing) {
       case 'up':
-        return { x: cx - 4, y: cy - reach, w: 8, h: reach }
+        return { x: cx - half, y: this.y - reach, w: SWING_WIDTH, h: reach }
       case 'down':
-        return { x: cx - 4, y: cy, w: 8, h: reach }
+        return { x: cx - half, y: this.y + PLAYER_SIZE, w: SWING_WIDTH, h: reach }
       case 'left':
-        return { x: cx - reach, y: cy - 4, w: reach, h: 8 }
+        return { x: this.x - reach, y: cy - half, w: reach, h: SWING_WIDTH }
       case 'right':
-        return { x: cx, y: cy - 4, w: reach, h: 8 }
+        return { x: this.x + PLAYER_SIZE, y: cy - half, w: reach, h: SWING_WIDTH }
     }
   }
 
