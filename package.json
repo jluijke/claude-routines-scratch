@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "validate:content": "tsx tools/validate-content.ts"
+    "validate:content": "tsx tools/validate-content.ts",
+    "build:single": "node tools/build-single-file.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.4.0",

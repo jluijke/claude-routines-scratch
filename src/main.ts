@@ -12,6 +12,7 @@ import { WORD_BANK } from './content/words'
 import { CONCEPTS } from './content/concepts'
 import { EXERCISES, exerciseById, nextExercise, TOTAL_EXERCISES } from './content/exercises'
 import { ExerciseEngine } from './spelling/engine'
+import { expectedAnswer } from './spelling/grading'
 import { mountExerciseScreen } from './spelling/ui/exerciseScreen'
 import { masteredCount } from './spelling/mastery'
 import { button, clear, el } from './spelling/ui/dom'
@@ -362,6 +363,23 @@ Object.assign(window as unknown as Record<string, unknown>, {
       return activeEngine
     },
     currentQuestion: () => activeEngine?.current(),
+    /**
+     * The expected answer for whatever is on screen. Used by the end-to-end
+     * checks, which drive the real UI rather than re-implementing the content.
+     */
+    expected: () => {
+      const shown = document.querySelector('.activity') as HTMLElement | null
+      const id = shown?.dataset['questionId']
+      if (!id) return undefined
+      const base = id.split(/[@#]/)[0]
+      const pool = [
+        ...EXERCISES.flatMap((e) => e.activities),
+        ...[...CONCEPTS.values()].flatMap((c) => c.reviewPool),
+      ]
+      const question = pool.find((q) => q.id === base)
+      if (!question) return undefined
+      return { question, answer: expectedAnswer(question, WORD_BANK), shownId: id }
+    },
     startExercise: (id: number) => {
       const exercise = exerciseById(id)
       if (exercise) startExercise(exercise)

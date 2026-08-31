@@ -10,9 +10,22 @@ memorising word lists.
 
 ## Running it
 
+The quickest way — no install, no internet:
+
 ```bash
 npm install
-npm run dev          # then open the URL it prints
+npm run build:single   # writes dist-single/zelda-spelling-quest.html
+```
+
+That one file is the whole game. Double-click it, or copy it to any other
+machine or an iPad and open it there. It runs from a `file://` URL, so it is
+built as a classic script rather than ES modules, which a browser refuses to
+load from a local file.
+
+For development, with hot reload:
+
+```bash
+npm run dev            # then open the URL it prints
 ```
 
 Other commands:
