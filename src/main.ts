@@ -30,7 +30,31 @@ import { mountParentDashboard } from './parent/dashboard'
 import { creditSeconds, describe as describePacing } from './game/pacing'
 
 const root = document.getElementById('app') as HTMLElement
-const speech = new WebSpeechEngine()
+/**
+ * The reading voice, chosen by ear in the parent dashboard. Per device, like
+ * the music setting: which voices exist depends on the machine, so a choice
+ * made on one is meaningless on another and must not travel in the save file.
+ */
+const VOICE_KEY = 'zsq.voice'
+
+function storedVoice(): string | undefined {
+  try {
+    return localStorage.getItem(VOICE_KEY) ?? undefined
+  } catch {
+    return undefined
+  }
+}
+
+function rememberVoice(name: string | undefined): void {
+  try {
+    if (name) localStorage.setItem(VOICE_KEY, name)
+    else localStorage.removeItem(VOICE_KEY)
+  } catch {
+    // Storage unavailable; the choice just will not be remembered.
+  }
+}
+
+const speech = new WebSpeechEngine(storedVoice())
 
 let state: SaveData = load()
 let world: World | undefined
@@ -466,7 +490,8 @@ function openParentDashboard(): void {
   world?.setPaused(true)
   const closeDashboard = mountParentDashboard(root, {
     save: state,
-    voiceName: speech.voiceName(),
+    speech,
+    onVoiceChosen: rememberVoice,
     onImport: (imported) => {
       closeDashboard()
       dashboardOpen = false
@@ -534,6 +559,7 @@ Object.assign(window as unknown as Record<string, unknown>, {
     gateById,
     pacing: () => describePacing(state.pacing),
     music,
+    speech,
     toggleMusic,
     reset: startNewQuest,
     openHelp,

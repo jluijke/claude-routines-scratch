@@ -678,3 +678,15 @@ tr.mastery-unseen { opacity: 0.55; }
   cursor: pointer;
 }
 .link-button:hover { color: var(--hud-text); }
+
+/* The reading voice picker. Names are long, so it needs room. */
+.voice-select {
+  font: inherit;
+  font-size: 0.9rem;
+  max-width: min(340px, 100%);
+  padding: 0.45rem 0.5rem;
+  border: 2px solid var(--paper-edge);
+  border-radius: 8px;
+  background: #fffdf7;
+  color: var(--ink);
+}

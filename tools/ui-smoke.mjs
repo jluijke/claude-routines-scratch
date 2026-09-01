@@ -8,6 +8,9 @@ const page = await browser.newPage({ viewport: { width: 1000, height: 950 } })
 const errors = []
 page.on('pageerror', (e) => errors.push(String(e)))
 
+const failures = []
+const check = (name, ok) => { if (!ok) failures.push(name) }
+
 await page.goto(process.env.BASE ?? 'http://localhost:5199/', { waitUntil: 'networkidle' })
 await page.evaluate(() => localStorage.removeItem('zsq.save'))
 await page.reload({ waitUntil: 'networkidle' })
@@ -59,6 +62,30 @@ const balance = await page.locator('.dashboard p').nth(1).textContent()
 const shakyShown = await page.locator('tr.mastery-shaky .missed').first().textContent()
 
 const dashActions = await page.locator('.dash-actions').count()
+
+// --------------------------------------------------------------- the voice
+//
+// Headless Chromium offers no speech voices at all, so this is the degraded
+// case: it must say so plainly rather than showing an empty dropdown that
+// looks broken.
+const voiceText = (await page.locator('.dashboard').textContent()) ?? ''
+if ((await page.locator('.voice-select').count()) === 0) {
+  check('with no voices, it says so rather than showing an empty picker',
+    voiceText.includes('no speech voices'))
+} else {
+  check('the voice picker lists something', (await page.locator('.voice-select option').count()) > 0)
+  check('and offers a way to hear it', await page.getByRole('button', { name: /hear it/i }).isVisible())
+}
+
+// A voice chosen by ear is remembered per device, never in the save file.
+await page.evaluate(() => localStorage.setItem('zsq.voice', 'Google UK English Female'))
+const savedVoice = await page.evaluate(() => ({
+  stored: localStorage.getItem('zsq.voice'),
+  inSave: JSON.stringify(JSON.parse(localStorage.getItem('zsq.save') ?? '{}')).includes('Google UK'),
+}))
+check('the chosen voice is remembered', savedVoice.stored === 'Google UK English Female')
+check('and kept out of the progress file', savedVoice.inSave === false)
+
 await page.getByRole('button', { name: /close/i }).click()
 await page.waitForTimeout(250)
 
@@ -67,8 +94,7 @@ await page.waitForTimeout(250)
 // Control used to swing the sword. It now opens the controls, and the two
 // must not both happen: a child asking what the keys are should not attack.
 
-const failures = []
-const check = (name, ok) => { if (!ok) failures.push(name) }
+
 
 await page.keyboard.press('Control')
 await page.waitForTimeout(250)

@@ -35,6 +35,12 @@ export interface SpeechEngine {
   cancel(): void
   /** Human-readable name of the chosen voice, for the parent dashboard. */
   voiceName(): string
+  /** Every usable English voice, best first. */
+  voices(): SpeechSynthesisVoice[]
+  /** Override the chosen voice by name; undefined restores the best guess. */
+  useVoice(name: string | undefined): void
+  /** Name of the voice in use, for remembering the choice. */
+  chosenVoiceName(): string | undefined
   /**
    * Browsers refuse to speak before the user has interacted with the page.
    * Call this from the first click or keypress.
@@ -42,23 +48,102 @@ export interface SpeechEngine {
   prime(): void
 }
 
-/** Voice preference: Australian first, then British, then anything English. */
-const VOICE_PREFERENCE = [
-  (v: SpeechSynthesisVoice) => v.lang === 'en-AU',
-  (v: SpeechSynthesisVoice) => v.lang.replace('_', '-').startsWith('en-AU'),
-  (v: SpeechSynthesisVoice) => v.lang.replace('_', '-').startsWith('en-GB'),
-  (v: SpeechSynthesisVoice) => v.lang.replace('_', '-').startsWith('en-NZ'),
-  (v: SpeechSynthesisVoice) => v.lang.toLowerCase().startsWith('en'),
+/** The parts of a voice this code cares about. Kept narrow so it is testable. */
+export interface VoiceLike {
+  name: string
+  lang: string
+  /** False for network voices, which are markedly clearer than local ones. */
+  localService?: boolean
+}
+
+/**
+ * Voices that exist to be funny.
+ *
+ * macOS ships these in every English locale, Australian included, and the old
+ * rule took the *first* en-AU voice it found — so a child could have his
+ * spelling words read to him by a cartoon grandmother. They are never a
+ * reasonable choice for this, so they are refused outright rather than ranked
+ * low.
+ */
+const NOVELTY_VOICES = [
+  'albert', 'bad news', 'bahh', 'bells', 'boing', 'bubbles', 'cellos', 'deranged',
+  'eddy', 'flo', 'good news', 'grandma', 'grandpa', 'hysterical', 'jester', 'junior',
+  'kathy', 'organ', 'princess', 'ralph', 'reed', 'rocko', 'sandy', 'shelley',
+  'superstar', 'trinoids', 'whisper', 'wobble', 'zarvox',
 ]
+
+/** Voices known to be clear enough to spell along with, best first. */
+const GOOD_VOICES = [
+  'google uk english female',
+  'google uk english',
+  'google us english',
+  'google',
+  'natural', // Microsoft's Natural family, the best in any browser
+  'karen',
+  'daniel',
+  'serena',
+  'samantha',
+  'alex',
+  'premium',
+  'enhanced',
+]
+
+/** Accent, as a tie-break only. Australian spelling, British is close enough. */
+const LOCALE_RANK = ['en-au', 'en-gb', 'en-nz', 'en-ie', 'en-us']
+
+export function isNoveltyVoice(name: string): boolean {
+  const lower = name.toLowerCase()
+  return NOVELTY_VOICES.some((joke) => lower === joke || lower.startsWith(`${joke} `) || lower.startsWith(`${joke}(`))
+}
+
+/**
+ * How suitable a voice is for reading spelling words aloud. Higher is better;
+ * a negative score means never use it.
+ *
+ * Quality comes first and accent second, which is the opposite of what this
+ * used to do. A clear British voice teaches a word better than a robotic or
+ * comic Australian one, and the spelling is the same either way.
+ */
+export function scoreVoice(voice: VoiceLike): number {
+  const lang = voice.lang.replace('_', '-').toLowerCase()
+  if (!lang.startsWith('en')) return -1
+  if (isNoveltyVoice(voice.name)) return -1
+
+  const name = voice.name.toLowerCase()
+  const known = GOOD_VOICES.findIndex((good) => name.includes(good))
+  // Known-good names dominate: the best of them outranks any accent match.
+  let score = known >= 0 ? 1000 - known * 10 : 0
+
+  // A network voice is nearly always the better of two otherwise equal ones.
+  if (voice.localService === false) score += 40
+
+  const locale = LOCALE_RANK.findIndex((tag) => lang.startsWith(tag))
+  score += locale >= 0 ? 30 - locale * 5 : 0
+  return score
+}
+
+/** The best voice available, or undefined if none is usable. */
+export function bestVoice<T extends VoiceLike>(voices: readonly T[]): T | undefined {
+  let best: { voice: T; score: number } | undefined
+  for (const voice of voices) {
+    const score = scoreVoice(voice)
+    if (score < 0) continue
+    if (!best || score > best.score) best = { voice, score }
+  }
+  return best?.voice
+}
 
 export class WebSpeechEngine implements SpeechEngine {
   private voice: SpeechSynthesisVoice | undefined
+  /** Chosen by ear in the parent dashboard, and remembered per device. */
+  private preferred: string | undefined
   private primed = false
   /** Bumped by every new request, so an old sequence stops chaining. */
   private turn = 0
   private readonly synth: SpeechSynthesis | undefined
 
-  constructor() {
+  constructor(preferredVoice?: string) {
+    this.preferred = preferredVoice
     this.synth = typeof window !== 'undefined' ? window.speechSynthesis : undefined
     if (!this.synth) return
     this.pickVoice()
@@ -70,14 +155,38 @@ export class WebSpeechEngine implements SpeechEngine {
     if (!this.synth) return
     const voices = this.synth.getVoices()
     if (voices.length === 0) return
-    for (const test of VOICE_PREFERENCE) {
-      const found = voices.find(test)
-      if (found) {
-        this.voice = found
+
+    // A voice chosen by ear in the parent dashboard beats any guess made here.
+    if (this.preferred) {
+      const chosen = voices.find((v) => v.name === this.preferred)
+      if (chosen) {
+        this.voice = chosen
         return
       }
     }
-    this.voice = voices[0]
+    // Never fall back to voices[0]: on a machine with no English voice at all
+    // that used to pick, say, a German one and read English words in it.
+    this.voice = bestVoice(voices)
+  }
+
+  /** Every English voice this browser offers, best first. For the picker. */
+  voices(): SpeechSynthesisVoice[] {
+    if (!this.synth) return []
+    return this.synth
+      .getVoices()
+      .filter((v) => scoreVoice(v) >= 0)
+      .sort((a, b) => scoreVoice(b) - scoreVoice(a))
+  }
+
+  /** Use this voice from now on. Pass undefined to go back to the best guess. */
+  useVoice(name: string | undefined): void {
+    this.preferred = name
+    this.pickVoice()
+  }
+
+  /** The voice actually in use, by name, or undefined if there is none. */
+  chosenVoiceName(): string | undefined {
+    return this.voice?.name
   }
 
   ready(): boolean {
@@ -174,6 +283,13 @@ export class SilentSpeechEngine implements SpeechEngine {
   cancel(): void {}
   voiceName(): string {
     return 'silent'
+  }
+  voices(): SpeechSynthesisVoice[] {
+    return []
+  }
+  useVoice(): void {}
+  chosenVoiceName(): string | undefined {
+    return undefined
   }
   prime(): void {}
 }

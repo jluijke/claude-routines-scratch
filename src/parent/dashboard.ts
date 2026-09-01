@@ -7,6 +7,7 @@
  * balance is anywhere near the 50/50 it is meant to be.
  */
 import { answerInput, button, el } from '../spelling/ui/dom'
+import { speakWord, type SpeechEngine } from '../core/audio/speech'
 import { CONCEPTS } from '../content/concepts'
 import { masteredCount } from '../spelling/mastery'
 import { EXERCISES, TOTAL_EXERCISES } from '../content/exercises'
@@ -23,7 +24,10 @@ const STATUS_LABEL: Record<MasteryStatus, string> = {
 
 export interface DashboardOptions {
   save: SaveData
-  voiceName: string
+  /** The live engine: the picker has to list voices and speak through them. */
+  speech: SpeechEngine
+  /** Remember a voice chosen by ear, per device. */
+  onVoiceChosen: (name: string | undefined) => void
   onImport: (save: SaveData) => void
   /** Wipe everything and start the quest again. */
   onReset: () => void
@@ -101,6 +105,45 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
       'Download the progress file first if you might want it back.',
   ])
 
+  // --- the voice ---------------------------------------------------------
+  //
+  // Which voices exist differs on every machine, and how good they sound cannot
+  // be judged from code — so the real answer is to let a parent hear a few and
+  // choose. The default is a best guess at quality; this overrides it.
+  const available = options.speech.voices()
+  const voiceNote = el('p', { class: 'q-hint-line' })
+
+  const voiceSelect = el('select', { class: 'voice-select' },
+    available.map((voice) =>
+      el('option', { value: voice.name, ...(voice.name === options.speech.chosenVoiceName() ? { selected: 'true' } : {}) },
+        [`${voice.name} — ${voice.lang}`]),
+    ),
+  )
+  voiceSelect.addEventListener('change', () => {
+    options.speech.useVoice(voiceSelect.value)
+    options.onVoiceChosen(voiceSelect.value)
+    voiceNote.textContent = `Now speaking with ${voiceSelect.value}.`
+  })
+
+  const hearIt = button('Hear it', () => {
+    options.speech.useVoice(voiceSelect.value || undefined)
+    // Three beats and a soft ending: a bad voice gives itself away at once.
+    speakWord(options.speech, 'fantastic')
+  }, { class: 'btn btn-audio' })
+
+  const voiceRow = available.length > 0
+    ? el('div', { class: 'dash-actions' }, [voiceSelect, hearIt])
+    : el('p', { class: 'q-hint-line' }, [
+        'This browser is offering no speech voices at all, so nothing can be read aloud. ' +
+          'On a Mac, Chrome or Safari have them; check the system voice settings if not.',
+      ])
+
+  if (available.length > 0) {
+    voiceNote.textContent =
+      `Currently speaking with ${options.speech.chosenVoiceName() ?? 'the default voice'}. ` +
+      'Press Hear it, and pick whichever is clearest.'
+  }
+
   const close = button('Close', () => {
     panel.remove()
     options.onClose()
@@ -151,8 +194,9 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
       el('div', { class: 'dash-actions' }, [resetField, resetButton]),
       resetNote,
 
-      el('h3', {}, ['Audio']),
-      el('p', { class: 'q-hint-line' }, [`Currently speaking with: ${options.voiceName}.`]),
+      el('h3', {}, ['The reading voice']),
+      voiceRow,
+      voiceNote,
 
       el('div', { class: 'gate-actions' }, [close]),
     ]),

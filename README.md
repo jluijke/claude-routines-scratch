@@ -107,6 +107,14 @@ a hundred rupees.
 
 ## For the parent
 
+**The reading voice** is chosen in that dashboard. The game picks the clearest
+voice the browser offers — quality first, accent only as a tie-break — because
+macOS ships novelty voices (Grandma, Grandpa, Rocko) in every English locale
+including Australian, and picking by accent alone lands on one of those. If the
+default still sounds wrong, the dashboard lists every usable voice with a
+**Hear it** button; the choice is remembered on that device and never travels in
+the progress file, since the available voices differ on every machine.
+
 **Ctrl+Shift+P** (or **⌘+Shift+P** on a Mac) opens a dashboard showing which patterns have stuck, which are
 shaky, how many hints were used, which words keep going wrong, and the real
 balance between playing and spelling. It also exports and imports the progress

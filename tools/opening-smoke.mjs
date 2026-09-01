@@ -62,9 +62,19 @@ async function swingAtTheShooter(times) {
   await page.waitForTimeout(350)
   const before = (await state()).enemies
   for (let i = 0; i < times; i++) {
-    await page.keyboard.down('ArrowUp')
-    await page.waitForTimeout(50)
-    await page.keyboard.up('ArrowUp')
+    // Aim each time: the shooter wanders, so a blind swing at a fixed spot
+    // misses often enough to make this check flaky rather than informative.
+    const s = await state()
+    const target = s.monsters[0]
+    if (!target) break
+    const dx = target.x + 7 - (s.x + 6)
+    const dy = target.y + 7 - (s.y + 6)
+    const key = Math.abs(dx) > Math.abs(dy)
+      ? (dx < 0 ? 'ArrowLeft' : 'ArrowRight')
+      : (dy < 0 ? 'ArrowUp' : 'ArrowDown')
+    await page.keyboard.down(key)
+    await page.waitForTimeout(Math.hypot(dx, dy) > 22 ? 120 : 45)
+    await page.keyboard.up(key)
     await page.keyboard.press('z')
     await page.waitForTimeout(200)
   }
