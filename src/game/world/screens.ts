@@ -216,7 +216,12 @@ export const SCREENS: Screen[] = [
     gates: [
       { gateId: 'scribe-west', col: 7, row: 2, guards: 'up', opens: [{ col: 7, row: 2 }, { col: 8, row: 2 }] },
     ],
-    props: [{ sprite: 'scribe', col: 6, row: 3 }],
+    props: [{
+        sprite: 'scribe',
+        col: 6,
+        row: 3,
+        talk: 'Careful on the west road. The stones there only move for a careful speller.',
+      }],
     spawns: [{ kind: 'shooter', col: 8, row: 7 }],
   },
   {
@@ -300,7 +305,14 @@ export const SCREENS: Screen[] = [
     exits: {},
     shop: 'village',
     portals: [{ col: 7, row: 10, to: 'village-square', spawnCol: 4, spawnRow: 3 }],
-    props: [{ sprite: 'shopkeeper', col: 7, row: 3 }],
+    props: [
+      {
+        sprite: 'shopkeeper',
+        col: 7,
+        row: 3,
+        talk: 'Rupees on the counter, and no haggling. The good gear needs more than money.',
+      },
+    ],
   },
   {
     id: 'smith-interior',
@@ -322,7 +334,14 @@ export const SCREENS: Screen[] = [
     exits: {},
     shop: 'smith',
     portals: [{ col: 7, row: 10, to: 'village-east', spawnCol: 5, spawnRow: 9 }],
-    props: [{ sprite: 'shopkeeper', col: 7, row: 4 }],
+    props: [
+      {
+        sprite: 'shopkeeper',
+        col: 7,
+        row: 4,
+        talk: 'I forge blades, not favours. Bring me rupees and a steady mind.',
+      },
+    ],
   },
   {
     id: 'secret-shop',
@@ -345,7 +364,12 @@ export const SCREENS: Screen[] = [
     shop: 'secret',
     dark: true,
     portals: [{ col: 7, row: 10, to: 'graveyard-1', spawnCol: 3, spawnRow: 5 }],
-    props: [{ sprite: 'scribe', col: 7, row: 3 }],
+    props: [{
+        sprite: 'scribe',
+        col: 7,
+        row: 3,
+        talk: 'You found me. Few do. Spend what you like — nobody up there knows this place exists.',
+      }],
     gates: [{ gateId: 'secret-blue-ring', col: 7, row: 4 }],
   },
 
@@ -525,7 +549,12 @@ export const SCREENS: Screen[] = [
     exits: { down: 'forest-5' },
     gates: [{ gateId: 'forest-shrine', col: 7, row: 4, opens: [{ col: 7, row: 4 }, { col: 8, row: 4 }] }],
     portals: [{ col: 7, row: 4, to: 'd1-entrance', spawnCol: 7, spawnRow: 9 }],
-    props: [{ sprite: 'scribe', col: 5, row: 6 }],
+    props: [{
+        sprite: 'scribe',
+        col: 5,
+        row: 6,
+        talk: 'The shrine keeper guards those steps. Answer him and the first dungeon opens. Mind the dark inside.',
+      }],
     spawns: [{ kind: 'flyer', col: 11, row: 3 }],
   },
 
@@ -552,7 +581,12 @@ export const SCREENS: Screen[] = [
       { gateId: 'river-seal', col: 7, row: 4, guards: 'up', opens: [{ col: 7, row: 4 }, { col: 8, row: 4 }] },
       { gateId: 'ferryman', col: 11, row: 7 },
     ],
-    props: [{ sprite: 'scribe', col: 11, row: 8 }],
+    props: [{
+        sprite: 'scribe',
+        col: 11,
+        row: 8,
+        talk: 'The ferryman will row you over, but he asks a word for the crossing. Everyone pays something.',
+      }],
     spawns: [{ kind: 'shooter', col: 5, row: 6 }],
   },
   {
@@ -1434,7 +1468,14 @@ export const SCREENS: Screen[] = [
     shop: 'secret',
     dark: true,
     portals: [{ col: 7, row: 10, to: 'village-east', spawnCol: 11, spawnRow: 8 }],
-    props: [{ sprite: 'shopkeeper', col: 7, row: 3 }],
+    props: [
+      {
+        sprite: 'shopkeeper',
+        col: 7,
+        row: 3,
+        talk: 'You blew the wall in, so you have earned a look. Bombs and hearts, nothing fancy.',
+      },
+    ],
     gates: [{ gateId: 'bomb-shop', col: 7, row: 4 }],
   },
 ]

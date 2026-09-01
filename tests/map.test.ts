@@ -7,10 +7,12 @@ import {
   layoutConflicts,
   stepBackFromGate,
   trappingGates,
+  unmarkedBarriers,
   unreachableDoors,
   workingLines,
 } from '../src/game/world/analysis'
 import { screenById, SCREENS } from '../src/game/world/screens'
+import { gateById } from '../src/game/gates'
 import type { Screen } from '../src/game/world/screens'
 
 describe('the world joins up', () => {
@@ -72,6 +74,36 @@ describe('the checks themselves', () => {
 
   it('covers every screen', () => {
     expect(SCREENS.length).toBeGreaterThan(40)
+  })
+
+  // Twenty-three barriers once drew nothing whatsoever: every sealed chest,
+  // the shrine keeper, the ferryman. A child walked onto blank grass and a
+  // prompt appeared out of thin air.
+  describe('barriers you can see', () => {
+    const kindOf = (id: string) => gateById(id)?.kind
+
+    it('leaves nothing in the world invisible', () => {
+      expect(SCREENS.flatMap((screen) => unmarkedBarriers(screen, kindOf))).toEqual([])
+    })
+
+    it('catches a barrier dropped on plain grass with no art', () => {
+      const screen = {
+        ...(screenById('village-square') as Screen),
+        id: 'test-screen',
+        props: [],
+        gates: [{ gateId: 'graveyard-wall', col: 8, row: 8 }],
+      } as Screen
+      // A hidden way through has to sit on something worth trying a bomb on.
+      expect(unmarkedBarriers(screen, kindOf)).toHaveLength(1)
+    })
+
+    it('accepts a hidden way through when the tile itself shows it', () => {
+      const screen = {
+        ...(screenById('graveyard-1') as Screen),
+        gates: [{ gateId: 'graveyard-wall', col: 2, row: 5 }],
+      } as Screen
+      expect(unmarkedBarriers(screen, kindOf)).toEqual([])
+    })
   })
 
   // A child spent his save stuck inside a rock in Forest Hollow: opening a

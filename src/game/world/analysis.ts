@@ -395,3 +395,45 @@ export function strandedTreasure(screen: Screen): string[] {
   }
   return []
 }
+
+// -------------------------------------------------------- barriers you can see
+
+/** Tiles that are already a visible obstacle in their own right. */
+const SELF_EVIDENT_TILES = new Set<TileChar>(['=', 'X', ',', 'C', 'D', '^', 'R', '#'])
+
+/**
+ * Barriers that draw nothing at all.
+ *
+ * Twenty-three of them once did: the sealed chests, the shrine keeper, the
+ * ferryman. A child walked onto blank grass and a prompt appeared out of thin
+ * air, which reads as a bug in the game rather than as a locked door. A barrier
+ * has to look like something.
+ */
+export function unmarkedBarriers(screen: Screen, kindOf: (gateId: string) => string | undefined): string[] {
+  const problems: string[] = []
+  for (const placement of screen.gates ?? []) {
+    const kind = kindOf(placement.gateId)
+    if (!kind) {
+      problems.push(`${screen.id}: barrier "${placement.gateId}" does not exist`)
+      continue
+    }
+    // These kinds paint their own art wherever they are placed.
+    if (kind === 'chest' || kind === 'npc' || kind === 'door' || kind === 'boss' || kind === 'seal' || kind === 'bridge') {
+      continue
+    }
+    // A shopkeeper barrier is represented by the shopkeeper standing there.
+    if (kind === 'shop' || kind === 'smith') {
+      if ((screen.props ?? []).length > 0) continue
+      problems.push(`${screen.id}: shop barrier "${placement.gateId}" has no shopkeeper to stand at it`)
+      continue
+    }
+    // A hidden way through must at least be a tile worth trying something on.
+    const char = ((screen.rows[placement.row] ?? '')[placement.col] ?? '.') as TileChar
+    if (!SELF_EVIDENT_TILES.has(char)) {
+      problems.push(
+        `${screen.id}: barrier "${placement.gateId}" (${kind}) sits on plain "${char}" and draws nothing`,
+      )
+    }
+  }
+  return problems
+}

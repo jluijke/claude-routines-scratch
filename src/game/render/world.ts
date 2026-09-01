@@ -10,6 +10,7 @@
 import { SCREEN_COLS, SCREEN_ROWS, TILE, TILES, type TileChar } from '../world/tiles'
 import type { Atlas } from './atlas'
 import type { Screen } from '../world/screens'
+import { gateById } from '../gates'
 
 export type Theme = 'overworld' | 'dungeon' | 'cave'
 
@@ -460,26 +461,152 @@ function statue(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette)
 // --- overlays -------------------------------------------------------------
 
 /** Sealed barriers are drawn on top, so their runes shimmer. */
-export function drawSeals(
+/**
+ * Everything standing between the hero and somewhere he wants to be.
+ *
+ * Barriers were drawn only where the map author had typed a `=` seal tile. A
+ * barrier can sit on any tile, though — a chest on the grass, a keeper in a
+ * doorway — and 23 of them were painting nothing at all: the child walked onto
+ * blank ground and a prompt appeared out of thin air. Now every barrier looks
+ * like the thing it is.
+ */
+export function drawBarriers(
   ctx: CanvasRenderingContext2D,
   atlas: Atlas,
   screen: Screen,
   openedTiles: ReadonlySet<string>,
   frame: number,
 ): void {
+  // Seal tiles the map author placed directly, with no barrier behind them.
   for (let row = 0; row < SCREEN_ROWS; row++) {
     const line = screen.rows[row] as string
     for (let col = 0; col < SCREEN_COLS; col++) {
       if (line[col] !== '=') continue
       if (openedTiles.has(`${col},${row}`)) continue
-      atlas.draw(ctx, 'seal', col * TILE, row * TILE)
-      const glow = 0.18 + Math.sin(frame / 18 + col) * 0.12
-      ctx.save()
-      ctx.globalAlpha = Math.max(0, glow)
-      ctx.fillStyle = '#57d2c6'
-      ctx.fillRect(col * TILE + 1, row * TILE + 1, TILE - 2, TILE - 2)
-      ctx.restore()
+      drawRuneSeal(ctx, atlas, col, row, frame)
     }
+  }
+
+  for (const placement of screen.gates ?? []) {
+    const gate = gateById(placement.gateId)
+    if (!gate) continue
+    const open = openedTiles.has(`${placement.col},${placement.row}`)
+    const x = placement.col * TILE
+    const y = placement.row * TILE
+
+    switch (gate.kind) {
+      case 'chest':
+        atlas.draw(ctx, open ? 'chestOpen' : 'chestClosed', x, y)
+        if (!open) glint(ctx, x, y, frame)
+        break
+
+      case 'npc':
+        // Someone actually standing in the way, so it reads as a person to
+        // talk to rather than as thin air that shouts at you.
+        if (open) break
+        {
+          const bob = Math.sin(frame / 26) > 0 ? 0 : 1
+          atlas.draw(ctx, 'scribe', x, y - bob)
+        }
+        // A keeper covers one tile; a wide doorway needs the rest sealed, or
+        // the second door looks like a way round him.
+        for (const tile of placement.opens ?? []) {
+          if (tile.col === placement.col && tile.row === placement.row) continue
+          drawRuneSeal(ctx, atlas, tile.col, tile.row, frame)
+        }
+        break
+
+      case 'door':
+      case 'boss':
+      case 'seal':
+      case 'bridge':
+        if (open) break
+        for (const tile of placement.opens ?? [{ col: placement.col, row: placement.row }]) {
+          // Skip anything the seal-tile pass above already painted.
+          if ((screen.rows[tile.row] ?? '')[tile.col] === '=') continue
+          drawRuneSeal(ctx, atlas, tile.col, tile.row, frame)
+        }
+        break
+
+      // A cracked wall or a bush hiding a way through is meant to look like an
+      // ordinary cracked wall or bush. Finding it is the whole point.
+      case 'wall':
+      // The shopkeeper is already standing at the counter.
+      case 'shop':
+      case 'smith':
+        break
+    }
+  }
+}
+
+/** A barrier of runes: the seal, and a slow pulse behind it. */
+function drawRuneSeal(
+  ctx: CanvasRenderingContext2D,
+  atlas: Atlas,
+  col: number,
+  row: number,
+  frame: number,
+): void {
+  atlas.draw(ctx, 'seal', col * TILE, row * TILE)
+  const glow = 0.18 + Math.sin(frame / 18 + col) * 0.12
+  ctx.save()
+  ctx.globalAlpha = Math.max(0, glow)
+  ctx.fillStyle = '#57d2c6'
+  ctx.fillRect(col * TILE + 1, row * TILE + 1, TILE - 2, TILE - 2)
+  ctx.restore()
+}
+
+/** A spark travelling across a locked chest, so it catches the eye. */
+function glint(ctx: CanvasRenderingContext2D, x: number, y: number, frame: number): void {
+  const phase = (frame % 150) / 150
+  if (phase > 0.28) return
+  const travel = phase / 0.28
+  ctx.save()
+  ctx.globalAlpha = Math.sin(travel * Math.PI) * 0.9
+  ctx.fillStyle = '#f6f3e7'
+  ctx.fillRect(x + 3 + Math.round(travel * 9), y + 5, 1, 4)
+  ctx.restore()
+}
+
+/**
+ * A faint shimmer on the way onward, and on treasure, in a pitch-dark room.
+ *
+ * Drawn over the darkness rather than under it: without a candle the room is
+ * black enough that a single stairway tile is unfindable, and a cave that looks
+ * empty is a cave nobody goes back to. This shows that *something* is over
+ * there, never what it is.
+ */
+export function drawGlimmers(
+  ctx: CanvasRenderingContext2D,
+  screen: Screen,
+  frame: number,
+  taken: readonly string[],
+  opened: ReadonlySet<string>,
+): void {
+  const spots: { col: number; row: number }[] = []
+  for (const portal of screen.portals ?? []) {
+    // Only the way deeper in; the way out is where he came from.
+    const char = (screen.rows[portal.row] ?? '')[portal.col]
+    if (char === '^' || char === 'D' || char === 'C') spots.push(portal)
+  }
+  if (screen.treasure && !taken.includes(screen.treasure.id)) spots.push(screen.treasure)
+  // A locked chest in a pitch-dark treasury is worth walking towards too.
+  for (const placement of screen.gates ?? []) {
+    if (gateById(placement.gateId)?.kind !== 'chest') continue
+    if (opened.has(`${placement.col},${placement.row}`)) continue
+    spots.push(placement)
+  }
+
+  for (const spot of spots) {
+    const pulse = 0.12 + Math.sin(frame / 22 + spot.col) * 0.1
+    if (pulse <= 0) continue
+    ctx.save()
+    ctx.globalAlpha = pulse
+    ctx.fillStyle = '#c9a86a'
+    ctx.beginPath()
+    ctx.arc(spot.col * TILE + TILE / 2, spot.row * TILE + TILE / 2, 7, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
   }
 }
 

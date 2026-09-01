@@ -14,7 +14,7 @@ import { Rng } from '../core/rng'
 import { Atlas } from './render/atlas'
 import type { SpriteName } from './render/sprites'
 import { drawHud, HUD_H } from './render/hud'
-import { drawDarkness, drawSeals, drawSpeech, drawTiles, themeFor } from './render/world'
+import { drawBarriers, drawDarkness, drawGlimmers, drawSpeech, drawTiles, themeFor } from './render/world'
 import { itemSprite } from './render/icons'
 import { Enemy, overlaps, type Projectile } from './entities/enemies'
 import { Player, PLAYER_SIZE, type Facing } from './entities/player'
@@ -951,7 +951,7 @@ export class World {
 
     const opened = this.openedTiles()
     drawTiles(ctx, this.screen, opened, this.frame)
-    drawSeals(ctx, this.atlas, this.screen, opened, this.frame)
+    drawBarriers(ctx, this.atlas, this.screen, opened, this.frame)
 
     for (const prop of this.screen.props ?? []) {
       this.atlas.draw(ctx, prop.sprite, prop.col * TILE, prop.row * TILE)
@@ -1004,6 +1004,8 @@ export class World {
     if (this.screen.dark) {
       const lit = this.save.inventory.blueCandle ? LIT_RADIUS : DARK_RADIUS
       drawDarkness(ctx, this.player.centre(), lit, SCREEN_W, SCREEN_H)
+      // Over the darkness: a hint that there is somewhere to go.
+      drawGlimmers(ctx, this.screen, this.frame, this.save.world.takenChests, opened)
     }
 
     if (this.transition > 0) {
