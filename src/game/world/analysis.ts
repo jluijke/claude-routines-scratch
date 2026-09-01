@@ -437,3 +437,72 @@ export function unmarkedBarriers(screen: Screen, kindOf: (gateId: string) => str
   }
   return problems
 }
+
+// ------------------------------------------------------- walled-in features
+
+/** Barriers that open, so they are not what walls a place off. */
+const OPENABLE_TILES = new Set<TileChar>(['=', 'X', ','])
+
+function passable(screen: Screen, col: number, row: number): boolean {
+  if (col < 0 || row < 0 || col >= SCREEN_COLS || row >= SCREEN_ROWS) return false
+  const char = ((screen.rows[row] ?? '')[col] ?? '#') as TileChar
+  if (OPENABLE_TILES.has(char)) return true
+  return !isSolid(screen, col, row)
+}
+
+/**
+ * Doors, barriers and chests that cannot be walked to at all.
+ *
+ * The entrance to the first dungeon was sealed inside its own rock box for the
+ * life of this project, and so was one of the dungeon chests. Nothing caught
+ * it: `unreachableDoors` only asks whether a door has an open tile beside it,
+ * which a walled-in pocket does. This asks the real question — can the hero get
+ * there from the edge of the screen — with every openable barrier counted as
+ * open, so what it finds is solid rock and nothing else.
+ */
+export function walledInFeatures(screen: Screen): string[] {
+  const seen = new Set<string>()
+  const queue: { col: number; row: number }[] = []
+  const push = (col: number, row: number): void => {
+    const key = `${col},${row}`
+    if (seen.has(key) || !passable(screen, col, row)) return
+    seen.add(key)
+    queue.push({ col, row })
+  }
+
+  for (let col = 0; col < SCREEN_COLS; col++) {
+    push(col, 0)
+    push(col, SCREEN_ROWS - 1)
+  }
+  for (let row = 0; row < SCREEN_ROWS; row++) {
+    push(0, row)
+    push(SCREEN_COLS - 1, row)
+  }
+  // Arriving through a door counts as a way in.
+  for (const portal of screen.portals ?? []) push(portal.spawnCol, portal.spawnRow)
+
+  while (queue.length > 0) {
+    const { col, row } = queue.shift() as { col: number; row: number }
+    push(col, row - 1)
+    push(col, row + 1)
+    push(col - 1, row)
+    push(col + 1, row)
+  }
+
+  const problems: string[] = []
+  const reached = (col: number, row: number): boolean => seen.has(`${col},${row}`)
+  for (const portal of screen.portals ?? []) {
+    if (!reached(portal.col, portal.row)) {
+      problems.push(`${screen.id}: the door to "${portal.to}" at ${portal.col},${portal.row} is walled in`)
+    }
+  }
+  for (const placement of screen.gates ?? []) {
+    if (!reached(placement.col, placement.row)) {
+      problems.push(`${screen.id}: barrier "${placement.gateId}" at ${placement.col},${placement.row} is walled in`)
+    }
+  }
+  if (screen.treasure && !reached(screen.treasure.col, screen.treasure.row)) {
+    problems.push(`${screen.id}: the chest "${screen.treasure.id}" is walled in`)
+  }
+  return problems
+}

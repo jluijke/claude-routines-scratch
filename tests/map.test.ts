@@ -8,6 +8,7 @@ import {
   stepBackFromGate,
   trappingGates,
   unmarkedBarriers,
+  walledInFeatures,
   unreachableDoors,
   workingLines,
 } from '../src/game/world/analysis'
@@ -74,6 +75,44 @@ describe('the checks themselves', () => {
 
   it('covers every screen', () => {
     expect(SCREENS.length).toBeGreaterThan(40)
+  })
+
+  // The entrance to the first dungeon spent the life of this project sealed
+  // inside its own rock box, unreachable. Nothing caught it, because the old
+  // door check only asked whether a door had an open tile beside it — which a
+  // walled-in pocket does.
+  describe('places you can actually get to', () => {
+    it('finds nothing walled in anywhere in the world', () => {
+      expect(SCREENS.flatMap(walledInFeatures)).toEqual([])
+    })
+
+    it('catches a doorway sealed inside a rock box', () => {
+      const shrine = {
+        ...(screenById('forest-6') as Screen),
+        // The shrine exactly as it was authored: solid rock under the doors.
+        rows: [
+          'TTTTTTTTTTTTTTTT',
+          'T....*....*....T',
+          'T..............T',
+          'T....RRRRRR....T',
+          'T....R.DD.R....T',
+          'T....RRRRRR....T',
+          'T......,,......T',
+          'T..............T',
+          'T....,....,....T',
+          'T..............T',
+          'TTTTTTT..TTTTTTT',
+        ],
+      } as Screen
+      const problems = walledInFeatures(shrine)
+      expect(problems.some((p) => p.includes('d1-entrance'))).toBe(true)
+    })
+
+    it('does not mind a barrier that merely needs opening', () => {
+      // A seal or a cracked wall is a door, not a wall.
+      expect(walledInFeatures(screenById('graveyard-1') as Screen)).toEqual([])
+      expect(walledInFeatures(screenById('mountain-2') as Screen)).toEqual([])
+    })
   })
 
   // Twenty-three barriers once drew nothing whatsoever: every sealed chest,

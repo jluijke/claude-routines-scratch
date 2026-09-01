@@ -7,6 +7,7 @@
  */
 import type { SpriteName } from '../render/sprites'
 import type { ItemId } from '../items'
+import { roughen } from './scenery'
 
 export type EnemyKind = 'shooter' | 'chaser' | 'flyer' | 'caster' | 'boss1' | 'boss2' | 'boss3' | 'boss4'
 
@@ -99,7 +100,7 @@ export interface Screen {
   shop?: 'village' | 'secret' | 'smith'
 }
 
-export const SCREENS: Screen[] = [
+const AUTHORED: Screen[] = [
   // ---------------------------------------------------------------- village
   {
     id: 'village-square',
@@ -539,7 +540,7 @@ export const SCREENS: Screen[] = [
       'T..............T',
       'T....RRRRRR....T',
       'T....R.DD.R....T',
-      'T....RRRRRR....T',
+      'T....RR..RR....T',
       'T......,,......T',
       'T..............T',
       'T....,....,....T',
@@ -1194,7 +1195,7 @@ export const SCREENS: Screen[] = [
       '#....######....#',
       '#....#....#....#',
       '#....#....#....#',
-      '#....######....#',
+      '#....##..##....#',
       '#..............#',
       '#..............#',
       '#######..#######',
@@ -1479,6 +1480,13 @@ export const SCREENS: Screen[] = [
     gates: [{ gateId: 'bomb-shop', col: 7, row: 4 }],
   },
 ]
+
+/**
+ * The world as played. Screens are authored as clean rectangles because that is
+ * the readable way to write a map; the woods are then grown in unevenly, so no
+ * two clearings are the same shape. See world/scenery.ts.
+ */
+export const SCREENS: Screen[] = AUTHORED.map(roughen)
 
 export const SCREENS_BY_ID: ReadonlyMap<string, Screen> = new Map(SCREENS.map((s) => [s.id, s]))
 

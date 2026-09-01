@@ -86,6 +86,16 @@ Those two questions are not one of the 40. They live outside the curriculum
 entirely, so they never touch the exercise count, the parent dashboard, or the
 order the real exercises come in.
 
+## The look of the world
+
+Screens are authored as clean rectangles, because that is the readable way to
+write a map, and the woods are then grown in unevenly on top — deterministically,
+per screen, in `world/scenery.ts`. Forty-seven identical hedged rectangles all
+looked like the same place; ragged edges give each clearing a shape you
+recognise. The growth never touches a barrier, a door, a spawn or the lane into
+an exit, and any planting that would cut a screen in two is undone on the spot,
+so the map checks run over the finished result.
+
 ## Items worth knowing about
 
 **Bombs** blow open cracked walls. A cracked wall looks different from ordinary
