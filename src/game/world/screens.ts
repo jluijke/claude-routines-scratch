@@ -6,6 +6,7 @@
  * on two screens.
  */
 import type { SpriteName } from '../render/sprites'
+import type { ItemId } from '../items'
 
 export type EnemyKind = 'shooter' | 'chaser' | 'flyer' | 'caster' | 'boss1' | 'boss2' | 'boss3' | 'boss4'
 
@@ -64,6 +65,20 @@ export interface Treasure {
   message: string
 }
 
+/**
+ * Something lying on the ground that he picks up by walking over it. No chest,
+ * no barrier, no button — the sword is the first thing in the game and it
+ * should not need explaining.
+ */
+export interface Pickup {
+  /** Remembered in the save, so it is found once. */
+  id: string
+  col: number
+  row: number
+  item: ItemId
+  message: string
+}
+
 export interface Screen {
   id: string
   name: string
@@ -78,6 +93,8 @@ export interface Screen {
   dark?: boolean
   /** An unsealed chest, opened by walking into it. */
   treasure?: Treasure
+  /** An item lying on the ground, picked up by walking over it. */
+  pickup?: Pickup
   /** Opens the shop interface on entry. */
   shop?: 'village' | 'secret' | 'smith'
 }
@@ -107,8 +124,22 @@ export const SCREENS: Screen[] = [
       { col: 12, row: 1, to: 'hollow-cave', spawnCol: 7, spawnRow: 8 },
     ],
     props: [
-      { sprite: 'scribe', col: 3, row: 5, talk: 'Welcome, traveller. The sealed stones open only for a careful speller.' },
+      {
+        sprite: 'scribe',
+        col: 3,
+        row: 5,
+        talk:
+          "Welcome stranger! I saw monsters carrying treasure into the cave! " +
+          "But it's dark there! Good luck on your quests. Please save our princess!",
+      },
     ],
+    pickup: {
+      id: 'village-sword',
+      col: 12,
+      row: 9,
+      item: 'woodenSword',
+      message: 'A wooden sword, left in the grass. It fits your hand well enough.',
+    },
   },
   {
     id: 'hollow-cave',

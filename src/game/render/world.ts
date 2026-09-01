@@ -497,3 +497,64 @@ export function drawDarkness(
   ctx.fillStyle = gradient
   ctx.fillRect(0, 0, width, height)
 }
+
+
+/**
+ * A villager's line, in a bubble over his head.
+ *
+ * It appears when the hero walks near and goes when he walks away — no button,
+ * no pause, nothing to dismiss. Same palette and face as the message bar, so
+ * the two read as one voice.
+ */
+export function drawSpeech(
+  ctx: CanvasRenderingContext2D,
+  at: { col: number; row: number },
+  text: string,
+  screenWidth: number,
+): void {
+  const lines = wrapSpeech(text, 30)
+  const charWidth = 4.2
+  const width = Math.min(
+    screenWidth - 8,
+    Math.max(...lines.map((line) => line.length)) * charWidth + 10,
+  )
+  const height = 6 + lines.length * 8
+  const anchorX = at.col * TILE + TILE / 2
+  // Keep the whole bubble on screen even when he is stood at the edge.
+  const x = Math.max(4, Math.min(screenWidth - 4 - width, anchorX - width / 2))
+  const y = Math.max(2, at.row * TILE - height - 5)
+
+  ctx.fillStyle = 'rgba(8,10,16,0.92)'
+  ctx.fillRect(x, y, width, height)
+  ctx.strokeStyle = '#57d2c6'
+  ctx.lineWidth = 1
+  ctx.strokeRect(x + 0.5, y + 0.5, width - 1, height - 1)
+
+  // The tail, pointing down at whoever is speaking.
+  const tailX = Math.max(x + 4, Math.min(x + width - 8, anchorX - 2))
+  ctx.fillStyle = 'rgba(8,10,16,0.92)'
+  ctx.fillRect(tailX, y + height, 4, 3)
+  ctx.fillStyle = '#57d2c6'
+  ctx.fillRect(tailX + 1, y + height + 3, 2, 1)
+
+  ctx.fillStyle = '#f6f3e7'
+  ctx.font = '7px monospace'
+  ctx.textBaseline = 'top'
+  lines.forEach((line, i) => ctx.fillText(line, x + 5, y + 4 + i * 8))
+}
+
+/** Like the message bar's wrap, but narrower and without its four-line cap. */
+function wrapSpeech(text: string, width: number): string[] {
+  const lines: string[] = []
+  let line = ''
+  for (const word of text.split(' ')) {
+    if (line.length === 0) line = word
+    else if (line.length + 1 + word.length <= width) line += ` ${word}`
+    else {
+      lines.push(line)
+      line = word
+    }
+  }
+  if (line.length > 0) lines.push(line)
+  return lines
+}

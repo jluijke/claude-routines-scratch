@@ -170,6 +170,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     name: 'Blue Candle',
     category: 'tool',
     price: 60,
+    gate: 'shop-candle',
     description: 'Lights a dark room, and burns away a bush. One flame per room.',
   },
   bomb: {

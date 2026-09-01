@@ -12,6 +12,7 @@ import { music } from './core/audio/music'
 import { WORD_BANK } from './content/words'
 import { CONCEPTS } from './content/concepts'
 import { EXERCISES, exerciseById, nextExercise, TOTAL_EXERCISES } from './content/exercises'
+import { INTRO_CANDLE } from './content/exercises/intro-candle'
 import { ExerciseEngine } from './spelling/engine'
 import { expectedAnswer } from './spelling/grading'
 import { mountExerciseScreen } from './spelling/ui/exerciseScreen'
@@ -97,7 +98,7 @@ function showTitle(): void {
           'every bridge and every good sword in the shop opens only for someone who can spell.',
       ]),
       el('p', { class: 'q-hint-line' }, [
-        `${completed} of ${TOTAL_EXERCISES} exercises complete · ${masteredCount(state.spelling.mastery)} patterns mastered · ${state.player.rupees} rupees`,
+        `${completed} of ${TOTAL_EXERCISES} exercises complete · ${masteredCount(state.spelling.mastery, CONCEPTS.keys())} patterns mastered · ${state.player.rupees} rupees`,
       ]),
       el('div', { class: 'controls' }, [start]),
       el('p', { class: 'q-hint-line controls-help' }, [
@@ -162,7 +163,7 @@ window.addEventListener('resize', fitStage)
  */
 function handleGate(gate: Gate): void {
   const up = nextExercise(state.spelling.completedExercises)
-  const isReview = gate.optional === true || up === undefined
+  const isReview = gate.intro === true || gate.optional === true || up === undefined
 
   world?.setPaused(true)
 
@@ -171,6 +172,7 @@ function handleGate(gate: Gate): void {
     isReview,
     ...(up && !isReview ? { exerciseTitle: up.title, exerciseNumber: up.id } : {}),
     onAccept: () => {
+      if (gate.intro) return startShortChallenge(gate, INTRO_CANDLE)
       if (isReview) return startReviewChallenge(gate)
       if (!up) {
         showNotice(root, 'You have finished every exercise there is. This door opens for you anyway.', () => {
@@ -280,7 +282,19 @@ function startReviewChallenge(gate: Gate): void {
     },
   }
 
+  startShortChallenge(gate, challenge)
+}
+
+/**
+ * Runs an exercise that does not belong to the curriculum — a review challenge
+ * or the shopkeeper's two questions. Deliberately unlike `startExercise`: it
+ * never records a completed exercise, never sets `inProgress`, and never pays
+ * the per-pattern rupees, so side content cannot inflate the 40-exercise count
+ * or the parent dashboard.
+ */
+function startShortChallenge(gate: Gate, challenge: Exercise): void {
   primeAudio()
+  music.stop()
   gateInProgress = gate
   teardownWorldCanvasOnly()
 
@@ -342,6 +356,7 @@ function grantReward(gate: Gate): void {
   world?.openGate(gate)
   world?.equipBest()
   persist()
+  openShopPanel?.refresh()
 
   const lines: string[] = [gate.openMessage]
   if (reward.rupees) lines.push(`+${reward.rupees} rupees.`)
@@ -358,17 +373,29 @@ function teardownWorldCanvasOnly(): void {
 
 // ----------------------------------------------------------------- the shop
 
+/**
+ * The shop panel currently on screen, if any. Proving a shop barrier puts him
+ * back at the counter, and the panel is built before the reward is granted —
+ * so without this it still reads "Prove it" and no rupees until he walks out
+ * and in again.
+ */
+let openShopPanel: { close: () => void; refresh: () => void } | undefined
+
 function openShop(kind: ShopKind): void {
   world?.setPaused(true)
-  showShop(root, {
+  openShopPanel = showShop(root, {
     kind,
     save: state,
-    onGateRequest: (gate) => handleGate(gate),
+    onGateRequest: (gate) => {
+      openShopPanel = undefined
+      handleGate(gate)
+    },
     onPurchase: () => {
       world?.equipBest()
       persist()
     },
     onClose: () => {
+      openShopPanel = undefined
       world?.equipBest()
       world?.setPaused(false)
       persist()
@@ -488,6 +515,7 @@ Object.assign(window as unknown as Record<string, unknown>, {
       if (!id) return undefined
       const base = id.split(/[@#]/)[0]
       const pool = [
+        ...INTRO_CANDLE.activities,
         ...EXERCISES.flatMap((e) => e.activities),
         ...[...CONCEPTS.values()].flatMap((c) => c.reviewPool),
       ]

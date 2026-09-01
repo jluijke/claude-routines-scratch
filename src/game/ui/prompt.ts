@@ -39,7 +39,9 @@ export function showGatePrompt(root: HTMLElement, options: PromptOptions): () =>
   const { gate } = options
 
   const heading = options.isReview
-    ? 'A quick challenge'
+    ? options.gate.intro
+      ? 'Two quick words'
+      : 'A quick challenge'
     : `Exercise ${options.exerciseNumber}: ${options.exerciseTitle}`
 
   const accept = button(options.isReview ? 'Take the challenge' : 'Open it', () => {

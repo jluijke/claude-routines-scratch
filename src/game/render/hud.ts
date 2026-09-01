@@ -60,7 +60,9 @@ export function drawHud(
 
   // Equipped gear, as two small icons with the material named beside them.
   ctx.fillStyle = '#5d6472'
-  const sword = material(ITEMS[player.loadout.sword].name)
+  // Before he finds one there is no sword to name, and reading ITEMS for a
+  // missing id crashed the whole render loop.
+  const sword = player.loadout.sword ? material(ITEMS[player.loadout.sword].name) : 'NONE'
   ctx.fillText(`SWORD ${sword}`, 4, 32)
 
   // The B slot, so he can see what the item button will do before pressing it.

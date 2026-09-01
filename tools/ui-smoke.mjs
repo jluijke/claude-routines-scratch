@@ -115,7 +115,8 @@ const fresh = await page.evaluate(() => ({
 }))
 check('the reset clears rupees', fresh.rupees === 0)
 check('the reset clears progress', fresh.done === 0)
-check('the reset un-equips the bought sword', fresh.sword === 'woodenSword')
+// A new quest starts empty-handed; the sword is lying in the village square.
+check('the reset takes the bought sword away', fresh.sword === undefined)
 // The world holds the old save and writes it back when it stops, so a reset
 // that tears down in the wrong order resurrects the old rupees on disk.
 check('the old save does not come back', fresh.storedRupees === 0)
@@ -129,7 +130,12 @@ check('the title screen offers a fresh start',
 
 await page.getByRole('button', { name: /begin your quest/i }).click()
 await page.waitForSelector('.game-canvas')
-await page.evaluate(() => { for (let i = 0; i < 20; i++) window.zsq.world.grantHeartContainer() })
+await page.evaluate(() => {
+  for (let i = 0; i < 20; i++) window.zsq.world.grantHeartContainer()
+  // This check is about the Control key, not about finding a sword.
+  window.zsq.state.inventory.woodenSword = 1
+  window.zsq.world.equipBest()
+})
 await page.evaluate(() => window.zsq.goTo('d3-hall', 5, 6))
 await page.waitForTimeout(400)
 const monstersBefore = (await page.evaluate(() => window.zsq.world.debugState())).enemies

@@ -14,7 +14,8 @@ import { Rng } from '../core/rng'
 import { Atlas } from './render/atlas'
 import type { SpriteName } from './render/sprites'
 import { drawHud, HUD_H } from './render/hud'
-import { drawDarkness, drawSeals, drawTiles, themeFor } from './render/world'
+import { drawDarkness, drawSeals, drawSpeech, drawTiles, themeFor } from './render/world'
+import { itemSprite } from './render/icons'
 import { Enemy, overlaps, type Projectile } from './entities/enemies'
 import { Player, PLAYER_SIZE, type Facing } from './entities/player'
 import { SCREEN_H, SCREEN_W, TILE, TILES, isSolidChar, toTile, type TileChar } from './world/tiles'
@@ -63,7 +64,9 @@ interface Burst {
   kind: 'explosion' | 'flame'
 }
 
-const DARK_RADIUS = 46
+const DARK_RADIUS = 20
+/** How close he has to stand before a villager speaks up. */
+const TALK_RADIUS = 26
 const LIT_RADIUS = 78
 
 export class World {
@@ -119,7 +122,7 @@ export class World {
     this.screen = screenById(save.player.screenId) ?? (screenById(START_SCREEN) as Screen)
     this.player = new Player(
       {
-        sword: save.player.equippedSword,
+        ...(save.player.equippedSword ? { sword: save.player.equippedSword } : {}),
         shield: save.player.equippedShield,
         ...(save.player.equippedTunic ? { tunic: save.player.equippedTunic } : {}),
         ...(save.inventory.blueRing ? { ring: 'blueRing' as ItemId } : {}),
@@ -187,14 +190,14 @@ export class World {
     this.save.player.screenId = this.screen.id
     this.save.player.x = this.player.x
     this.save.player.y = this.player.y
-    this.save.player.equippedSword = this.player.loadout.sword
+    if (this.player.loadout.sword) this.save.player.equippedSword = this.player.loadout.sword
     this.save.player.equippedShield = this.player.loadout.shield
     if (this.player.loadout.tunic) this.save.player.equippedTunic = this.player.loadout.tunic
   }
 
   /** Re-reads gear and hearts after a shop visit or an exercise reward. */
   refreshFromSave(): void {
-    this.player.loadout.sword = this.save.player.equippedSword
+    if (this.save.player.equippedSword) this.player.loadout.sword = this.save.player.equippedSword
     this.player.loadout.shield = this.save.player.equippedShield
     if (this.save.player.equippedTunic) this.player.loadout.tunic = this.save.player.equippedTunic
     if (this.save.inventory.blueRing) this.player.loadout.ring = 'blueRing'
@@ -440,6 +443,7 @@ export class World {
     this.ensureFree()
     this.checkGateContact(opened)
     this.checkTreasure()
+    this.checkPickup()
     this.checkPortals()
     this.checkEdges()
 
@@ -567,6 +571,28 @@ export class World {
     this.save.player.rupees += treasure.rupees
     sfx.play('fanfare')
     this.showMessage(`${treasure.message} +${treasure.rupees} rupees.`)
+    this.callbacks.onChange()
+  }
+
+  /**
+   * An item lying on the ground. Walking across it is enough — no facing, no
+   * button. The first thing a child does in this game is find a sword, and that
+   * should not need explaining to him.
+   */
+  private checkPickup(): void {
+    const pickup = this.screen.pickup
+    if (!pickup) return
+    if (this.save.world.takenChests.includes(pickup.id)) return
+
+    const body = { x: this.player.x, y: this.player.y, w: PLAYER_SIZE, h: PLAYER_SIZE }
+    const tile = { x: pickup.col * TILE, y: pickup.row * TILE, w: TILE, h: TILE }
+    if (!overlaps(body, tile)) return
+
+    this.save.world.takenChests.push(pickup.id)
+    this.save.inventory[pickup.item] = (this.save.inventory[pickup.item] ?? 0) + 1
+    this.equipBest()
+    sfx.play('secret')
+    this.showMessage(`${pickup.message} You can swing it with Z or Space.`)
     this.callbacks.onChange()
   }
 
@@ -931,6 +957,13 @@ export class World {
       this.atlas.draw(ctx, prop.sprite, prop.col * TILE, prop.row * TILE)
     }
 
+    const pickup = this.screen.pickup
+    if (pickup && !this.save.world.takenChests.includes(pickup.id)) {
+      // Bob it gently, so a sword in the grass reads as a thing to collect.
+      const bob = Math.sin(this.frame / 20) > 0 ? 0 : 1
+      this.atlas.draw(ctx, itemSprite(pickup.item), pickup.col * TILE, pickup.row * TILE - bob)
+    }
+
     const treasure = this.screen.treasure
     if (treasure) {
       const taken = this.save.world.takenChests.includes(treasure.id)
@@ -966,6 +999,7 @@ export class World {
     }
 
     this.drawPlayer(ctx)
+    this.drawNearbyTalk(ctx)
 
     if (this.screen.dark) {
       const lit = this.save.inventory.blueCandle ? LIT_RADIUS : DARK_RADIUS
@@ -1011,7 +1045,7 @@ export class World {
     if (!sword) return
     const centreX = this.player.x + PLAYER_SIZE / 2
     const centreY = this.player.y + PLAYER_SIZE / 2
-    const bladeTier = capitalise(materialOf(this.player.loadout.sword))
+    const bladeTier = capitalise(materialOf(this.player.loadout.sword ?? 'woodenSword'))
     const blade = `sword${bladeTier}${way}` as SpriteName
 
     switch (facing) {
@@ -1027,6 +1061,23 @@ export class World {
       case 'up':
         this.atlas.draw(ctx, blade, centreX - 4, sword.y + sword.h - 16)
         break
+    }
+  }
+
+  /**
+   * Whoever the hero is standing next to has something to say. `talk` has been
+   * on props since the world was built, carrying three lines of dialogue that
+   * nothing ever read.
+   */
+  private drawNearbyTalk(ctx: CanvasRenderingContext2D): void {
+    const centre = this.player.centre()
+    for (const prop of this.screen.props ?? []) {
+      if (!prop.talk) continue
+      const dx = centre.x - (prop.col * TILE + TILE / 2)
+      const dy = centre.y - (prop.row * TILE + TILE / 2)
+      if (Math.hypot(dx, dy) > TALK_RADIUS) continue
+      drawSpeech(ctx, prop, prop.talk, SCREEN_W)
+      return
     }
   }
 
@@ -1080,10 +1131,13 @@ export class World {
   equipBest(): void {
     // After a purchase, wear the strongest thing owned in each slot.
     const owned = (id: ItemId) => (this.save.inventory[id] ?? 0) > 0
-    const best = (ids: ItemId[], fallback: ItemId): ItemId =>
+    const best = <T extends ItemId | undefined>(ids: ItemId[], fallback: T): ItemId | T =>
       ids.filter(owned).sort((a, b) => (ITEMS[b].power ?? 0) - (ITEMS[a].power ?? 0))[0] ?? fallback
 
-    this.player.loadout.sword = best(['goldenSword', 'bronzeSword', 'metalSword', 'woodenSword'], 'woodenSword')
+    // The fallback must not be a sword: it used to hand him a wooden one even
+    // with an empty inventory, and then write it into the save.
+    const sword = best(['goldenSword', 'bronzeSword', 'metalSword', 'woodenSword'], undefined)
+    if (sword) this.player.loadout.sword = sword
     this.player.loadout.shield = best(['magicalShield', 'bronzeShield', 'metalShield', 'woodenShield'], 'woodenShield')
     const tunic = (['redTunic', 'blueTunic'] as ItemId[]).filter(owned)[0]
     if (tunic) this.player.loadout.tunic = tunic
@@ -1092,6 +1146,18 @@ export class World {
   }
 
   /** Live state, for the debug menu and the end-to-end checks. */
+  /** What a nearby villager is currently saying, if anyone is. For the checks. */
+  talkingProp(): string | undefined {
+    const centre = this.player.centre()
+    for (const prop of this.screen.props ?? []) {
+      if (!prop.talk) continue
+      const dx = centre.x - (prop.col * TILE + TILE / 2)
+      const dy = centre.y - (prop.row * TILE + TILE / 2)
+      if (Math.hypot(dx, dy) <= TALK_RADIUS) return prop.talk
+    }
+    return undefined
+  }
+
   /** True if the hero's body overlaps something solid. Used by the checks. */
   insideWall(): boolean {
     return this.wouldOverlap(this.player.x, this.player.y)

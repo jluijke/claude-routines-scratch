@@ -20,7 +20,8 @@ export interface SaveData {
     screenId: string
     x: number
     y: number
-    equippedSword: ItemId
+    /** Absent until he picks one up. The quest starts empty-handed. */
+    equippedSword?: ItemId
     equippedShield: ItemId
     equippedTunic?: ItemId
     /** The item in the B slot, used with the item key. */
@@ -72,10 +73,12 @@ export function newSave(): SaveData {
       screenId: 'village-square',
       x: 128,
       y: 120,
-      equippedSword: 'woodenSword',
       equippedShield: 'woodenShield',
     },
-    inventory: { woodenSword: 1, woodenShield: 1 },
+    // No sword. It is lying on the grass in the village square, and finding it
+    // is the first thing that happens in the game. An older save keeps its own
+    // sword, because withDefaults no longer has one to splice in.
+    inventory: { woodenShield: 1 },
     world: {
       openedGates: [],
       defeatedBosses: [],

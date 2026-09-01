@@ -48,7 +48,8 @@ const INVULNERABLE_FRAMES = 90
 const KNOCKBACK_SPEED = 140
 
 export interface Loadout {
-  sword: ItemId
+  /** Absent until he finds one. The quest starts with empty hands. */
+  sword?: ItemId
   shield: ItemId
   tunic?: ItemId
   ring?: ItemId
@@ -81,7 +82,7 @@ export class Player {
   }
 
   get swordDamage(): number {
-    return itemPower(this.loadout.sword)
+    return this.loadout.sword ? itemPower(this.loadout.sword) : 0
   }
 
   /**
@@ -124,6 +125,8 @@ export class Player {
    * of him and none of it wasted inside him.
    */
   swordBox(): { x: number; y: number; w: number; h: number } | undefined {
+    // No sword, no swing: one guard turns off both the hitbox and the blade.
+    if (!this.loadout.sword) return undefined
     if (this.attackTimer <= 0) return undefined
     const reach = this.swordReach
     const cx = this.x + PLAYER_SIZE / 2
@@ -262,7 +265,7 @@ export class Player {
   }
 
   describeLoadout(): string {
-    const parts = [ITEMS[this.loadout.sword].name, ITEMS[this.loadout.shield].name]
+    const parts = [this.loadout.sword ? ITEMS[this.loadout.sword].name : 'Bare hands', ITEMS[this.loadout.shield].name]
     if (this.loadout.tunic) parts.push(ITEMS[this.loadout.tunic].name)
     return parts.join(' · ')
   }

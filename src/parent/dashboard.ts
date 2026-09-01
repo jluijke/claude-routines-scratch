@@ -8,6 +8,7 @@
  */
 import { answerInput, button, el } from '../spelling/ui/dom'
 import { CONCEPTS } from '../content/concepts'
+import { masteredCount } from '../spelling/mastery'
 import { EXERCISES, TOTAL_EXERCISES } from '../content/exercises'
 import { deserialise, serialise, type SaveData } from '../core/save'
 import { describe as describePacing, ratio } from '../game/pacing'
@@ -171,5 +172,5 @@ function stat(label: string, value: string): HTMLElement {
 }
 
 function countMastered(save: SaveData): number {
-  return Object.values(save.spelling.mastery.concepts).filter((r) => r.status === 'mastered').length
+  return masteredCount(save.spelling.mastery, CONCEPTS.keys())
 }

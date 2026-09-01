@@ -28,6 +28,9 @@ await page.evaluate(() => {
   const s = window.zsq.state
   s.player.rupees = 500
   s.spelling.completedExercises = [1, 2]
+  // The candle is behind the shopkeeper's two questions now; this check is
+  // about whether a purchase survives a reload, not about earning it.
+  s.world.openedGates.push('shop-candle')
 })
 
 // Buy something in the shop.

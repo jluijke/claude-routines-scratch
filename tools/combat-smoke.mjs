@@ -30,9 +30,12 @@ await page.evaluate(() => localStorage.removeItem('zsq.save'))
 await page.reload({ waitUntil: 'networkidle' })
 await page.getByRole('button', { name: /begin/i }).click()
 await page.waitForSelector('.game-canvas')
-// Enough life to finish the tour; this measures the sword, not survival.
+// Enough life to finish the tour; this measures the sword, not survival — and
+// the quest now starts with no sword at all, so hand him one.
 await page.evaluate(() => {
   for (let i = 0; i < 30; i++) window.zsq.world.grantHeartContainer()
+  window.zsq.state.inventory.woodenSword = 1
+  window.zsq.world.equipBest()
 })
 
 const KEY = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' }

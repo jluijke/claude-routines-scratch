@@ -110,6 +110,14 @@ export function strugglingConcepts(store: MasteryStore): ConceptId[] {
     .map((r) => r.concept)
 }
 
-export function masteredCount(store: MasteryStore): number {
-  return Object.values(store.concepts).filter((r) => r.status === 'mastered').length
+/**
+ * Patterns proved, counted against a list of the patterns that exist. The store
+ * records an attempt for anything answered, including the shopkeeper's
+ * two-question intro, and that must not show up as a curriculum pattern.
+ */
+export function masteredCount(store: MasteryStore, known?: Iterable<ConceptId>): number {
+  const records = Object.values(store.concepts).filter((r) => r.status === 'mastered')
+  if (!known) return records.length
+  const real = new Set(known)
+  return records.filter((r) => real.has(r.concept)).length
 }

@@ -69,6 +69,23 @@ somewhere else and come back. The exercise starts again from the beginning next
 time, since a run he walked out of proves nothing. Rupees already earned are
 kept, and each pattern only ever pays once.
 
+## The first five minutes
+
+He arrives with **nothing** — no sword, no candle, no rupees. A villager on the
+square tells him monsters have been carrying treasure into the cave, and that
+it is dark in there. The **wooden sword** is lying in the grass at the bottom
+right of the square; walking over it picks it up, and only then can he fight.
+
+The cave is pitch black, so the first trip in is a trip straight back out. The
+shopkeeper sells the Blue Candle, but stops him first: **two very short
+questions**, which pay 70 rupees — enough for the 60-rupee candle. That is the
+whole opening loop, and it teaches the thing the rest of the game runs on:
+spelling is what buys progress.
+
+Those two questions are not one of the 40. They live outside the curriculum
+entirely, so they never touch the exercise count, the parent dashboard, or the
+order the real exercises come in.
+
 ## Items worth knowing about
 
 **Bombs** blow open cracked walls. A cracked wall looks different from ordinary
@@ -86,8 +103,7 @@ bomb on it is a better moment than being told.
 first minute. Nothing has to be spelled to go in — it is there to be a game
 before it is a lesson. It is pitch dark, so the Blue Candle is what turns
 stumbling into exploring, and two rooms down there is an unsealed chest holding
-a hundred rupees. That is the whole early loop: earn enough for the candle,
-light the cave, come out able to afford the Metal Sword.
+a hundred rupees.
 
 ## For the parent
 

@@ -14,18 +14,23 @@ export function makeAnswerer(page) {
    */
   async function expected() {
     return page.evaluate(async () => {
-      const [{ expectedAnswer }, { WORD_BANK }, { EXERCISES }, { CONCEPTS }] = await Promise.all([
-        import('/src/spelling/grading.ts'),
-        import('/src/content/words.ts'),
-        import('/src/content/exercises/index.ts'),
-        import('/src/content/concepts.ts'),
-      ])
+      const [{ expectedAnswer }, { WORD_BANK }, { EXERCISES }, { CONCEPTS }, { INTRO_CANDLE }] =
+        await Promise.all([
+          import('/src/spelling/grading.ts'),
+          import('/src/content/words.ts'),
+          import('/src/content/exercises/index.ts'),
+          import('/src/content/concepts.ts'),
+          // Deliberately not in EXERCISES — it is the shopkeeper's two
+          // questions, and must never count as a curriculum exercise.
+          import('/src/content/exercises/intro-candle.ts'),
+        ])
       const shown = document.querySelector('.activity')?.dataset?.questionId
       if (!shown) return null
   
       // The engine tags reused questions with @review and #fix suffixes.
       const base = shown.split(/[@#]/)[0]
       const pool = [
+        ...INTRO_CANDLE.activities,
         ...EXERCISES.flatMap((e) => e.activities),
         ...[...CONCEPTS.values()].flatMap((c) => c.reviewPool),
       ]

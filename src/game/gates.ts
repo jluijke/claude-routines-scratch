@@ -44,8 +44,11 @@ export interface Gate {
    * pacing governor when the child is ahead on spelling.
    */
   optional?: boolean
-  /** Pins this barrier to one exercise. Used only where the story needs it. */
-  exerciseId?: number
+  /**
+   * Runs the two-question intro instead of a curriculum exercise. Used once, to
+   * put something spellable between a child and his first candle.
+   */
+  intro?: boolean
 }
 
 const GATE_LIST: Gate[] = [
@@ -56,7 +59,6 @@ const GATE_LIST: Gate[] = [
     message: 'A carved stone blocks the path north. The runes shift as you look at them.',
     openMessage: 'The runes settle into words you can read. The stone slides aside.',
     reward: { rupees: 40, unlock: 'village-chest' },
-    exerciseId: 1,
   },
   {
     id: 'village-chest',
@@ -72,6 +74,15 @@ const GATE_LIST: Gate[] = [
     message: '"Nobody passes west without showing me they can spell," says the old scribe.',
     openMessage: '"Well done. The west road is yours."',
     reward: { rupees: 45, hearts: 3 },
+  },
+  {
+    id: 'shop-candle',
+    kind: 'shop',
+    message:
+      'The shopkeeper reaches for the Blue Candle, then stops. "A candle in the wrong hands burns a village down. Two words first, and it is yours to buy."',
+    openMessage: '"Good. Mind how you carry it."',
+    reward: { rupees: 70 },
+    intro: true,
   },
   {
     id: 'shop-wings',
@@ -555,8 +566,9 @@ export function gateById(id: string): Gate | undefined {
 }
 
 /** Barriers that consume a curriculum exercise, as opposed to side content. */
+/** Barriers that spend a curriculum exercise. The intro spends its own. */
 export function majorGateCount(): number {
-  return GATE_LIST.filter((g) => !g.optional).length
+  return GATE_LIST.filter((g) => !g.optional && !g.intro).length
 }
 
 export function totalGateCount(): number {
