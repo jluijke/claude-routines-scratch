@@ -29,6 +29,9 @@ const GAP = 2
 
 /** The mountain track, which cannot sit on the main grid — see below. */
 const MOUNTAIN = 'Mountain'
+/** The island, and the shore he flies from — see buildCells. */
+const ISLAND = 'lagoon-island'
+const FLIGHT_SHORE = 'lagoon-shore'
 
 interface Cell {
   id: string
@@ -48,6 +51,14 @@ function buildCells(): { main: Cell[]; mountain: Cell[] } {
   const { cells } = overworldLayout()
   const main: Cell[] = [...cells].map(([id, at]) => ({ id, x: at.x, y: at.y }))
 
+  // The island is the one exception to "doors have no place on the grid". It is
+  // out in open water rather than through a door in a wall, everyone can see
+  // where it is from the shore, and it is the one place in the game he can
+  // strand himself — so it belongs on the map, drawn where it really lies:
+  // west of the Long Water he flies from.
+  const shore = cells.get(FLIGHT_SHORE)
+  if (shore) main.push({ id: ISLAND, x: shore.x - 1, y: shore.y })
+
   // Follow the track upward from its foot, so the order comes from the map
   // rather than from a list that could fall out of step with it.
   const mountain: Cell[] = []
@@ -63,6 +74,11 @@ function buildCells(): { main: Cell[]; mountain: Cell[] } {
 }
 
 const CELLS = buildCells()
+
+/** Where every square on the map sits. Read by the end-to-end checks. */
+export function mapLayout(): readonly Cell[] {
+  return [...CELLS.main, ...CELLS.mountain]
+}
 
 export interface MapView {
   /** Where he is standing now. */
@@ -85,25 +101,37 @@ export function drawWorldMap(ctx: CanvasRenderingContext2D, view: MapView, frame
 
   const columns = maxX - minX + 1 + 1 // one spare column for the mountain track
   const rows = maxY - minY + 1
-  const boardW = columns * (CELL_W + GAP) - GAP
-  const boardH = rows * (CELL_H + GAP) - GAP
+
+  // The gap closes up rather than letting the board run off the screen. Adding
+  // the island widened the grid by a column, and a fixed gap put the mountain
+  // track over the right-hand edge where it was quietly cut in half.
+  const gap = [GAP, 1, 0].find(
+    (g) => columns * (CELL_W + g) - g <= SCREEN_W && rows * (CELL_H + g) - g <= SCREEN_H - 24,
+  ) ?? 0
+
+  const boardW = columns * (CELL_W + gap) - gap
+  const boardH = rows * (CELL_H + gap) - gap
   const originX = Math.round((SCREEN_W - boardW) / 2)
   const originY = Math.round((SCREEN_H - boardH) / 2) + 2
 
-  const place = (cell: Cell, columnOffset: number): { x: number; y: number } => ({
-    x: originX + (cell.x - minX + columnOffset) * (CELL_W + GAP),
-    y: originY + (cell.y - minY) * (CELL_H + GAP),
-  })
+  for (const cell of CELLS.main) {
+    drawCell(ctx, cell, {
+      x: originX + (cell.x - minX) * (CELL_W + gap),
+      y: originY + (cell.y - minY) * (CELL_H + gap),
+    }, seen, view, frame)
+  }
 
-  for (const cell of CELLS.main) drawCell(ctx, cell, place(cell, 0), seen, view, frame)
-  // The track sits to the right of everything, clear of the grid.
-  const trackColumn = maxX - minX + 1
-  for (const cell of CELLS.mountain) {
-    const at = {
-      x: originX + trackColumn * (CELL_W + GAP),
-      y: originY + (cell.y - minY) * (CELL_H + GAP),
-    }
-    drawCell(ctx, cell, at, seen, view, frame)
+  // The track sits in its own column to the right, held at the top where the
+  // grid beside it is empty, so nothing on it can read as being next to
+  // anything it is not.
+  const trackX = originX + (maxX - minX + 1) * (CELL_W + gap)
+  ctx.fillStyle = '#232a34'
+  ctx.fillRect(trackX - 1, originY, 1, boardH)
+  // Built from the foot upward, so it is drawn back to front: the summit
+  // belongs at the top of the column, the way he climbs it.
+  for (const [index, cell] of CELLS.mountain.entries()) {
+    const row = CELLS.mountain.length - 1 - index
+    drawCell(ctx, cell, { x: trackX, y: originY + row * (CELL_H + gap) }, seen, view, frame)
   }
 
   const title = screenById(view.here)?.name?.toUpperCase() ?? 'THE LAND'

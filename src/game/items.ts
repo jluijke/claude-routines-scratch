@@ -253,7 +253,7 @@ export const CASTAWAY_SHOP: ItemId[] = ['wings', 'recoveryHeart']
  * Items that occupy the B slot and are used with the item key. Ordered the way
  * the child cycles through them.
  */
-export const TOOL_SLOT: ItemId[] = ['bomb', 'blueCandle', 'bait', 'recoveryHeart']
+export const TOOL_SLOT: ItemId[] = ['bomb', 'blueCandle', 'wings', 'bait', 'recoveryHeart']
 
 export function isTool(id: ItemId): boolean {
   return TOOL_SLOT.includes(id)

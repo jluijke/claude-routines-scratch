@@ -146,6 +146,22 @@ await page.waitForTimeout(500)
 const after = await page.evaluate(() => [...window.zsq.state.world.visitedScreens])
 check('and it is once he has been inside', after.includes('hollow-cave'))
 
+// -------------------------------------------------- the island is on the map
+// It is the exception to "places behind a door are not drawn": it sits in open
+// water rather than through a doorway, and it is the one place he can strand
+// himself, so it belongs on the map — west of the shore he flies from.
+const island = await page.evaluate(() => {
+  const layout = window.zsq.mapLayout()
+  const isle = layout.find((c) => c.id === 'lagoon-island')
+  const shore = layout.find((c) => c.id === 'lagoon-shore')
+  return { isle, shore }
+})
+check('the island has a place on the map', Boolean(island.isle))
+check('and it is west of the Long Water',
+  Boolean(island.isle && island.shore) &&
+    island.isle.x === island.shore.x - 1 &&
+    island.isle.y === island.shore.y)
+
 console.log(JSON.stringify({ failures, errors }, null, 2))
 for (const f of failures) console.log('  FAILED:', f)
 await browser.close()

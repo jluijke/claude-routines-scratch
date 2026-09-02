@@ -22,6 +22,7 @@ import { World } from './game/world'
 import { SCREENS } from './game/world/screens'
 import { showGatePrompt, showNotice } from './game/ui/prompt'
 import { showBossVictory } from './game/ui/victory'
+import { mapLayout } from './game/render/map'
 import { showShop, type ShopKind } from './game/ui/shop'
 import { showHelp } from './game/ui/help'
 import { gateById, type Gate } from './game/gates'
@@ -129,7 +130,7 @@ function showTitle(): void {
       el('div', { class: 'controls' }, [start]),
       el('p', { class: 'q-hint-line controls-help' }, [
         'Move: arrow keys, WASD or the number pad · Sword: Z or Space · Item: X · Swap item: C · ' +
-          'Control shows every key · Music on and off: M · Or click where you want to go.',
+          'Control shows every key · Map: M · Music on and off: N · Or click where you want to go.',
       ]),
       // Firefox takes Cmd/Ctrl+Shift+P for its own private window before the
       // page ever sees it, so the shortcut cannot be the only way in.
@@ -643,6 +644,8 @@ Object.assign(window as unknown as Record<string, unknown>, {
     enterWorld,
     showTitle,
     goTo: (screenId: string, col = 7, row = 5) => world?.teleport(screenId, col, row),
+    /** Where each square on the map sits, for the end-to-end checks. */
+    mapLayout,
     screens: SCREENS,
     gateById,
     pacing: () => describePacing(state.pacing),

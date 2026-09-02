@@ -54,6 +54,41 @@ await page.goto(BASE, { waitUntil: 'networkidle' })
 await newGameWithWings()
 check('the testing kit hands over the Wings', (await wings()) > 0)
 
+// ------------------------------------- owning them is not the same as holding
+// Flying somewhere there is no coming back from should be a thing he chose,
+// not a thing that happened because he walked the wrong way. So he has to have
+// the Wings in the B slot before the water will let him across.
+await page.keyboard.press('Meta+Shift+P')
+await page.waitForSelector('.dashboard')
+await page.selectOption('.kit-select', 'bomb')
+await page.getByRole('button', { name: /give it to him/i }).click()
+await page.getByRole('button', { name: /^close$/i }).click()
+await page.waitForTimeout(300)
+await page.evaluate(() => {
+  window.zsq.state.player.equippedTool = 'bomb'
+})
+await page.evaluate(() => window.zsq.goTo('lagoon-shore', 7, 5))
+await page.waitForTimeout(400)
+for (let i = 0; i < 12; i++) {
+  await page.keyboard.down('ArrowLeft')
+  await page.waitForTimeout(90)
+  await page.keyboard.up('ArrowLeft')
+}
+const held = await world()
+check('holding a bomb, the water turns him back', held.screen === 'lagoon-shore')
+check('and it says what to do about it', /not in your hand|B slot/i.test(held.message ?? ''))
+check('the Wings are not spent by being refused', (await wings()) > 0)
+
+// Now hold them, the way he actually would: press C until the B slot shows
+// the Wings.
+let holding = false
+for (let i = 0; i < 8 && !holding; i++) {
+  await page.keyboard.press('c')
+  await page.waitForTimeout(160)
+  holding = (await page.evaluate(() => window.zsq.world.selectedTool())) === 'wings'
+}
+check('C cycles round to the Wings', holding)
+
 // ------------------------------------------------------------ it really flies
 const took = await stepOntoTheWater()
 check('stepping into the water starts a flight', took)

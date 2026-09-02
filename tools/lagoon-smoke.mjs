@@ -149,7 +149,30 @@ check('and he has wings again', (await save()).wings === 1)
 // --------------------------------------------------------------- the way home
 await page.evaluate(() => window.zsq.world.teleport('lagoon-island', 10, 5))
 await page.waitForTimeout(300)
-await walk('ArrowRight', 4)
+
+// He is holding the candle he found on the sand, so the water turns him back
+// until he swaps to the Wings — the same swap a child has to make, and the
+// reason the refusal names the button to press.
+await walk('ArrowRight', 2)
+await page.waitForTimeout(400)
+check('holding the candle, the water will not take him', (await state()).screen === 'lagoon-island')
+
+// Step off the crossing before swapping. Cycling while stood on it flies him
+// the instant the Wings come round — correct, but it makes the swap itself
+// impossible to watch.
+await page.evaluate(() => window.zsq.world.teleport('lagoon-island', 8, 7))
+await page.waitForTimeout(300)
+let holdingWings = false
+for (let i = 0; i < 8 && !holdingWings; i++) {
+  await page.keyboard.press('c')
+  await page.waitForTimeout(160)
+  holdingWings = (await page.evaluate(() => window.zsq.world.selectedTool())) === 'wings'
+}
+check('C reaches the Wings', holdingWings)
+
+await page.evaluate(() => window.zsq.world.teleport('lagoon-island', 10, 5))
+await page.waitForTimeout(300)
+await walk('ArrowRight', 2)
 await page.waitForTimeout(500)
 check('and flies home', (await state()).screen === 'lagoon-shore')
 check('those wings are spent too', (await save()).wings === 0)

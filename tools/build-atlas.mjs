@@ -48,7 +48,7 @@ for (const s of world.screens) {
         : p.hidden === 'candle'
           ? 'Burn the bush with the Blue Candle'
           : p.requires
-            ? `${p.requires}${p.consumes ? ' — and they tear on the way, so it is one way only' : ''}`
+            ? `${p.requires}, held in the B slot — press C until they show${p.consumes ? '. They tear on the way, so it is one way only' : ''}`
             : `Opens once "${p.guardedBy}" is done`,
       kind: p.hidden ?? (p.requires ? 'item' : 'gate'),
     })

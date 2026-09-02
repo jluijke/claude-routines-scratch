@@ -23,7 +23,7 @@ import { SCREEN_COLS, SCREEN_H, SCREEN_W, TILE, TILES, isSolidChar, toTile, type
 import { screenById, SCREENS, START_SCREEN, type EnemyKind, type Screen } from './world/screens'
 import { stepBackFromGate } from './world/analysis'
 import { gateById, type Gate } from './gates'
-import { ITEMS, materialOf, TOOL_SLOT, type ItemId } from './items'
+import { isTool, ITEMS, materialOf, TOOL_SLOT, type ItemId } from './items'
 import { dropMultiplier, opensFreely } from './pacing'
 import type { SaveData } from '../core/save'
 import { TOTAL_EXERCISES } from '../content/exercises'
@@ -676,6 +676,16 @@ export class World {
         this.showMessage(portal.refusal ?? 'You cannot get across this without help.')
         return
       }
+      // Owning them is not enough: he has to be holding them. Flying somewhere
+      // there is no coming back from should be something he chose to do, not
+      // something that happens because he walked the wrong way.
+      if (portal.requires && isTool(portal.requires) && this.selectedTool() !== portal.requires) {
+        this.showMessage(
+          `You have the ${ITEMS[portal.requires].name}, but they are not in your hand. ` +
+            'Press C until the B slot shows them.',
+        )
+        return
+      }
       if (portal.requires && portal.consumes) {
         const left = (this.save.inventory[portal.requires] ?? 0) - 1
         if (left > 0) this.save.inventory[portal.requires] = left
@@ -966,6 +976,10 @@ export class World {
         return this.dropBait()
       case 'recoveryHeart':
         return this.eatHeart()
+      case 'wings':
+        // They are not pressed, they are worn. Holding them is what matters,
+        // and saying so here is where he will look for the answer.
+        return this.showMessage('Hold the Wings and walk into open water. They only carry you across.', 110)
       default:
         this.showMessage('You cannot use that here.', 70)
     }
