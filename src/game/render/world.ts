@@ -14,7 +14,7 @@ import { gateById } from '../gates'
 
 export type Theme = 'overworld' | 'dungeon' | 'cave'
 
-interface Palette {
+export interface Palette {
   ground: string
   groundSpeckle: string
   /** Trees outdoors, brick outdoors-walls; wall blocks in a dungeon. */
@@ -93,7 +93,7 @@ const CAVE: Palette = {
   trunk: '#43341f',
 }
 
-const PALETTES: Record<Theme, Palette> = {
+export const PALETTES: Record<Theme, Palette> = {
   overworld: OVERWORLD,
   dungeon: DUNGEON,
   cave: CAVE,

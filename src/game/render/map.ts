@@ -12,13 +12,19 @@
  * him where to go, and a door only appears once he has actually gone through
  * it.
  */
-import { SCREEN_H, SCREEN_W } from '../world/tiles'
+import { SCREEN_COLS, SCREEN_ROWS, SCREEN_H, SCREEN_W, TILES, type TileChar } from '../world/tiles'
 import { overworldLayout } from '../world/analysis'
-import { screenById, SCREENS } from '../world/screens'
+import { screenById, SCREENS, type Screen } from '../world/screens'
+import { PALETTES, themeFor, type Palette } from './world'
 
-/** Each screen is a small box on the map. */
-const CELL_W = 20
-const CELL_H = 14
+/**
+ * Two pixels per tile, so a screen he has walked is drawn as the shape it
+ * actually is — the river reads as a river, the lagoon as water, the forest as
+ * trees. Flat green squares told him nothing he did not already know.
+ */
+const PX = 2
+const CELL_W = SCREEN_COLS * PX
+const CELL_H = SCREEN_ROWS * PX
 const GAP = 2
 
 /** The mountain track, which cannot sit on the main grid — see below. */
@@ -77,12 +83,12 @@ export function drawWorldMap(ctx: CanvasRenderingContext2D, view: MapView, frame
   const minY = Math.min(...all.map((c) => c.y))
   const maxY = Math.max(...all.map((c) => c.y))
 
-  const columns = maxX - minX + 1 + 2 // two spare columns for the mountain track
+  const columns = maxX - minX + 1 + 1 // one spare column for the mountain track
   const rows = maxY - minY + 1
   const boardW = columns * (CELL_W + GAP) - GAP
   const boardH = rows * (CELL_H + GAP) - GAP
   const originX = Math.round((SCREEN_W - boardW) / 2)
-  const originY = Math.round((SCREEN_H - boardH) / 2) + 4
+  const originY = Math.round((SCREEN_H - boardH) / 2) + 2
 
   const place = (cell: Cell, columnOffset: number): { x: number; y: number } => ({
     x: originX + (cell.x - minX + columnOffset) * (CELL_W + GAP),
@@ -91,7 +97,7 @@ export function drawWorldMap(ctx: CanvasRenderingContext2D, view: MapView, frame
 
   for (const cell of CELLS.main) drawCell(ctx, cell, place(cell, 0), seen, view, frame)
   // The track sits to the right of everything, clear of the grid.
-  const trackColumn = maxX - minX + 2
+  const trackColumn = maxX - minX + 1
   for (const cell of CELLS.mountain) {
     const at = {
       x: originX + trackColumn * (CELL_W + GAP),
@@ -112,6 +118,58 @@ export function drawWorldMap(ctx: CanvasRenderingContext2D, view: MapView, frame
   ctx.fillText(found, 4, SCREEN_H - 10)
 }
 
+/**
+ * The screen itself, two pixels to a tile, in the same colours the game paints
+ * it with — the palettes are imported rather than copied, so the map cannot
+ * end up a different colour from the place it describes.
+ */
+function drawTerrain(ctx: CanvasRenderingContext2D, screen: Screen, at: { x: number; y: number }): void {
+  const palette = PALETTES[themeFor(screen)]
+  for (let row = 0; row < SCREEN_ROWS; row++) {
+    const line = screen.rows[row] ?? ''
+    for (let col = 0; col < SCREEN_COLS; col++) {
+      ctx.fillStyle = colourOf((line[col] ?? '.') as TileChar, palette)
+      ctx.fillRect(at.x + col * PX, at.y + row * PX, PX, PX)
+    }
+  }
+}
+
+/**
+ * One colour per tile. At two pixels there is no room for the detail the real
+ * tiles carry, so each one is reduced to the single colour it reads as from a
+ * distance — which is exactly what a map is.
+ */
+function colourOf(char: TileChar, p: Palette): string {
+  switch (char) {
+    case '~':
+      return p.water
+    case 'T':
+      return p.leafDark
+    case ',':
+      return p.leaf
+    case 'R':
+    case 'X':
+    case '*':
+      return p.rock
+    case '#':
+      return p.wall
+    case 'S':
+    case 'B':
+      return p.path
+    // A sealed barrier stays visible as one: he may well be coming back to it.
+    case '=':
+      return '#c9a86a'
+    // Doorways read as openings, and are marked over the top besides.
+    case 'D':
+    case 'C':
+    case 'H':
+    case '^':
+      return '#12131a'
+    default:
+      return TILES[char]?.solid ? p.wall : p.ground
+  }
+}
+
 function drawCell(
   ctx: CanvasRenderingContext2D,
   cell: Cell,
@@ -129,8 +187,7 @@ function drawCell(
   // thing the map is supposed to be a record of him discovering.
   if (!known) return
 
-  ctx.fillStyle = '#2f5d3a'
-  ctx.fillRect(at.x, at.y, CELL_W, CELL_H)
+  drawTerrain(ctx, screen, at)
   ctx.strokeStyle = '#12131a'
   ctx.strokeRect(at.x + 0.5, at.y + 0.5, CELL_W - 1, CELL_H - 1)
 
