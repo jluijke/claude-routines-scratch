@@ -98,6 +98,7 @@ function toggleMusic(): void {
 
 function showTitle(): void {
   teardownWorld()
+  teardownExerciseScreen()
   clear(root)
   // The title tune needs a gesture first; if audio is not primed yet this is
   // a no-op and the music starts when he presses the button.
@@ -148,8 +149,21 @@ function teardownWorld(): void {
   world = undefined
 }
 
+/**
+ * The exercise screen keeps a window key listener. Clearing the root took its
+ * nodes away but left that listener behind, so every exercise played added
+ * another one — and each still believed it owned the door it started at.
+ */
+let activeScreen: { destroy: () => void } | undefined
+
+function teardownExerciseScreen(): void {
+  activeScreen?.destroy()
+  activeScreen = undefined
+}
+
 function enterWorld(): void {
   teardownWorld()
+  teardownExerciseScreen()
   clear(root)
 
   const stage = el('div', { class: 'stage' })
@@ -237,7 +251,8 @@ function startExercise(exercise: Exercise, gate?: Gate): void {
   persist()
 
   clear(root)
-  mountExerciseScreen(root, {
+  teardownExerciseScreen()
+  activeScreen = mountExerciseScreen(root, {
     engine,
     bank: WORD_BANK,
     speech,
@@ -369,7 +384,8 @@ function startShortChallenge(gate: Gate, challenge: Exercise): void {
   activeEngine = engine
 
   clear(root)
-  mountExerciseScreen(root, {
+  teardownExerciseScreen()
+  activeScreen = mountExerciseScreen(root, {
     engine,
     bank: WORD_BANK,
     speech,

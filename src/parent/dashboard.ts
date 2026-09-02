@@ -124,6 +124,15 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
       'Anything a shopkeeper would ask you to spell for is unsealed too.',
   ])
 
+  // The one thing that cannot be a button here: it has to work while an
+  // exercise is on screen, and this panel is not.
+  const skipNote = el('p', { class: 'q-hint-line' }, [
+    el('strong', {}, ['During an exercise: ⌘+Shift+X']),
+    ' (Ctrl+Shift+X on Windows) finishes it at once. The door opens and it ' +
+      'counts as done, but nothing is written to the table below — no attempts, ' +
+      'no patterns, no rupees — so his real record stays honest.',
+  ])
+
   const grantOne = button('Give it to him', () => {
     const id = grantSelect.value as ItemId
     if (!id) {
@@ -202,6 +211,7 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
       el('h3', {}, ['Testing kit']),
       el('div', { class: 'dash-actions' }, [grantSelect, grantOne, grantAll]),
       grantNote,
+      skipNote,
 
       el('h3', {}, ['Play and spelling balance']),
       el('p', {}, [describePacing(save.pacing)]),

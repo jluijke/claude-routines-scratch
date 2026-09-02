@@ -96,9 +96,39 @@ export function mountExerciseScreen(
     window.setTimeout(() => view?.focus(), 40)
   }
 
+  /**
+   * True once this screen has been taken down. The listener below lives on the
+   * window, and a stale one that still answered the skip chord would finish an
+   * exercise that ended minutes ago, against whichever door was open then.
+   */
+  let dead = false
+
+  /**
+   * The grown-up's skip: Ctrl+Shift+X, or Cmd+Shift+X on a Mac.
+   *
+   * For checking the game works, not for playing it. It records nothing — no
+   * attempts, no proved patterns, no rupees — so the mastery table stays an
+   * honest account of what the child actually did. All it does is finish the
+   * exercise, which opens the door behind it.
+   */
+  function skipChord(event: KeyboardEvent): boolean {
+    return (event.ctrlKey || event.metaKey) && event.shiftKey && (event.key === 'x' || event.key === 'X')
+  }
+
   // Escape asks the same question, matching the world, where it opens the
   // pause panel.
   function onKey(event: KeyboardEvent): void {
+    if (dead) return
+    if (skipChord(event)) {
+      event.preventDefault()
+      // Nothing else may fire afterwards: the callback tears this screen down
+      // and builds the world, and a pending 500 ms timer landing on top of it
+      // would complete the exercise a second time.
+      locked = true
+      dead = true
+      options.onComplete(engine.exercise)
+      return
+    }
     if (event.key !== 'Escape' || !options.onExit) return
     event.preventDefault()
     if (leavePrompt.hidden) askToLeave()
@@ -257,6 +287,7 @@ export function mountExerciseScreen(
 
   return {
     destroy: () => {
+      dead = true
       window.removeEventListener('keydown', onKey)
       screen.remove()
     },
