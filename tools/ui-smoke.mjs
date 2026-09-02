@@ -63,6 +63,41 @@ const shakyShown = await page.locator('tr.mastery-shaky .missed').first().textCo
 
 const dashActions = await page.locator('.dash-actions').count()
 
+// ----------------------------------------------------------- the testing kit
+//
+// For a parent checking the game works without playing the whole curriculum.
+const beforeKit = await page.evaluate(() => ({
+  wings: window.zsq.state.inventory.wings ?? 0,
+  gates: window.zsq.state.world.openedGates.length,
+}))
+await page.selectOption('.kit-select', 'wings')
+await page.getByRole('button', { name: /give it to him/i }).click()
+await page.waitForTimeout(250)
+const granted = await page.evaluate(() => ({
+  wings: window.zsq.state.inventory.wings ?? 0,
+  // The Wings are behind a shopkeeper's barrier; granting them should unseal it.
+  wingsGate: window.zsq.state.world.openedGates.includes('shop-wings'),
+}))
+check('one item can be handed over', granted.wings === beforeKit.wings + 1)
+check('and its shopkeeper barrier is unsealed with it', granted.wingsGate)
+
+await page.getByRole('button', { name: /give him everything/i }).click()
+await page.waitForTimeout(300)
+const everything = await page.evaluate(() => {
+  const s = window.zsq.state
+  return {
+    sword: s.player.equippedSword,
+    candle: s.inventory.blueCandle ?? 0,
+    ring: s.inventory.blueRing ?? 0,
+    rupees: s.player.rupees,
+    gates: s.world.openedGates.length,
+  }
+})
+check('everything means everything', everything.candle > 0 && everything.ring > 0)
+check('and the best of it is equipped', everything.sword === 'goldenSword')
+check('with rupees to spend', everything.rupees >= 999)
+check('and every shop barrier opened', everything.gates > beforeKit.gates)
+
 // --------------------------------------------------------------- the voice
 //
 // Headless Chromium offers no speech voices at all, so this is the degraded

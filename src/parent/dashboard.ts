@@ -9,6 +9,7 @@
 import { answerInput, button, el } from '../spelling/ui/dom'
 import { speakWord, type SpeechEngine } from '../core/audio/speech'
 import { CONCEPTS } from '../content/concepts'
+import { ITEMS, type ItemId } from '../game/items'
 import { masteredCount } from '../spelling/mastery'
 import { EXERCISES, TOTAL_EXERCISES } from '../content/exercises'
 import { deserialise, serialise, type SaveData } from '../core/save'
@@ -31,6 +32,8 @@ export interface DashboardOptions {
   onImport: (save: SaveData) => void
   /** Wipe everything and start the quest again. */
   onReset: () => void
+  /** Hand over an item, or every item, for testing. */
+  onGrant: (items: ItemId[]) => void
   onClose: () => void
 }
 
@@ -104,6 +107,37 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
     'Wipes all progress, gear and rupees, and starts from the title screen. ' +
       'Download the progress file first if you might want it back.',
   ])
+
+  // --- the testing kit ---------------------------------------------------
+  //
+  // For a parent checking the game works, not for the child. Playing the whole
+  // curriculum to find out whether the bomb shop opens is not a reasonable way
+  // to test anything.
+  const sellable = Object.values(ITEMS).filter((item) => item.price !== undefined)
+
+  const grantSelect = el('select', { class: 'kit-select' }, [
+    el('option', { value: '' }, ['Choose an item…']),
+    ...sellable.map((item) => el('option', { value: item.id }, [`${item.name} — ${item.price} rupees`])),
+  ])
+  const grantNote = el('p', { class: 'q-hint-line' }, [
+    'Adds the item straight to the pack, with no rupees and no spelling. ' +
+      'Anything a shopkeeper would ask you to spell for is unsealed too.',
+  ])
+
+  const grantOne = button('Give it to him', () => {
+    const id = grantSelect.value as ItemId
+    if (!id) {
+      grantNote.textContent = 'Pick an item from the list first.'
+      return
+    }
+    options.onGrant([id])
+    grantNote.textContent = `Added the ${ITEMS[id].name}.`
+  }, { class: 'btn btn-quiet' })
+
+  const grantAll = button('Give him everything', () => {
+    options.onGrant(sellable.map((item) => item.id))
+    grantNote.textContent = `Added all ${sellable.length} items, and 999 rupees.`
+  }, { class: 'btn btn-quiet' })
 
   // --- the voice ---------------------------------------------------------
   //
@@ -193,6 +227,10 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
       el('h3', {}, ['Start again']),
       el('div', { class: 'dash-actions' }, [resetField, resetButton]),
       resetNote,
+
+      el('h3', {}, ['Testing kit']),
+      el('div', { class: 'dash-actions' }, [grantSelect, grantOne, grantAll]),
+      grantNote,
 
       el('h3', {}, ['The reading voice']),
       voiceRow,

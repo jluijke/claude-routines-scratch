@@ -145,6 +145,11 @@ shaky, how many hints were used, which words keep going wrong, and the real
 balance between playing and spelling. It also exports and imports the progress
 file so he can play on more than one device.
 
+It also holds a **testing kit**: hand over any shop item instantly, or all of
+them at once with 999 rupees, skipping both the price and the spelling. It is
+there so a parent can check a corner of the game works without playing the whole
+curriculum to reach it.
+
 Firefox claims that key combination for its own private window before the page
 sees it, so there is also a **"For grown-ups"** link at the foot of the title
 screen that opens the same dashboard.

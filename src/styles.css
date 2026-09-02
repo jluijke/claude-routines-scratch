@@ -679,8 +679,8 @@ tr.mastery-unseen { opacity: 0.55; }
 }
 .link-button:hover { color: var(--hud-text); }
 
-/* The reading voice picker. Names are long, so it needs room. */
-.voice-select {
+/* The reading voice picker, and the testing kit's item list. */
+.voice-select, .kit-select {
   font: inherit;
   font-size: 0.9rem;
   max-width: min(340px, 100%);

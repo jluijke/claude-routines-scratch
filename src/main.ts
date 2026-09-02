@@ -545,6 +545,19 @@ function openParentDashboard(): void {
       dashboardOpen = false
       startNewQuest()
     },
+    onGrant: (items) => {
+      for (const id of items) {
+        state.inventory[id] = (state.inventory[id] ?? 0) + (ITEMS[id].stackable ? 10 : 1)
+        // A shopkeeper's barrier is about proving yourself before buying; the
+        // point of this panel is to skip exactly that.
+        const gate = ITEMS[id].gate
+        if (gate && !state.world.openedGates.includes(gate)) state.world.openedGates.push(gate)
+      }
+      if (items.length > 1) state.player.rupees = Math.max(state.player.rupees, 999)
+      world?.refreshFromSave()
+      world?.equipBest()
+      persist()
+    },
     onClose: () => {
       dashboardOpen = false
       world?.setPaused(false)
