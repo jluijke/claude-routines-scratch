@@ -16,16 +16,28 @@ import type { SpriteName } from './render/sprites'
 import { drawHud, HUD_H } from './render/hud'
 import { drawBarriers, drawDarkness, drawGlimmers, drawSpeech, drawTiles, themeFor } from './render/world'
 import { itemSprite } from './render/icons'
-import { Enemy, overlaps, type Projectile } from './entities/enemies'
+import { Enemy, isBossKind, overlaps, type Projectile } from './entities/enemies'
 import { Player, PLAYER_SIZE, type Facing } from './entities/player'
-import { SCREEN_H, SCREEN_W, TILE, TILES, isSolidChar, toTile, type TileChar } from './world/tiles'
-import { screenById, START_SCREEN, type Screen } from './world/screens'
+import { SCREEN_COLS, SCREEN_H, SCREEN_W, TILE, TILES, isSolidChar, toTile, type TileChar } from './world/tiles'
+import { screenById, SCREENS, START_SCREEN, type EnemyKind, type Screen } from './world/screens'
 import { stepBackFromGate } from './world/analysis'
 import { gateById, type Gate } from './gates'
 import { ITEMS, materialOf, TOOL_SLOT, type ItemId } from './items'
 import { dropMultiplier, opensFreely } from './pacing'
 import type { SaveData } from '../core/save'
 import { TOTAL_EXERCISES } from '../content/exercises'
+
+/** What the sign says when a dungeon guardian falls. */
+export interface BossVictory {
+  /** Which dungeon this was, 1 upwards. */
+  level: number
+  /** How many guardians are down now, this one included, and out of how many. */
+  defeated: number
+  total: number
+  /** The dungeon's name — the region, not the room, since that is what the
+   *  level number refers to. */
+  dungeonName: string
+}
 
 export interface WorldCallbacks {
   /** The hero touched a sealed barrier. Resolve true once it should open. */
@@ -40,6 +52,8 @@ export interface WorldCallbacks {
   onMessage: (text: string) => void
   /** Control or Escape: show the controls, paused, until it is dismissed. */
   onHelp: () => void
+  /** A dungeon guardian has fallen: show the sign. */
+  onBossDefeated: (win: BossVictory) => void
 }
 
 interface Drop {
@@ -63,6 +77,60 @@ interface Burst {
   life: number
   kind: 'explosion' | 'flame'
 }
+
+/**
+ * A crossing by Wings.
+ *
+ * Purely what is drawn. The wings are already spent, the screen is already
+ * loaded, and the hero already stands where he lands — so a tab closed in
+ * mid-air reopens with him safe on the far shore, and there is no moment when
+ * the save could disagree with itself.
+ */
+interface Flight {
+  /** Frames left before he touches down. */
+  frames: number
+  /** Where he came in over the water, in world pixels. */
+  fromX: number
+  fromY: number
+  /** The spawn tile, where he is already standing. */
+  toX: number
+  toY: number
+  facing: Facing
+}
+
+/**
+ * The moment after a guardian falls: he holds his sword up to the empty room.
+ */
+interface Victory {
+  /** Counts down to the sign, then holds at zero until it is dismissed. */
+  frames: number
+  level: number
+  dungeonName: string
+}
+
+/** How long the sword stays up before the sign appears: two seconds. */
+const VICTORY_FRAMES = 120
+
+/**
+ * The rooms with a guardian in them, in map order. Derived rather than written
+ * down, so adding a fifth dungeon cannot leave the sign counting to four.
+ */
+const BOSS_ROOMS = SCREENS
+  .filter((screen) => (screen.spawns ?? []).some((spawn) => isBossKind(spawn.kind)))
+  .map((screen) => screen.id)
+
+/** 'boss3' -> 3. The guardian knows which dungeon it belongs to. */
+function bossLevel(kind: EnemyKind): number {
+  const n = Number(kind.replace('boss', ''))
+  return Number.isFinite(n) && n > 0 ? n : 1
+}
+
+/** How long the Wings carry him in, at sixty frames a second. */
+const FLIGHT_FRAMES = 78
+/** How high he rides at the top of the arc, in pixels. */
+const FLIGHT_HEIGHT = 26
+/** One wingbeat every two of these — matched to the beats in the sound. */
+const FLAP_FRAMES = 11
 
 const DARK_RADIUS = 20
 /** How close he has to stand before a villager speaks up. */
@@ -88,6 +156,14 @@ export class World {
   private candleUsedHere = false
   private frame = 0
   private transition = 0
+  /** Set while he is in the air on the Wings. Nothing else moves meanwhile. */
+  private flight: Flight | undefined
+  /**
+   * Set from the moment a guardian dies until the sign is dismissed. The world
+   * is frozen throughout, and `clearVictory()` is the only way out — anything
+   * that later adds another way to close that panel must call it too.
+   */
+  private victory: Victory | undefined
   private message = ''
   private messageTimer = 0
   /** Barrier the hero is standing against, if any. */
@@ -311,12 +387,19 @@ export class World {
     this.bombs = []
     this.bursts = []
     this.candleUsedHere = false
+    // Load-bearing: teleport, respawn and the dev console all come through
+    // here, and a flight left over from another screen would draw the hero at
+    // a position that no longer means anything.
+    this.flight = undefined
+    this.victory = undefined
     this.transition = 12
 
     const cleared = this.save.world.defeatedBosses
     for (const [index, spawn] of (next.spawns ?? []).entries()) {
-      // A defeated boss stays defeated.
-      if ((spawn.kind === 'boss1' || spawn.kind === 'boss2') && cleared.includes(next.id)) continue
+      // A defeated boss stays defeated — all of them, not just the two that
+      // existed when this was written. Asked of the archetype table rather than
+      // a list of names that has to be remembered.
+      if (isBossKind(spawn.kind) && cleared.includes(next.id)) continue
       this.enemies.push(new Enemy(spawn.kind, spawn.col, spawn.row, this.rng.int(1, 1e9) + index))
     }
 
@@ -346,7 +429,7 @@ export class World {
 
   /** Which tune suits this room. */
   private trackFor(screen: Screen): TrackName {
-    const boss = (screen.spawns ?? []).some((s) => s.kind.startsWith('boss'))
+    const boss = (screen.spawns ?? []).some((s) => isBossKind(s.kind))
     if (boss && !this.save.world.defeatedBosses.includes(screen.id)) return 'boss'
     if (screen.shop) return 'shop'
     const theme = themeFor(screen)
@@ -392,6 +475,33 @@ export class World {
     if (this.paused) return
     if (this.transition > 0) {
       this.transition -= 1
+      return
+    }
+    // In the air. Returning here freezes everything below — input, enemies,
+    // projectiles, combat, and the portal he is flying towards — so nothing can
+    // hit him mid-crossing and he cannot bounce straight back the way he came.
+    if (this.victory) {
+      if (this.victory.frames > 0) {
+        this.victory.frames -= 1
+        if (this.victory.frames === 0) {
+          this.callbacks.onBossDefeated({
+            level: this.victory.level,
+            dungeonName: this.victory.dungeonName,
+            defeated: this.save.world.defeatedBosses.filter((id) => BOSS_ROOMS.includes(id)).length,
+            total: BOSS_ROOMS.length,
+          })
+        }
+      }
+      // The pose holds under the sign until it is dismissed.
+      return
+    }
+    if (this.flight) {
+      this.flight.frames -= 1
+      if (this.flight.frames <= 0) {
+        this.flight = undefined
+        this.input.clearTarget()
+        this.showMessage('The Wings tear apart as you land. That crossing was one way.')
+      }
       return
     }
 
@@ -554,11 +664,18 @@ export class World {
         this.equipBest()
       }
 
+      // Everything that changes state happens here, in one frame, exactly as it
+      // did before there was an animation: the wings are spent above, the
+      // screen loads, he stands where he lands, the save is written. The flight
+      // that follows is only what is drawn, so there is no instant at which a
+      // closed tab could lose the crossing or the Wings.
+      const flying = portal.requires === 'wings'
       this.loadScreen(portal.to)
       this.player.placeAtTile(portal.spawnCol, portal.spawnRow)
       this.ensureFree()
       this.input.clearTarget()
       this.callbacks.onChange()
+      if (flying) this.beginFlight(portal.spawnCol)
       return
     }
   }
@@ -603,10 +720,16 @@ export class World {
     if (!overlaps(body, tile)) return
 
     this.save.world.takenChests.push(pickup.id)
-    this.save.inventory[pickup.item] = (this.save.inventory[pickup.item] ?? 0) + 1
+    // A second candle is no better than the first, so a tool he already owns
+    // tops up to one rather than to two.
+    const held = this.save.inventory[pickup.item] ?? 0
+    this.save.inventory[pickup.item] = ITEMS[pickup.item].stackable ? held + 1 : Math.max(held, 1)
     this.equipBest()
     sfx.play('secret')
-    this.showMessage(`${pickup.message} You can swing it with Z or Space.`)
+    // Each pickup says its own piece. This used to append "You can swing it
+    // with Z or Space" to everything, which is true of a sword and nonsense
+    // about a candle.
+    this.showMessage(pickup.message)
     this.callbacks.onChange()
   }
 
@@ -685,9 +808,18 @@ export class World {
       if (!this.save.world.defeatedBosses.includes(this.screen.id)) {
         this.save.world.defeatedBosses.push(this.screen.id)
       }
-      sfx.play('secret')
-      this.showMessage('The guardian falls. The way beyond is yours.')
+      sfx.play('bossFanfare')
       this.refreshMusic()
+      // Nothing it fired, and nothing he threw, should hang in the air behind
+      // the celebration — none of it will be ticked while this holds.
+      this.projectiles = []
+      this.bombs = []
+      this.bursts = []
+      this.victory = {
+        frames: VICTORY_FRAMES,
+        level: bossLevel(enemy.kind),
+        dungeonName: this.screen.region,
+      }
     }
 
     // Rupee drops thin out when play is running ahead of spelling.
@@ -1012,7 +1144,9 @@ export class World {
       this.atlas.draw(ctx, burst.kind === 'explosion' ? 'explosion' : 'flame', burst.x, burst.y)
     }
 
-    this.drawPlayer(ctx)
+    if (this.flight) this.drawFlight(ctx)
+    else if (this.victory) this.drawVictoryHero(ctx)
+    else this.drawPlayer(ctx)
     this.drawNearbyTalk(ctx)
 
     if (this.screen.dark) {
@@ -1021,6 +1155,9 @@ export class World {
       // Over the darkness: a hint that there is somewhere to go.
       drawGlimmers(ctx, this.screen, this.frame, this.save.world.takenChests, opened)
     }
+
+    // Over the darkness, so a boss room lights up when its guardian falls.
+    if (this.victory) this.drawVictoryLight(ctx)
 
     if (this.transition > 0) {
       ctx.fillStyle = `rgba(0,0,0,${this.transition / 12})`
@@ -1039,6 +1176,131 @@ export class World {
     })
 
     if (this.message) this.drawMessageBar(ctx)
+  }
+
+  /**
+   * Sets up the visual half of a crossing. Everything real has already
+   * happened; this only decides what is drawn for the next second and a bit.
+   */
+  private beginFlight(spawnCol: number): void {
+    // He comes in over the water, from whichever side of the map he lands
+    // nearest — the island's landing is on its seaward east side, the
+    // mainland's on its west.
+    const fromRight = spawnCol >= SCREEN_COLS / 2
+    this.flight = {
+      frames: FLIGHT_FRAMES,
+      fromX: fromRight ? SCREEN_W + 12 : -24,
+      fromY: this.player.y,
+      toX: this.player.x,
+      toY: this.player.y,
+      facing: fromRight ? 'left' : 'right',
+    }
+    this.player.facing = this.flight.facing
+    // No black cut over a flight: he is off the edge of the screen anyway, and
+    // the veil would only hide the water he is crossing.
+    this.transition = 0
+    sfx.play('wings')
+  }
+
+  /**
+   * The Wings crossing: an arc in over the water, a shadow beneath him that
+   * tightens as he climbs and spreads as he drops, and a landing. Drawn from
+   * sprites already in the atlas — the hero lifted by an offset, with the Wings
+   * beating at his shoulders — so flying costs no new pixel art.
+   */
+  private drawFlight(ctx: CanvasRenderingContext2D): void {
+    const flight = this.flight
+    if (!flight) return
+    const t = 1 - flight.frames / FLIGHT_FRAMES
+    const ease = t * t * (3 - 2 * t)
+    const groundX = flight.fromX + (flight.toX - flight.fromX) * ease
+    const groundY = flight.fromY + (flight.toY - flight.fromY) * ease
+    // Already flying when he appears, highest a third of the way across, and
+    // down on the sand at the end.
+    const climb = Math.sin(Math.PI * (0.25 + 0.75 * t))
+    const lift = FLIGHT_HEIGHT * climb
+
+    // The shadow is what makes an offset read as height rather than as the hero
+    // having simply walked up the screen. Rectangles, not an ellipse:
+    // everything else on this canvas is whole pixels, and a path would blur.
+    const shadowX = Math.round(groundX + PLAYER_SIZE / 2)
+    const shadowY = Math.round(groundY + PLAYER_SIZE - 1)
+    const wide = Math.round(12 - 6 * climb)
+    ctx.save()
+    ctx.globalAlpha = 0.45 - 0.3 * climb
+    ctx.fillStyle = '#0a1a3a'
+    ctx.fillRect(shadowX - wide / 2, shadowY, wide, 2)
+    ctx.fillRect(shadowX - wide / 2 + 1, shadowY - 1, wide - 2, 1)
+    ctx.restore()
+
+    const beat = Math.floor(flight.frames / FLAP_FRAMES) % 2 === 0
+    const x = groundX - 2
+    const y = groundY - 4 - lift
+    this.atlas.draw(ctx, 'wings', x, y - (beat ? 5 : 3))
+    const shieldTier = capitalise(materialOf(this.player.loadout.shield))
+    const way = capitalise(flight.facing)
+    this.atlas.draw(ctx, `hero${shieldTier}${way}${beat ? 'A' : 'B'}` as SpriteName, x, y)
+  }
+
+  /** The sign has been read: he lowers the sword and the room starts again. */
+  clearVictory(): void {
+    this.victory = undefined
+    this.input.clearTarget()
+  }
+
+  /**
+   * The pose: he turns to face the child and holds the sword straight up. No
+   * new art — the hero he already wears and the up-pointing blade from his own
+   * swing, moved above his head. Blade first, so his silhouette stays whole.
+   */
+  private drawVictoryHero(ctx: CanvasRenderingContext2D): void {
+    const victory = this.victory
+    if (!victory) return
+    const t = 1 - victory.frames / VICTORY_FRAMES
+    const raise = Math.min(1, t * 4)
+    const bob = Math.sin(this.frame / 9)
+    const x = this.player.x - 2
+    const y = this.player.y - 4
+
+    const bladeTier = capitalise(materialOf(this.player.loadout.sword ?? 'woodenSword'))
+    this.atlas.draw(
+      ctx,
+      `sword${bladeTier}Up` as SpriteName,
+      this.player.x + PLAYER_SIZE / 2 - 4,
+      y + 2 - raise * 16 + bob,
+    )
+    const shieldTier = capitalise(materialOf(this.player.loadout.shield))
+    this.atlas.draw(ctx, `hero${shieldTier}DownA` as SpriteName, x, y + bob)
+  }
+
+  /** The light: the room whites out as the guardian goes, then eight spokes
+   *  turn off the raised blade. */
+  private drawVictoryLight(ctx: CanvasRenderingContext2D): void {
+    const victory = this.victory
+    if (!victory) return
+    const t = 1 - victory.frames / VICTORY_FRAMES
+    const tipX = this.player.x + PLAYER_SIZE / 2
+    const tipY = this.player.y - 16
+
+    const spokes = 8
+    const reach = (26 + Math.sin(this.frame / 7) * 6) * Math.min(1, t * 3)
+    ctx.save()
+    ctx.translate(tipX, tipY)
+    ctx.rotate(this.frame / 60)
+    ctx.globalAlpha = 0.28 + Math.sin(this.frame / 9) * 0.08
+    ctx.fillStyle = '#ffeaa0'
+    for (let i = 0; i < spokes; i++) {
+      ctx.rotate((Math.PI * 2) / spokes)
+      ctx.fillRect(6, -1, reach, 2)
+    }
+    ctx.restore()
+
+    // A fifth of a second of white as it dies.
+    const flash = Math.max(0, 0.85 - t * 6)
+    if (flash > 0) {
+      ctx.fillStyle = `rgba(255,255,255,${flash})`
+      ctx.fillRect(0, 0, SCREEN_W, SCREEN_H)
+    }
   }
 
   private drawPlayer(ctx: CanvasRenderingContext2D): void {
@@ -1182,6 +1444,7 @@ export class World {
   debugState(): Record<string, unknown> {
     return {
       screen: this.screen.id,
+      flying: this.flight !== undefined,
       x: Math.round(this.player.x),
       y: Math.round(this.player.y),
       facing: this.player.facing,

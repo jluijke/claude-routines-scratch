@@ -21,6 +21,7 @@ import { button, clear, el } from './spelling/ui/dom'
 import { World } from './game/world'
 import { SCREENS } from './game/world/screens'
 import { showGatePrompt, showNotice } from './game/ui/prompt'
+import { showBossVictory } from './game/ui/victory'
 import { showShop, type ShopKind } from './game/ui/shop'
 import { showHelp } from './game/ui/help'
 import { gateById, type Gate } from './game/gates'
@@ -176,6 +177,19 @@ function enterWorld(): void {
     onDefeat: () => handleDefeat(),
     onMessage: () => {},
     onHelp: () => openHelp(),
+    onBossDefeated: (win) => {
+      world?.setPaused(true)
+      // The win is already on disk by way of onChange; this only makes sure of
+      // it before a child wanders off with the sign still up.
+      persist()
+      showBossVictory(root, {
+        ...win,
+        onContinue: () => {
+          world?.clearVictory()
+          world?.setPaused(false)
+        },
+      })
+    },
   })
   world.start()
   fitStage()
@@ -332,7 +346,6 @@ function startHalfChallenge(gate: Gate): void {
  * optional barriers so side content never consumes a curriculum exercise.
  */
 function startReviewChallenge(gate: Gate): void {
-  music.stop()
   const learned = EXERCISES.filter((e) => state.spelling.completedExercises.includes(e.id))
   if (learned.length === 0) {
     showNotice(root, 'You have not learned any patterns yet. Come back once you have finished an exercise.', () => {
@@ -341,6 +354,11 @@ function startReviewChallenge(gate: Gate): void {
     })
     return
   }
+
+  // Below the check, not above it. Stopping the music first meant that touching
+  // an optional barrier before finishing any exercise killed the tune with
+  // nothing on this path to ever start it again.
+  music.stop()
 
   // Reuse the last finished exercise, but ask only for a short mastery check:
   // the engine already refuses to finish until each concept is proved unaided.

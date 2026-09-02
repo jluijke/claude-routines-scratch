@@ -145,7 +145,9 @@ const AUTHORED: Screen[] = [
       col: 12,
       row: 9,
       item: 'woodenSword',
-      message: 'A wooden sword, left in the grass. It fits your hand well enough.',
+      message:
+        'A wooden sword, left in the grass. It fits your hand well enough. ' +
+        'You can swing it with Z or Space.',
     },
   },
   {
@@ -773,6 +775,18 @@ const AUTHORED: Screen[] = [
       '~~~~~~~~~~~~~~~~',
     ],
     exits: {},
+    // Directly under the cave mouth, and directly on the walk in from where he
+    // lands. The hold is pitch dark and there is no shop out here, so the only
+    // light on the island had better be impossible to miss.
+    pickup: {
+      id: 'island-candle',
+      col: 7,
+      row: 5,
+      item: 'blueCandle',
+      message:
+        'A blue candle, washed up and left on the sand. Someone else came this ' +
+        'far. Press X to strike it.',
+    },
     portals: [
       { col: 7, row: 4, to: 'lagoon-cave', spawnCol: 7, spawnRow: 8 },
       {

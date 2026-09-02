@@ -304,22 +304,52 @@ export class Music {
   private master: GainNode | undefined
   private timer = 0
   private current: TrackName | undefined
+  /**
+   * The track the game has asked for, whether or not a note has been heard yet.
+   *
+   * These are two different questions and conflating them is what made the game
+   * silent for so long: the title tune was requested before the child had
+   * touched anything, the browser refused, and the field that said "playing"
+   * was set anyway. Now `wanted` remembers the request and `current` means
+   * sound is actually coming out.
+   */
+  private wanted: TrackName | undefined
   private step = 0
   private nextStepTime = 0
   private muted = false
   private volume = 1
 
-  /** Must be called from a user gesture; browsers block audio before one. */
+  /**
+   * Must be called from a user gesture; browsers block audio before one.
+   *
+   * A context built outside a gesture is born suspended and stays that way, so
+   * this both builds one and revives one that was built too early — and then
+   * starts whatever track was asked for while nothing could be heard.
+   */
   prime(): void {
-    if (this.context || typeof window === 'undefined') return
-    const Ctor =
-      window.AudioContext ??
-      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-    if (!Ctor) return
-    this.context = new Ctor()
-    this.master = this.context.createGain()
-    this.master.gain.value = this.muted ? 0 : this.volume
-    this.master.connect(this.context.destination)
+    if (typeof window === 'undefined') return
+    if (!this.context) {
+      const Ctor =
+        window.AudioContext ??
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+      if (!Ctor) return
+      this.context = new Ctor()
+      this.master = this.context.createGain()
+      this.master.gain.value = this.muted ? 0 : this.volume
+      this.master.connect(this.context.destination)
+    }
+    // resume() is a promise, and until it settles the context clock is still
+    // frozen — starting the scheduler off that clock would schedule a burst of
+    // past-dated notes rather than a tune. So wait for it.
+    if (this.context.state === 'suspended') {
+      void this.context.resume().then(() => this.startWanted())
+      return
+    }
+    this.startWanted()
+  }
+
+  private startWanted(): void {
+    if (this.wanted && this.wanted !== this.current) this.begin(this.wanted)
   }
 
   isMuted(): boolean {
@@ -341,25 +371,61 @@ export class Music {
     }
   }
 
+  /** The track being heard, which before the first gesture is none. */
   playing(): TrackName | undefined {
     return this.current
   }
 
-  /** Switches tracks. Playing the track already on is a no-op. */
-  play(name: TrackName): void {
-    if (this.current === name) return
-    this.prime()
-    if (!this.context) return
-    if (this.context.state === 'suspended') void this.context.resume()
+  /** The track asked for, heard or not. */
+  requested(): TrackName | undefined {
+    return this.wanted
+  }
 
-    this.stop()
+  /**
+   * What is really happening, for anything that needs to know rather than hope
+   * — the checks especially. A suspended context's clock is frozen, so a clock
+   * that advances is the one piece of evidence that cannot be faked by a field.
+   */
+  status(): { state: AudioContextState | 'none'; track: TrackName | undefined; clock: number } {
+    return {
+      state: this.context?.state ?? 'none',
+      track: this.current,
+      clock: this.context?.currentTime ?? 0,
+    }
+  }
+
+  /**
+   * Switches tracks. Playing the track already on is a no-op.
+   *
+   * Deliberately does *not* build an audio context. Called before the child has
+   * clicked anything it only records the wish; `prime()`, which runs inside a
+   * real gesture, is what makes it audible. That is what the title screen has
+   * always claimed to do.
+   */
+  play(name: TrackName): void {
+    if (this.wanted === name && this.current === name) return
+    this.wanted = name
+    if (!this.context || this.context.state !== 'running') return
+    this.begin(name)
+  }
+
+  /** Actually starts the scheduler. Only ever called with a live context. */
+  private begin(name: TrackName): void {
+    const context = this.context
+    if (!context) return
+    this.stopScheduler()
     this.current = name
     this.step = 0
-    this.nextStepTime = this.context.currentTime + 0.05
+    this.nextStepTime = context.currentTime + 0.05
     this.timer = window.setInterval(() => this.schedule(), TICK_MS)
   }
 
   stop(): void {
+    this.wanted = undefined
+    this.stopScheduler()
+  }
+
+  private stopScheduler(): void {
     if (this.timer) window.clearInterval(this.timer)
     this.timer = 0
     this.current = undefined

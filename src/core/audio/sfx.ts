@@ -17,6 +17,8 @@ export type SfxName =
   | 'wrong'
   | 'select'
   | 'fanfare'
+  | 'wings'
+  | 'bossFanfare'
 
 interface Tone {
   kind?: 'tone'
@@ -91,18 +93,80 @@ const PATCHES: Record<SfxName, Sound[]> = {
     { freq: 784, at: 0.24, duration: 0.12, type: 'square', gain: 0.12 },
     { freq: 1047, at: 0.36, duration: 0.3, type: 'square', gain: 0.14 },
   ],
+
+  // Three heavy beats of air, a glide, and the thump of landing. Noise rather
+  // than oscillators, because a wingbeat is air being moved and a tone on its
+  // own is just a bleep. The beats fall at 0.00 / 0.36 / 0.72 s, which is the
+  // same rhythm the wings are drawn flapping at.
+  wings: [
+    { kind: 'noise', at: 0, duration: 0.2, from: 900, to: 240, gain: 0.17, q: 2 },
+    { freq: 150, at: 0.02, duration: 0.12, type: 'triangle', slideTo: 90, gain: 0.09 },
+    { kind: 'noise', at: 0.36, duration: 0.2, from: 980, to: 260, gain: 0.15, q: 2 },
+    { freq: 165, at: 0.38, duration: 0.12, type: 'triangle', slideTo: 95, gain: 0.08 },
+    { kind: 'noise', at: 0.72, duration: 0.2, from: 1060, to: 280, gain: 0.13, q: 2 },
+    { freq: 180, at: 0.74, duration: 0.12, type: 'triangle', slideTo: 100, gain: 0.07 },
+    // The glide down: a thin band of air rising as the ground comes up.
+    { kind: 'noise', at: 0.95, duration: 0.26, from: 320, to: 1400, gain: 0.08, q: 8 },
+    // Touchdown.
+    { kind: 'noise', at: 1.21, duration: 0.1, from: 600, to: 120, gain: 0.14, q: 1.5 },
+    { freq: 120, at: 1.21, duration: 0.14, type: 'triangle', slideTo: 60, gain: 0.1 },
+  ],
+
+  // The big one. `fanfare` is four notes for a chest; a dungeon guardian gets a
+  // pickup, a climb, a held top note over its own harmony, and a crash under
+  // each landing. Two seconds, which is what a sign this size is worth.
+  bossFanfare: [
+    { kind: 'noise', at: 0, duration: 0.28, from: 6000, to: 1200, gain: 0.12, q: 1 },
+    { freq: 131, at: 0, duration: 0.3, type: 'triangle', gain: 0.1 },
+    { freq: 392, at: 0, duration: 0.1, type: 'square', gain: 0.12 },
+    { freq: 523, at: 0.1, duration: 0.1, type: 'square', gain: 0.12 },
+    { freq: 659, at: 0.2, duration: 0.1, type: 'square', gain: 0.12 },
+    { freq: 784, at: 0.3, duration: 0.22, type: 'square', gain: 0.13 },
+    { freq: 196, at: 0.3, duration: 0.22, type: 'triangle', gain: 0.1 },
+    { freq: 659, at: 0.52, duration: 0.11, type: 'square', gain: 0.12 },
+    { freq: 784, at: 0.63, duration: 0.11, type: 'square', gain: 0.12 },
+    { freq: 131, at: 0.52, duration: 0.22, type: 'triangle', gain: 0.1 },
+    { kind: 'noise', at: 0.74, duration: 0.22, from: 5000, to: 900, gain: 0.1, q: 1 },
+    { freq: 1047, at: 0.74, duration: 0.34, type: 'square', gain: 0.14 },
+    { freq: 175, at: 0.74, duration: 0.34, type: 'triangle', gain: 0.1 },
+    { freq: 988, at: 1.08, duration: 0.11, type: 'square', gain: 0.12 },
+    { freq: 1047, at: 1.19, duration: 0.11, type: 'square', gain: 0.12 },
+    { freq: 1175, at: 1.3, duration: 0.11, type: 'square', gain: 0.12 },
+    { freq: 196, at: 1.08, duration: 0.33, type: 'triangle', gain: 0.1 },
+    // The note the whole thing has been climbing towards, with its own chord
+    // under it. Peak simultaneous gain here is 0.52 — the effects share no
+    // master gain, so anything much above that clips.
+    { kind: 'noise', at: 1.41, duration: 0.55, from: 7000, to: 800, gain: 0.14, q: 0.8 },
+    { freq: 1319, at: 1.41, duration: 0.62, type: 'square', gain: 0.14 },
+    { freq: 1047, at: 1.41, duration: 0.62, type: 'triangle', gain: 0.07 },
+    { freq: 784, at: 1.41, duration: 0.62, type: 'triangle', gain: 0.07 },
+    { freq: 131, at: 1.41, duration: 0.66, type: 'triangle', gain: 0.1 },
+    // Three sparks off the top, as the sign appears.
+    { freq: 1319, at: 1.75, duration: 0.07, type: 'square', gain: 0.06 },
+    { freq: 1568, at: 1.82, duration: 0.07, type: 'square', gain: 0.06 },
+    { freq: 2093, at: 1.89, duration: 0.18, type: 'square', gain: 0.06 },
+  ],
 }
 
 export class Sfx {
   private context: AudioContext | undefined
   private muted = false
 
-  /** Must be called from a user gesture before any sound will play. */
+  /**
+   * Must be called from a user gesture before any sound will play.
+   *
+   * Also revives a context that was built too early: one made without a gesture
+   * starts suspended, and returning early because "a context exists" leaves it
+   * that way for the life of the page. That is what silenced the music.
+   */
   prime(): void {
-    if (this.context || typeof window === 'undefined') return
-    const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-    if (!Ctor) return
-    this.context = new Ctor()
+    if (typeof window === 'undefined') return
+    if (!this.context) {
+      const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+      if (!Ctor) return
+      this.context = new Ctor()
+    }
+    if (this.context.state === 'suspended') void this.context.resume()
   }
 
   setMuted(muted: boolean): void {

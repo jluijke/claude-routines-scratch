@@ -38,6 +38,15 @@ interface Archetype {
   boss?: boolean
 }
 
+/**
+ * True for anything that guards a dungeon. Asked of the table that already
+ * knows, so a fifth boss cannot be forgotten by a list of names kept somewhere
+ * else — which is exactly what happened to boss3 and boss4.
+ */
+export function isBossKind(kind: EnemyKind): boolean {
+  return ARCHETYPES[kind].boss === true
+}
+
 const ARCHETYPES: Record<EnemyKind, Archetype> = {
   shooter: {
     hp: 2, speed: 26, damage: 1, size: 14,
