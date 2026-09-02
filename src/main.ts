@@ -22,6 +22,7 @@ import { World } from './game/world'
 import { SCREENS } from './game/world/screens'
 import { showGatePrompt, showNotice } from './game/ui/prompt'
 import { showBossVictory } from './game/ui/victory'
+import { showDiscovery } from './game/ui/discovery'
 import { mapLayout } from './game/render/map'
 import { showShop, type ShopKind } from './game/ui/shop'
 import { showHelp } from './game/ui/help'
@@ -178,6 +179,17 @@ function enterWorld(): void {
     onDefeat: () => handleDefeat(),
     onMessage: () => {},
     onHelp: () => openHelp(),
+    onDiscovery: (found) => {
+      world?.setPaused(true)
+      persist()
+      showDiscovery(root, {
+        ...found,
+        onContinue: () => {
+          world?.clearDiscovery()
+          world?.setPaused(false)
+        },
+      })
+    },
     onBossDefeated: (win) => {
       world?.setPaused(true)
       // The win is already on disk by way of onChange; this only makes sure of

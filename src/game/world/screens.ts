@@ -520,9 +520,12 @@ const AUTHORED: Screen[] = [
       col: 7,
       row: 4,
       item: 'map',
+      // The story of it only. The sign shows the item's own description under
+      // this, which is where "press M" belongs — saying it twice reads as a
+      // stammer.
       message:
-        'A map of the whole land, rolled up and left here long ago. Press M to ' +
-        'open it — it fills itself in as you go.',
+        'A map of the whole land, rolled up and left here long ago. Whoever ' +
+        'drew it never came back for it.',
     },
     props: [
       {

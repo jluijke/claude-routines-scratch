@@ -19,6 +19,7 @@ export type SfxName =
   | 'fanfare'
   | 'wings'
   | 'bossFanfare'
+  | 'itemGet'
 
 interface Tone {
   kind?: 'tone'
@@ -110,6 +111,31 @@ const PATCHES: Record<SfxName, Sound[]> = {
     // Touchdown.
     { kind: 'noise', at: 1.21, duration: 0.1, from: 600, to: 120, gain: 0.14, q: 1.5 },
     { freq: 120, at: 1.21, duration: 0.14, type: 'triangle', slideTo: 60, gain: 0.1 },
+  ],
+
+  // Holding something up over your head deserves its own tune. Shorter and
+  // brighter than the boss fanfare — a rising run that lands on a held octave,
+  // with the bass climbing under it and a little sparkle off the top. Two and a
+  // bit seconds, matched to how long he holds it up.
+  itemGet: [
+    { freq: 523, at: 0, duration: 0.09, type: 'square', gain: 0.13 },
+    { freq: 659, at: 0.09, duration: 0.09, type: 'square', gain: 0.13 },
+    { freq: 784, at: 0.18, duration: 0.09, type: 'square', gain: 0.13 },
+    { freq: 1047, at: 0.27, duration: 0.2, type: 'square', gain: 0.14 },
+    { freq: 131, at: 0, duration: 0.46, type: 'triangle', gain: 0.09 },
+    // Up a step and hold, the way the moment holds.
+    { freq: 988, at: 0.47, duration: 0.1, type: 'square', gain: 0.13 },
+    { freq: 1047, at: 0.57, duration: 0.1, type: 'square', gain: 0.13 },
+    { freq: 1175, at: 0.67, duration: 0.1, type: 'square', gain: 0.13 },
+    { freq: 165, at: 0.47, duration: 0.3, type: 'triangle', gain: 0.09 },
+    { kind: 'noise', at: 0.77, duration: 0.3, from: 6000, to: 1400, gain: 0.09, q: 1 },
+    { freq: 1319, at: 0.77, duration: 0.62, type: 'square', gain: 0.14 },
+    { freq: 1047, at: 0.77, duration: 0.62, type: 'triangle', gain: 0.07 },
+    { freq: 196, at: 0.77, duration: 0.62, type: 'triangle', gain: 0.09 },
+    // The sparkle, as the light comes off it.
+    { freq: 1568, at: 1.42, duration: 0.08, type: 'square', gain: 0.07 },
+    { freq: 2093, at: 1.5, duration: 0.08, type: 'square', gain: 0.07 },
+    { freq: 2637, at: 1.58, duration: 0.24, type: 'square', gain: 0.07 },
   ],
 
   // The big one. `fanfare` is four notes for a chest; a dungeon guardian gets a

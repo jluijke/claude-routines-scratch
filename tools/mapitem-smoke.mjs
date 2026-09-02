@@ -128,6 +128,26 @@ for (let i = 0; i < 26 && !took; i++) {
 }
 check('the map is picked up by walking over it', took)
 
+// ------------------------------------------- and it is an actual moment
+// This is what the boulder, the bomb and the shopkeeper's hint all lead to.
+// It used to be one line in the message bar.
+check('he holds it up', (await world()).discovering === true)
+await page.waitForSelector('.found-panel', { timeout: 5000 })
+check('a sign says what he found', /Map of the Land/i.test((await page.textContent('.found-title')) ?? ''))
+check('and tells the story of it', /rolled up|left here/i.test((await page.textContent('.found-story')) ?? ''))
+check('and says what it does', /press m/i.test((await page.textContent('.found-what')) ?? ''))
+check('the world holds still behind it', (await world()).paused === true)
+
+await page.getByRole('button', { name: /take it/i }).click()
+await page.waitForTimeout(400)
+check('dismissing it hands the game back', (await world()).paused === false)
+check('he lowers it again', (await world()).discovering === false)
+check('and can move', await (async () => {
+  const before = (await world()).y
+  await page.keyboard.down('ArrowDown'); await page.waitForTimeout(250); await page.keyboard.up('ArrowDown')
+  return (await world()).y !== before
+})())
+
 // And now he has it, the shopkeeper stops repeating himself.
 await page.evaluate(() => window.zsq.goTo('shop-interior', 7, 8))
 await page.waitForSelector('.shop', { timeout: 8000 })

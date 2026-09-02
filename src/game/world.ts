@@ -55,6 +55,8 @@ export interface WorldCallbacks {
   onHelp: () => void
   /** A dungeon guardian has fallen: show the sign. */
   onBossDefeated: (win: BossVictory) => void
+  /** He picked something up off the ground and held it over his head. */
+  onDiscovery: (found: { item: ItemId; message: string }) => void
 }
 
 interface Drop {
@@ -113,6 +115,23 @@ interface Victory {
 const VICTORY_FRAMES = 120
 
 /**
+ * Something found on the ground, held up over his head.
+ *
+ * The map was the moment this was built for — it is the thing the whole boulder
+ * and the bomb and the shopkeeper's hint lead to, and it used to go by as one
+ * line in the message bar. The sword and the candle get the same treatment,
+ * because finding them is the same beat.
+ */
+interface Discovery {
+  frames: number
+  item: ItemId
+  message: string
+}
+
+/** How long he holds it up before the sign appears. */
+const DISCOVERY_FRAMES = 110
+
+/**
  * The rooms with a guardian in them, in map order. Derived rather than written
  * down, so adding a fifth dungeon cannot leave the sign counting to four.
  */
@@ -167,6 +186,8 @@ export class World {
   private victory: Victory | undefined
   /** True while he is reading the map. The world holds still underneath. */
   private mapOpen = false
+  /** Set from the moment he picks something up until the sign is dismissed. */
+  private discovery: Discovery | undefined
   private message = ''
   private messageTimer = 0
   /** Barrier the hero is standing against, if any. */
@@ -395,6 +416,7 @@ export class World {
     // a position that no longer means anything.
     this.flight = undefined
     this.victory = undefined
+    this.discovery = undefined
     this.mapOpen = false
     this.transition = 12
 
@@ -484,6 +506,16 @@ export class World {
     // In the air. Returning here freezes everything below — input, enemies,
     // projectiles, combat, and the portal he is flying towards — so nothing can
     // hit him mid-crossing and he cannot bounce straight back the way he came.
+    if (this.discovery) {
+      if (this.discovery.frames > 0) {
+        this.discovery.frames -= 1
+        if (this.discovery.frames === 0) {
+          this.callbacks.onDiscovery({ item: this.discovery.item, message: this.discovery.message })
+        }
+      }
+      // He holds it up until the sign is dismissed.
+      return
+    }
     if (this.victory) {
       if (this.victory.frames > 0) {
         this.victory.frames -= 1
@@ -754,11 +786,12 @@ export class World {
     const held = this.save.inventory[pickup.item] ?? 0
     this.save.inventory[pickup.item] = ITEMS[pickup.item].stackable ? held + 1 : Math.max(held, 1)
     this.equipBest()
-    sfx.play('secret')
-    // Each pickup says its own piece. This used to append "You can swing it
-    // with Z or Space" to everything, which is true of a sword and nonsense
-    // about a candle.
-    this.showMessage(pickup.message)
+    sfx.play('itemGet')
+    // Held up over his head rather than mentioned in the message bar. Each
+    // pickup still says its own piece — that goes on the sign afterwards.
+    this.projectiles = []
+    this.player.invulnerable = Math.max(this.player.invulnerable, DISCOVERY_FRAMES)
+    this.discovery = { frames: DISCOVERY_FRAMES, item: pickup.item, message: pickup.message }
     this.callbacks.onChange()
   }
 
@@ -1179,6 +1212,7 @@ export class World {
 
     if (this.flight) this.drawFlight(ctx)
     else if (this.victory) this.drawVictoryHero(ctx)
+    else if (this.discovery) this.drawDiscoveryHero(ctx)
     else this.drawPlayer(ctx)
     this.drawNearbyTalk(ctx)
 
@@ -1189,8 +1223,10 @@ export class World {
       drawGlimmers(ctx, this.screen, this.frame, this.save.world.takenChests, opened)
     }
 
-    // Over the darkness, so a boss room lights up when its guardian falls.
+    // Over the darkness, so a boss room lights up when its guardian falls, and
+    // so a cave lights up around whatever he has just held over his head.
     if (this.victory) this.drawVictoryLight(ctx)
+    if (this.discovery) this.drawDiscoveryLight(ctx)
 
     // Over everything: the map covers the play field, but not the HUD, so he
     // can still see his hearts and rupees while he reads it.
@@ -1279,6 +1315,79 @@ export class World {
     const shieldTier = capitalise(materialOf(this.player.loadout.shield))
     const way = capitalise(flight.facing)
     this.atlas.draw(ctx, `hero${shieldTier}${way}${beat ? 'A' : 'B'}` as SpriteName, x, y)
+  }
+
+  /** The sign has been read: he lowers it and carries on. */
+  clearDiscovery(): void {
+    this.discovery = undefined
+    this.input.clearTarget()
+  }
+
+  /**
+   * Both arms up, the thing he just found held over his head.
+   *
+   * Composed from sprites already in the atlas — the hero facing the child and
+   * the item's own icon — so every pickup gets the moment without anyone
+   * drawing a new pose for it.
+   */
+  private drawDiscoveryHero(ctx: CanvasRenderingContext2D): void {
+    const discovery = this.discovery
+    if (!discovery) return
+    const t = 1 - discovery.frames / DISCOVERY_FRAMES
+    const raise = Math.min(1, t * 5)
+    const bob = Math.sin(this.frame / 8)
+    const x = this.player.x - 2
+    const y = this.player.y - 4
+
+    const shieldTier = capitalise(materialOf(this.player.loadout.shield))
+    this.atlas.draw(ctx, `hero${shieldTier}DownA` as SpriteName, x, y + bob)
+    this.atlas.draw(
+      ctx,
+      itemSprite(discovery.item),
+      this.player.x + PLAYER_SIZE / 2 - 8,
+      y - 4 - raise * 14 + bob,
+    )
+  }
+
+  /** The light coming off it: a ring that opens outward, and rising sparks. */
+  private drawDiscoveryLight(ctx: CanvasRenderingContext2D): void {
+    const discovery = this.discovery
+    if (!discovery) return
+    const t = 1 - discovery.frames / DISCOVERY_FRAMES
+    const cx = this.player.x + PLAYER_SIZE / 2
+    const cy = this.player.y - 12
+
+    ctx.save()
+    ctx.translate(cx, cy)
+    ctx.rotate(-this.frame / 70)
+    ctx.globalAlpha = 0.3 + Math.sin(this.frame / 8) * 0.1
+    ctx.fillStyle = '#fff4c2'
+    const reach = (22 + Math.sin(this.frame / 6) * 5) * Math.min(1, t * 4)
+    for (let i = 0; i < 6; i++) {
+      ctx.rotate((Math.PI * 2) / 6)
+      ctx.fillRect(7, -1, reach, 2)
+    }
+    ctx.restore()
+
+    // A ring opening outward, once, as he lifts it.
+    const ring = Math.min(1, t * 2.2)
+    if (ring < 1) {
+      ctx.save()
+      ctx.globalAlpha = 0.5 * (1 - ring)
+      ctx.strokeStyle = '#ffeaa0'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.arc(cx, cy, 6 + ring * 40, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.restore()
+    }
+
+    // The screen lifts a little while he holds it up.
+    const glow = Math.max(0, 0.5 - Math.abs(t - 0.25) * 1.6)
+    if (glow > 0) {
+      ctx.fillStyle = `rgba(255,244,194,${glow * 0.5})`
+      ctx.fillRect(0, 0, SCREEN_W, SCREEN_H)
+    }
   }
 
   /** The sign has been read: he lowers the sword and the room starts again. */
@@ -1485,6 +1594,7 @@ export class World {
       screen: this.screen.id,
       flying: this.flight !== undefined,
       mapOpen: this.mapOpen,
+      discovering: this.discovery !== undefined,
       x: Math.round(this.player.x),
       y: Math.round(this.player.y),
       facing: this.player.facing,

@@ -663,6 +663,84 @@ textarea.answer { width: 100%; line-height: 1.5; resize: vertical; }
   .victory-crowns li.just-won { animation: none; }
 }
 
+/* ------------------------------------------------- found on the ground */
+
+/* Warmer and lighter than the boss sign: that one is a victory, this one is a
+   discovery, and they should not feel like the same event. */
+.overlay-found {
+  background:
+    radial-gradient(circle at 50% 40%, rgba(255, 244, 194, 0.28), rgba(6, 8, 14, 0.9) 60%),
+    rgba(6, 8, 14, 0.88);
+}
+
+.found-panel {
+  width: min(460px, 94vw);
+  text-align: center;
+  border-color: var(--hud-gold);
+  box-shadow:
+    0 0 0 3px var(--hud-ink),
+    0 0 34px rgba(255, 244, 194, 0.3),
+    0 16px 44px rgba(0, 0, 0, 0.7);
+  animation: found-in 300ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.found-banner {
+  font-size: 0.85rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+/* The thing itself, big, before its name. */
+.found-icon {
+  display: grid;
+  place-items: center;
+  margin: 0 0 0.6rem;
+  animation: found-lift 520ms 120ms backwards cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+.found-icon canvas { image-rendering: pixelated; filter: drop-shadow(0 0 12px rgba(255, 234, 160, 0.7)); }
+
+.panel-game .found-title {
+  font-size: clamp(1.3rem, 5vw, 1.9rem);
+  letter-spacing: 0.05em;
+  color: var(--hud-text);
+  text-shadow: 0 0 12px rgba(255, 244, 194, 0.6);
+  margin: 0 0 0.5rem;
+}
+
+.panel-game .found-story {
+  font-family: var(--font-ui);
+  font-size: 1.02rem;
+  line-height: 1.5;
+  color: var(--hud-text);
+  margin: 0 auto 0.7rem;
+  max-width: 32em;
+}
+
+.panel-game .found-what {
+  font-family: var(--font-word);
+  font-size: 0.86rem;
+  color: var(--hud-gold);
+  margin: 0 0 1.1rem;
+}
+
+.found-panel .gate-actions { justify-content: center; }
+
+@keyframes found-in {
+  from { transform: scale(0.88) translateY(8px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes found-lift {
+  from { transform: translateY(16px) scale(0.6); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .found-panel, .found-icon { animation: none; }
+}
+
 /* ------------------------------------------------------------------- shop */
 
 .shop-greeting { color: var(--hud-dim); font-style: italic; margin: 0 0 0.9rem; font-family: var(--font-ui); }

@@ -107,6 +107,17 @@ await page.waitForTimeout(400)
 check('he cannot fly back without wings', (await state()).screen === 'lagoon-island')
 
 // ---------------------------------------------------------------- the cave
+// He lands on the candle lying in the sand, holds it over his head, and the
+// world waits on him until he has read the sign — so the check has to take it
+// the way he would before it can carry on walking.
+await page.evaluate(() => window.zsq.world.teleport('lagoon-island', 7, 5))
+await page.waitForTimeout(600)
+const found = page.getByRole('button', { name: /take it/i })
+if (await found.count()) {
+  check('the candle in the sand is a moment', Boolean(await page.$('.found-panel')))
+  await found.first().click()
+  await page.waitForTimeout(400)
+}
 await page.evaluate(() => window.zsq.world.teleport('lagoon-island', 7, 5))
 await page.waitForTimeout(300)
 await walk('ArrowUp', 4)
