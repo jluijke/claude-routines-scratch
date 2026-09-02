@@ -199,6 +199,10 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
         stat('Hearts', `${save.player.hearts} of ${save.player.maxHearts}`),
       ]),
 
+      el('h3', {}, ['Testing kit']),
+      el('div', { class: 'dash-actions' }, [grantSelect, grantOne, grantAll]),
+      grantNote,
+
       el('h3', {}, ['Play and spelling balance']),
       el('p', {}, [describePacing(save.pacing)]),
       el('p', { class: 'q-hint-line' }, [balanceNote]),
@@ -227,10 +231,6 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
       el('h3', {}, ['Start again']),
       el('div', { class: 'dash-actions' }, [resetField, resetButton]),
       resetNote,
-
-      el('h3', {}, ['Testing kit']),
-      el('div', { class: 'dash-actions' }, [grantSelect, grantOne, grantAll]),
-      grantNote,
 
       el('h3', {}, ['The reading voice']),
       voiceRow,

@@ -33,7 +33,10 @@ const MOVE_KEYS: Record<string, [number, number]> = {
 const ATTACK_KEYS = new Set([' ', 'z', 'Z', 'Enter', '0'])
 const ITEM_KEYS = new Set(['x', 'X', 'Shift', '5'])
 const CYCLE_KEYS = new Set(['c', 'C', 'Tab', '.'])
-const HELP_KEYS = new Set(['Escape', 'p', 'P', 'h', 'H', '?'])
+// Not 'P'. It used to be, and the parent dashboard is Ctrl/Cmd+Shift+P — so one
+// keypress meant both "show the child the controls" and "open the parent panel",
+// and which you got came down to which window listener ran first.
+const HELP_KEYS = new Set(['Escape', 'h', 'H', '?'])
 
 /**
  * The bindings, in the order they are worth learning. The help panel reads
@@ -46,7 +49,7 @@ export const BINDINGS: { keys: string[]; what: string; group: 'Moving' | 'Doing'
   { group: 'Doing', keys: ['Space', 'Z'], what: 'Swing your sword' },
   { group: 'Doing', keys: ['X'], what: 'Use the item in the B slot' },
   { group: 'Doing', keys: ['C', 'Tab'], what: 'Swap to your next item' },
-  { group: 'The rest', keys: ['Ctrl', 'Esc'], what: 'This list, and pause the game' },
+  { group: 'The rest', keys: ['Esc', 'H'], what: 'This list, and pause the game' },
   { group: 'The rest', keys: ['M'], what: 'Music on and off' },
   { group: 'The rest', keys: ['Esc'], what: 'In an exercise: leave it for now' },
 ]
@@ -122,6 +125,25 @@ export class Input {
     // Never swallow keys the browser or a form field needs.
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
 
+    // Control's own keydown reports ctrlKey: true, so its bookkeeping has to
+    // happen before the modifier guard below or a tap could never be told from
+    // a chord. Down with another modifier already held, it is never a tap.
+    if (event.key === 'Control') {
+      this.controlTainted = event.shiftKey || event.altKey || event.metaKey
+      this.held.add('Control')
+      return
+    }
+
+    // A browser or application chord is not a game control. Without this,
+    // Cmd+P walked the hero and opened the controls panel on the way to a
+    // print dialog, and Ctrl+H opened it outright. Shift alone is fine — that
+    // is just a capital letter. Anything struck while Control is down also
+    // makes that Control a modifier rather than a tap.
+    if (event.metaKey || event.ctrlKey || event.altKey) {
+      this.controlTainted = true
+      return
+    }
+
     if (
       MOVE_KEYS[event.key] ||
       ATTACK_KEYS.has(event.key) ||
@@ -131,10 +153,6 @@ export class Input {
     ) {
       event.preventDefault()
     }
-
-    // Anything pressed while Control is down makes it a modifier, not a tap.
-    if (event.key !== 'Control' && this.held.has('Control')) this.controlTainted = true
-    if (event.key === 'Control') this.controlTainted = event.shiftKey || event.altKey || event.metaKey
 
     if (this.held.has(event.key)) return
     this.held.add(event.key)

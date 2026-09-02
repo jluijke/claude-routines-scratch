@@ -518,12 +518,16 @@ window.addEventListener('keydown', (event) => {
   }
 })
 
-/** One panel at a time; the shortcut used to stack them. */
-let dashboardOpen = false
+/**
+ * One panel at a time. Asked of the page rather than remembered: a flag that
+ * fell out of step with the DOM disabled the shortcut altogether, silently.
+ */
+function dashboardIsOpen(): boolean {
+  return root.querySelector('.dashboard') !== null
+}
 
 function openParentDashboard(): void {
-  if (dashboardOpen) return
-  dashboardOpen = true
+  if (dashboardIsOpen()) return
   world?.setPaused(true)
   const closeDashboard = mountParentDashboard(root, {
     save: state,
@@ -531,7 +535,6 @@ function openParentDashboard(): void {
     onVoiceChosen: rememberVoice,
     onImport: (imported) => {
       closeDashboard()
-      dashboardOpen = false
       // An import can land mid-exercise, and the engine and barrier it leaves
       // behind belong to a save that no longer exists.
       activeEngine = undefined
@@ -542,7 +545,6 @@ function openParentDashboard(): void {
     },
     onReset: () => {
       closeDashboard()
-      dashboardOpen = false
       startNewQuest()
     },
     onGrant: (items) => {
@@ -559,7 +561,6 @@ function openParentDashboard(): void {
       persist()
     },
     onClose: () => {
-      dashboardOpen = false
       world?.setPaused(false)
     },
   })
