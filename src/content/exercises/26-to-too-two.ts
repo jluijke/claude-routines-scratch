@@ -19,11 +19,6 @@ export const exercise26: Exercise = {
     }),
     cloze('e26-3', 'homophones-to-too-two', 'We walked ___ the shop.', 'to', { choices: ['to', 'too', 'two'] }),
 
-    cloze('e26-4', 'homophones-to-too-two', 'Can I come ___?', 'too'),
-    cloze('e26-5', 'homophones-to-too-two', 'She gave it ___ me.', 'to'),
-    cloze('e26-6', 'homophones-to-too-two', 'There are ___ cats on the fence.', 'two'),
-    cloze('e26-7', 'homophones-to-too-two', 'It is ___ dark to see anything.', 'too'),
-
     mistake('e26-8', 'homophones-to-too-two', 'I have two much homework tonight.', 'two', 'too'),
     mistake('e26-9', 'homophones-to-too-two', 'We went too the park after school.', 'too', 'to'),
 

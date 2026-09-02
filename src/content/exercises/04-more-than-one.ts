@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, cloze, dictate, letters, mistake, novel, sort } from '../build'
+import { aud, dictate, letters, mistake, novel, sort } from '../build'
 
 /**
  * Exercise 4 — plural -s and -es. The sort makes the child hear *why* some
@@ -10,7 +10,9 @@ export const exercise4: Exercise = {
   title: 'More Than One',
   level: 1,
   levelName: 'Sound Detectives',
-  targetMinutes: 8,
+  // Seven, not eight: the type-the-missing-word questions came out and this
+  // lesson is honestly shorter for it, rather than padded back up with filler.
+  targetMinutes: 7,
   concepts: ['plural-s-es'],
   reviewConcepts: [],
   activities: [
@@ -30,11 +32,6 @@ export const exercise4: Exercise = {
     aud('e4-5', 'plural-s-es', 'glasses'),
     letters('e4-6', 'plural-s-es', 'benches'),
     letters('e4-7', 'plural-s-es', 'wishes'),
-
-    cloze('e4-8', 'plural-s-es', 'Two ___ stopped outside the school.', 'buses'),
-    cloze('e4-9', 'plural-s-es', 'We packed all the toys into three ___.', 'boxes'),
-    cloze('e4-10', 'plural-s-es', 'There are six ___ in my bag.', 'books'),
-    cloze('e4-11', 'plural-s-es', 'The team played on two different ___.', 'beaches', { difficulty: 2 }),
 
     mistake('e4-12', 'plural-s-es', 'We washed all the dishs after dinner.', 'dishs', 'dishes'),
     mistake('e4-13', 'plural-s-es', 'The dog watchs the birds every morning.', 'watchs', 'watches', {

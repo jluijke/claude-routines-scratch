@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, cloze, letters, novel, sort } from '../build'
+import { aud, letters, novel, sort } from '../build'
 
 export const exercise33: Exercise = {
   id: 33,
@@ -29,8 +29,6 @@ export const exercise33: Exercise = {
     aud('e33-5', 'soft-c-g', 'circus'),
     aud('e33-6', 'soft-c-g', 'ginger'),
     letters('e33-7', 'soft-c-g', 'centre', { difficulty: 2 }),
-
-    cloze('e33-8', 'soft-c-g', 'We live near the middle of the ___.', 'city'),
 
     novel(aud('e33-9', 'soft-c-g', 'giraffe', { difficulty: 2 })),
     novel(aud('e33-10', 'soft-c-g', 'celery', { difficulty: 2 })),

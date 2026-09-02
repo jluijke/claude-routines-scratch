@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, cloze, letters, mistake, novel, pat, sort } from '../build'
+import { aud, letters, mistake, novel, pat, sort } from '../build'
 
 export const exercise23: Exercise = {
   id: 23,
@@ -29,7 +29,6 @@ export const exercise23: Exercise = {
     aud('e23-6', 'suffix-ous', 'serious'),
     aud('e23-7', 'suffix-ous', 'poisonous', { difficulty: 2 }),
 
-    cloze('e23-8', 'suffix-ous', 'That cliff edge looks ___.', 'dangerous'),
     mistake('e23-9', 'suffix-ous', 'The snake was very dangerus.', 'dangerus', 'dangerous'),
 
     novel(aud('e23-10', 'suffix-ous', 'humorous', { difficulty: 3 })),

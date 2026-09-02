@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, build, cloze, novel, sort } from '../build'
+import { aud, build, novel, sort } from '../build'
 
 /**
  * Exercise 35 — Greek and Latin roots, kept deliberately introductory. The aim
@@ -32,8 +32,6 @@ export const exercise35: Exercise = {
     aud('e35-5', 'word-roots', 'telescope'),
     aud('e35-6', 'word-roots', 'photograph'),
     aud('e35-7', 'word-roots', 'microphone', { difficulty: 2 }),
-
-    cloze('e35-8', 'word-roots', 'We looked at the stars through a ___.', 'telescope'),
 
     novel(aud('e35-9', 'word-roots', 'transport', { difficulty: 2 })),
     novel(aud('e35-10', 'word-roots', 'aquarium', { difficulty: 3 })),

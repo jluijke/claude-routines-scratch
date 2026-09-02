@@ -3,8 +3,10 @@ import { aud, cloze, dictate, mistake, novel } from '../build'
 
 /**
  * Exercise 25 — the first homophone set, and the first time sound alone is
- * useless. Choices are offered while the pattern is being learned and then
- * withdrawn: by the end the child types the word from meaning alone (spec §9).
+ * useless. The choice is always offered: with three spellings for one sound,
+ * a gap and an empty box is a guessing game, not a spelling question. The work
+ * moves instead from picking the right one to spotting the wrong one, and then
+ * to writing the lot from dictation (spec §9).
  */
 export const exercise25: Exercise = {
   id: 25,
@@ -22,11 +24,6 @@ export const exercise25: Exercise = {
     cloze('e25-2', 'homophones-there', 'The children lost ___ ball.', 'their', {
       choices: ['there', 'their', "they're"],
     }),
-    // Now without the choices — the same job, from meaning alone.
-    cloze('e25-4', 'homophones-there', 'Is ___ any milk left?', 'there'),
-    cloze('e25-5', 'homophones-there', 'I like ___ new house.', 'their'),
-    cloze('e25-6', 'homophones-there', '___ going to be late again.', "They're"),
-
     mistake('e25-7', 'homophones-there', 'Their going to the beach today.', 'Their', "They're"),
     mistake('e25-8', 'homophones-there', 'The dogs ate they’re dinner.', 'they’re', 'their'),
 

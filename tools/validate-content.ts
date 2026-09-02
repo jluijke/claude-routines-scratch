@@ -156,6 +156,13 @@ function checkQuestion(question: Question, where: string): void {
       fail(`${where}: question "${question.id}" offers choices that do not include "${correct}"`)
     }
   }
+  // A gap in a sentence with a text box under it is a guessing game, not a
+  // spelling task: "I lost both of my house ___" takes keys, but it takes plenty
+  // of other words too. A cloze has to offer the words to choose between, which
+  // is what makes there/their/they're a real question.
+  if (question.type === 'cloze' && (question.choices?.length ?? 0) < 2) {
+    fail(`${where}: cloze "${question.id}" has no choices to pick from, so it is a guess rather than a spelling question`)
+  }
   if (question.type === 'cloze' && question.choices && !question.choices.includes(question.answer)) {
     fail(`${where}: question "${question.id}" offers choices that do not include "${question.answer}"`)
   }

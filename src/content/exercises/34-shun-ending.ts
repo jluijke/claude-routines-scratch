@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, build, cloze, mistake, novel, syl } from '../build'
+import { aud, build, mistake, novel, syl } from '../build'
 
 export const exercise34: Exercise = {
   id: 34,
@@ -23,7 +23,6 @@ export const exercise34: Exercise = {
     aud('e34-8', 'tion-ending', 'fraction'),
 
     syl('e34-9', 'tion-ending', 'celebration', { difficulty: 3 }),
-    cloze('e34-10', 'tion-ending', 'We waited at the train ___.', 'station'),
     mistake('e34-11', 'tion-ending', 'Pay attenshun to the instructions.', 'attenshun', 'attention'),
 
     novel(aud('e34-12', 'tion-ending', 'imagination', { difficulty: 3 })),

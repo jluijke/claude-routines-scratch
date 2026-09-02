@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, build, cloze, letters, novel, sort } from '../build'
+import { aud, build, letters, novel, sort } from '../build'
 
 /**
  * Exercise 6 — compound words, and the first exercise with cumulative review
@@ -35,7 +35,6 @@ export const exercise6: Exercise = {
     aud('e6-6', 'compound-words', 'birthday'),
     aud('e6-7', 'compound-words', 'sunflower'),
     letters('e6-8', 'compound-words', 'weekend'),
-    cloze('e6-9', 'compound-words', 'I finished my ___ before dinner.', 'homework'),
 
     novel(aud('e6-10', 'compound-words', 'strawberry', { difficulty: 2 })),
     novel(build('e6-11', 'compound-words', ['sky', 'scraper'], 'skyscraper', { difficulty: 2 })),

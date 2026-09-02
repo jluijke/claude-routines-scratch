@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, cloze, letters, mistake, novel, sort } from '../build'
+import { aud, letters, mistake, novel, sort } from '../build'
 
 /**
  * Exercise 36 — Australian spellings. Framed as "which country wrote this?"
@@ -31,8 +31,6 @@ export const exercise36: Exercise = {
     letters('e36-5', 'australian-spelling', 'theatre', { difficulty: 2 }),
     letters('e36-6', 'australian-spelling', 'litre'),
 
-    cloze('e36-7', 'australian-spelling', 'My ___ is dark green.', 'colour'),
-    cloze('e36-8', 'australian-spelling', 'The pool is fifty ___ long.', 'metres', { difficulty: 2 }),
     mistake('e36-9', 'australian-spelling', 'What is your favorite color?', 'favorite', 'favourite'),
 
     novel(aud('e36-10', 'australian-spelling', 'realise', { difficulty: 2 })),

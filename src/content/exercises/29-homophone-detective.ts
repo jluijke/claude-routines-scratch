@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { cloze, mistake, novel, proof } from '../build'
+import { mistake, novel, proof } from '../build'
 
 /**
  * Exercise 29 — a whole paragraph where every word is real and several are the
@@ -34,8 +34,6 @@ export const exercise29: Exercise = {
     ]),
 
     mistake('e29-3', 'homophone-proofreading', 'We one the game by to points.', 'one', 'won'),
-
-    cloze('e29-7', 'homophone-proofreading', 'We need ___ for the cake.', 'flour', { difficulty: 3 }),
 
     novel(
       proof('e29-9', 'homophone-proofreading', 'Its to cold to swim, and the water is to deep.', [

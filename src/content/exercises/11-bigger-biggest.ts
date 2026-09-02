@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, build, cloze, mistake, novel, sort } from '../build'
+import { aud, build, mistake, novel, sort } from '../build'
 
 /**
  * Exercise 11 — comparing. This is where doubling from Exercise 7 comes back
@@ -33,7 +33,6 @@ export const exercise11: Exercise = {
     aud('e11-7', 'er-est', 'strongest'),
     aud('e11-8', 'er-est', 'thinner'),
 
-    cloze('e11-9', 'er-est', 'That is the ___ tree in the whole park.', 'tallest'),
     mistake('e11-10', 'er-est', 'Today is hoter than yesterday.', 'hoter', 'hotter'),
 
     novel(build('e11-11', 'er-est', ['thin', '+est'], 'thinnest', { difficulty: 2 })),

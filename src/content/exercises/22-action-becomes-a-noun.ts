@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, build, cloze, mistake, novel, syl } from '../build'
+import { aud, build, mistake, novel, syl } from '../build'
 
 /**
  * Exercise 22 — -ment. Worth contrasting with the silent-e rule: "ment" starts
@@ -30,7 +30,6 @@ export const exercise22: Exercise = {
     aud('e22-7', 'suffix-ment', 'agreement'),
     aud('e22-8', 'suffix-ment', 'equipment'),
 
-    cloze('e22-9', 'suffix-ment', 'We took a careful ___ of the room.', 'measurement'),
     mistake('e22-10', 'suffix-ment', 'The excitment was too much for the dog.', 'excitment', 'excitement'),
 
     novel(aud('e22-11', 'suffix-ment', 'argument', { difficulty: 3 })),

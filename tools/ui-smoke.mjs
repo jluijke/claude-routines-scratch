@@ -1,10 +1,12 @@
 /** Checks the shop and the parent dashboard render and behave. */
 import { chromium } from 'playwright'
+import { makeAnswerer } from './lib/answer.mjs'
 const OUT = '/tmp/claude-0/-home-user-claude-routines-scratch/6df0b2d4-03e5-5006-8fa7-f59d18d1702e/scratchpad'
 const browser = await chromium.launch({
   executablePath: process.env.CHROME ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
 })
 const page = await browser.newPage({ viewport: { width: 1000, height: 950 } })
+const { answerOne } = makeAnswerer(page)
 const errors = []
 page.on('pageerror', (e) => errors.push(String(e)))
 
@@ -219,6 +221,52 @@ for (let i = 0; i < 6; i++) {
 }
 const monstersAfterZ = (await page.evaluate(() => window.zsq.world.debugState())).enemies
 check('Z still swings it', monstersAfterZ < monstersBefore)
+
+// ------------------------------------------------- the sorting tiles are shuffled
+// They used to be laid out box one's words then box two's, which is the answer
+// key read left to right. And the wrong-tile highlighting is index-aligned with
+// the *authored* order, so this is exactly where shuffling could break grading.
+await page.evaluate(() => window.zsq.startExercise(6))
+await page.waitForSelector('.exercise-screen')
+let sortSeen = false
+for (let i = 0; i < 14; i++) {
+  if (await page.locator('.sort-pool .chip').count()) { sortSeen = true; break }
+  const done = await answerOne()
+  if (!done) break
+  await page.waitForTimeout(120)
+}
+check('a sorting activity comes up', sortSeen)
+if (sortSeen) {
+  const shown = await page.$$eval('.sort-pool .chip', (nodes) => nodes.map((n) => n.dataset.word))
+  const groups = await page.evaluate(() => {
+    const q = window.zsq.currentQuestion()
+    return q && q.type === 'wordSort' ? q.groups.map((g) => ({ label: g.label, words: g.words })) : undefined
+  })
+  const authored = (groups ?? []).flatMap((g) => g.words)
+  check('every word is on screen exactly once',
+    JSON.stringify([...shown].sort()) === JSON.stringify([...authored].sort()))
+  check('the tiles are not in answer order', JSON.stringify(shown) !== JSON.stringify(authored))
+  const where = new Map()
+  for (const [i, g] of (groups ?? []).entries()) for (const w of g.words) where.set(w, i)
+  const indices = shown.map((w) => where.get(w))
+  check('and the two boxes are not still clumped together',
+    !indices.every((n, i) => i === 0 || n >= indices[i - 1]))
+
+  // Sorting it correctly must still be marked correct, shuffled or not.
+  for (const g of groups ?? []) {
+    for (const w of g.words) {
+      await page.click(`.sort-pool .chip[data-word="${w}"], .chip[data-word="${w}"]`)
+      await page.click(`.sort-column[data-label="${g.label}"]`)
+    }
+  }
+  await page.getByRole('button', { name: /^check$/i }).click()
+  await page.waitForTimeout(500)
+  const feedback = await page.textContent('.feedback')
+  check('a correctly sorted answer is still accepted', !/not quite/i.test(feedback ?? ''))
+  check('and no tile is marked wrong', (await page.locator('.chip-wrong').count()) === 0)
+}
+await page.evaluate(() => window.zsq.enterWorld())
+await page.waitForSelector('.game-canvas')
 
 console.log(JSON.stringify({
   shopRows, buyable,

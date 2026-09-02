@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, cloze, dictate, letters, memory, mistake, novel, sort } from '../build'
+import { aud, dictate, letters, memory, mistake, novel, sort } from '../build'
 
 /**
  * Exercise 5 — the first full ten-minute exercise. Consonant + y becomes ies,
@@ -35,12 +35,6 @@ export const exercise5: Exercise = {
     letters('e5-6', 'plural-y-ies', 'berries'),
     letters('e5-7', 'plural-y-ies', 'chimneys', { difficulty: 2 }),
     letters('e5-8', 'plural-y-ies', 'ponies'),
-
-    cloze('e5-9', 'plural-y-ies', 'The two ___ were fast asleep in the pram.', 'babies'),
-    cloze('e5-10', 'plural-y-ies', 'I lost both of my house ___.', 'keys'),
-    cloze('e5-11', 'plural-y-ies', 'Dad picked a bowl of ___ from the garden.', 'cherries'),
-    cloze('e5-12', 'plural-y-ies', 'We read three ___ before bed.', 'stories'),
-    cloze('e5-13', 'plural-y-ies', 'There are seven ___ in a week.', 'days'),
 
     mistake('e5-14', 'plural-y-ies', 'The butterflys landed on the flowers.', 'butterflys', 'butterflies'),
     mistake('e5-15', 'plural-y-ies', 'Two puppys were chasing the ball.', 'puppys', 'puppies'),

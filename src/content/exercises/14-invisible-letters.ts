@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, cloze, letters, mistake, novel, sort } from '../build'
+import { aud, letters, mistake, novel, sort } from '../build'
 
 /**
  * Exercise 14 — silent letters. Ears are no help here, which is the point: the
@@ -34,8 +34,6 @@ export const exercise14: Exercise = {
     aud('e14-6', 'silent-letters', 'wreck'),
     aud('e14-7', 'silent-letters', 'numb'),
 
-    cloze('e14-8', 'silent-letters', 'I hurt my ___ falling off the swing.', 'knee'),
-    cloze('e14-9', 'silent-letters', 'Please ___ your name at the top.', 'write'),
     mistake('e14-10', 'silent-letters', 'He got the answer rong again.', 'rong', 'wrong'),
 
     novel(aud('e14-11', 'silent-letters', 'knight', { difficulty: 2 })),

@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, cloze, mistake, novel, pat, sort } from '../build'
+import { aud, mistake, novel, pat, sort } from '../build'
 
 /**
  * Exercise 16 — tch and ch, the same short-vowel logic as dge and ge, taught
@@ -32,8 +32,6 @@ export const exercise16: Exercise = {
     aud('e16-6', 'tch-ch', 'rich'),
     aud('e16-7', 'tch-ch', 'sketch'),
 
-    cloze('e16-8', 'tch-ch', 'Can you ___ the ball?', 'catch'),
-    cloze('e16-9', 'tch-ch', 'We built a sandcastle on the ___.', 'beach'),
     mistake('e16-10', 'tch-ch', 'That was a close mach.', 'mach', 'match'),
 
     novel(aud('e16-11', 'tch-ch', 'teach')),

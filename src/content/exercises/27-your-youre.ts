@@ -24,10 +24,6 @@ export const exercise27: Exercise = {
     cloze('e27-4', 'apostrophe-pairs', '___ going to enjoy this.', "You're", { choices: ['Your', "You're"] }),
     cloze('e27-5', 'apostrophe-pairs', 'The dog wagged ___ tail.', 'its', { choices: ['its', "it's"] }),
 
-    cloze('e27-6', 'apostrophe-pairs', '___ raining again.', "It's"),
-    cloze('e27-7', 'apostrophe-pairs', 'I think ___ right about that.', "you're"),
-    cloze('e27-8', 'apostrophe-pairs', 'The bird built ___ nest in the gutter.', 'its'),
-
     mistake('e27-9', 'apostrophe-pairs', 'Your going to be late.', 'Your', "You're"),
     mistake('e27-10', 'apostrophe-pairs', 'The cat licked it’s paw.', 'it’s', 'its'),
 

@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, build, cloze, mistake, novel, sort } from '../build'
+import { aud, build, mistake, novel, sort } from '../build'
 
 export const exercise20: Exercise = {
   id: 20,
@@ -29,7 +29,6 @@ export const exercise20: Exercise = {
     aud('e20-7', 'suffix-ful-less', 'harmless'),
     aud('e20-8', 'suffix-ful-less', 'playful'),
 
-    cloze('e20-9', 'suffix-ful-less', 'The painting was bright and ___.', 'colourful'),
     mistake('e20-10', 'suffix-ful-less', 'That was a very helpfull answer.', 'helpfull', 'helpful', {
       prompt: 'Look closely at the ending. How many l letters does it really need?',
     }),

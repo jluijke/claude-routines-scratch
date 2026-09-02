@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, cloze, mistake, novel, pat, sort } from '../build'
+import { aud, mistake, novel, pat, sort } from '../build'
 
 /**
  * Exercise 15 — dge and ge. From here on most mastery questions require typing
@@ -33,8 +33,6 @@ export const exercise15: Exercise = {
     aud('e15-6', 'dge-ge', 'dodge'),
     aud('e15-7', 'dge-ge', 'cage'),
 
-    cloze('e15-8', 'dge-ge', 'We walked across the wooden ___.', 'bridge'),
-    cloze('e15-9', 'dge-ge', 'The elephant was absolutely ___.', 'huge'),
     mistake('e15-10', 'dge-ge', 'She sat on the eges of the step.', 'eges', 'edges'),
 
     novel(aud('e15-11', 'dge-ge', 'village', { difficulty: 2 })),

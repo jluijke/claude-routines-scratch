@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, build, cloze, mistake, novel, sort } from '../build'
+import { aud, build, mistake, novel, sort } from '../build'
 
 /**
  * Exercise 8 — the silent e that disappears. Sits straight after doubling on
@@ -34,7 +34,6 @@ export const exercise8: Exercise = {
     aud('e8-7', 'drop-silent-e', 'smiling'),
     aud('e8-8', 'drop-silent-e', 'closing'),
 
-    cloze('e8-9', 'drop-silent-e', 'She is ___ her bike to school.', 'riding'),
     mistake('e8-10', 'drop-silent-e', 'We are makeing a cake for Nan.', 'makeing', 'making'),
 
     novel(build('e8-11', 'drop-silent-e', ['shine', '+ing'], 'shining', { difficulty: 2 })),

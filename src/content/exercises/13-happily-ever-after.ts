@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, build, cloze, mistake, novel, sort } from '../build'
+import { aud, build, mistake, novel, sort } from '../build'
 
 /**
  * Exercise 13 — the -ly ending, which quietly reuses the y-to-i rule from the
@@ -33,7 +33,6 @@ export const exercise13: Exercise = {
     aud('e13-7', 'ly-suffix', 'bravely'),
     aud('e13-8', 'ly-suffix', 'quietly'),
 
-    cloze('e13-9', 'ly-suffix', 'The door shut ___ behind us.', 'suddenly'),
     mistake('e13-10', 'ly-suffix', 'She sang happyly all the way home.', 'happyly', 'happily'),
 
     novel(build('e13-11', 'ly-suffix', ['easy', '+ly'], 'easily', { difficulty: 2 })),

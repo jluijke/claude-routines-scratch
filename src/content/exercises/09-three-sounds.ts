@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, build, cloze, mistake, novel, sort } from '../build'
+import { aud, build, mistake, novel, sort } from '../build'
 
 /**
  * Exercise 9 — the -ed ending. The whole lesson is that the sound changes but
@@ -33,7 +33,6 @@ export const exercise9: Exercise = {
     aud('e9-6', 'ed-endings', 'shouted'),
     aud('e9-7', 'ed-endings', 'cleaned'),
 
-    cloze('e9-8', 'ed-endings', 'We ___ for the bus in the rain.', 'waited'),
     mistake('e9-9', 'ed-endings', 'She jumpt over the puddle.', 'jumpt', 'jumped'),
 
     novel(aud('e9-10', 'ed-endings', 'helped', { difficulty: 2 })),

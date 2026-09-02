@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, build, cloze, mistake, novel, sort } from '../build'
+import { aud, build, mistake, novel, sort } from '../build'
 
 /**
  * Exercise 12 — y turning into i. The contrast that matters is the vowel
@@ -34,7 +34,6 @@ export const exercise12: Exercise = {
     aud('e12-7', 'y-to-i', 'earlier'),
     aud('e12-8', 'y-to-i', 'happiest'),
 
-    cloze('e12-9', 'y-to-i', 'This bag is much ___ than mine.', 'heavier'),
     mistake('e12-10', 'y-to-i', 'That was the funnyest joke all day.', 'funnyest', 'funniest'),
 
     novel(build('e12-11', 'y-to-i', ['noisy', '+er'], 'noisier', { difficulty: 2 })),

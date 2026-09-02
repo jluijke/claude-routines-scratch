@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, build, cloze, mistake, novel, sort } from '../build'
+import { aud, build, mistake, novel, sort } from '../build'
 
 export const exercise17: Exercise = {
   id: 17,
@@ -26,7 +26,6 @@ export const exercise17: Exercise = {
     aud('e17-7', 'prefix-re-un', 'unkind'),
     aud('e17-8', 'prefix-re-un', 'return'),
 
-    cloze('e17-9', 'prefix-re-un', 'Please ___ the door before you go.', 'unlock'),
     mistake('e17-10', 'prefix-re-un', 'That decision was very unfare.', 'unfare', 'unfair'),
 
     novel(build('e17-11', 'prefix-re-un', ['un', 'tie'], 'untie', { difficulty: 2 })),

@@ -17,12 +17,6 @@ export const exercise28: Exercise = {
     cloze('e28-2', 'homophones-more', 'Come and sit ___ with me.', 'here', { choices: ['hear', 'here'] }),
     cloze('e28-3', 'homophones-more', 'Our team ___ the final.', 'won', { choices: ['one', 'won'] }),
 
-    cloze('e28-4', 'homophones-more', 'I only need ___ more.', 'one'),
-    cloze('e28-5', 'homophones-more', 'I ate a ___ of cake.', 'piece'),
-    cloze('e28-6', 'homophones-more', 'Please ___ your name at the top.', 'write'),
-    cloze('e28-7', 'homophones-more', 'Turn ___ at the corner.', 'right'),
-    cloze('e28-8', 'homophones-more', 'The wind ___ all night.', 'blew'),
-
     mistake('e28-9', 'homophones-more', 'Can you here the music?', 'here', 'hear'),
     mistake('e28-10', 'homophones-more', 'I one the race by miles.', 'one', 'won'),
 

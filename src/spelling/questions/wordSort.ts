@@ -1,6 +1,51 @@
+import { Rng } from '../../core/rng'
 import type { Response, WordSortQuestion } from '../types'
 import { el } from '../ui/dom'
 import type { QuestionView, RenderContext } from './index'
+
+/**
+ * The order the tiles are laid out in.
+ *
+ * They used to be a straight flatten of the groups — every word for the first
+ * box, then every word for the second — which put the answer key on the screen
+ * left to right. A child could sort six words correctly without reading one.
+ *
+ * Seeded from the question, so a replayed exercise lays out the same way twice
+ * and nothing reshuffles under his hands mid-answer. Grading and the wrong-tile
+ * highlighting both walk the *authored* groups, so this only changes what is
+ * shown; the groups themselves are never touched.
+ */
+export function tileOrder(groups: { words: string[] }[], seed: string): string[] {
+  const authored = groups.flatMap((g) => g.words)
+  if (authored.length < 3) return authored
+
+  const groupOf = new Map<string, number>()
+  groups.forEach((group, index) => {
+    for (const word of group.words) groupOf.set(word, index)
+  })
+
+  // Shuffling can land back on a grouped arrangement by luck — with three and
+  // three that is better than a one-in-twenty chance, and it is exactly the
+  // fault being fixed. Draw again when it does.
+  const rng = new Rng(seed)
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const order = rng.shuffle(authored)
+    if (!isGrouped(order, groupOf)) return order
+  }
+  // Twenty grouped draws in a row is not going to happen, but a deterministic
+  // fallback beats returning the answer key.
+  return authored.slice().reverse()
+}
+
+/** True when every group's words sit together, in group order — the old fault. */
+function isGrouped(order: string[], groupOf: Map<string, number>): boolean {
+  for (let i = 1; i < order.length; i++) {
+    const previous = groupOf.get(order[i - 1] as string) ?? 0
+    const current = groupOf.get(order[i] as string) ?? 0
+    if (current < previous) return false
+  }
+  return true
+}
 
 /**
  * Sort words into columns. Works three ways so it never depends on a mouse:
@@ -9,7 +54,7 @@ import type { QuestionView, RenderContext } from './index'
 export function renderWordSort(ctx: RenderContext): QuestionView {
   const question = ctx.question as WordSortQuestion
   const labels = question.groups.map((g) => g.label)
-  const allWords = question.groups.flatMap((g) => g.words)
+  const allWords = tileOrder(question.groups, `sort-${question.id}`)
 
   const placement: Record<string, string> = {}
   let selected: string | undefined

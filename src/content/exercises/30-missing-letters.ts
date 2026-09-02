@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, build, cloze, mistake, novel, sort } from '../build'
+import { aud, build, mistake, novel, sort } from '../build'
 
 export const exercise30: Exercise = {
   id: 30,
@@ -30,7 +30,6 @@ export const exercise30: Exercise = {
     ),
 
     aud('e30-8', 'contractions', "wouldn't"),
-    cloze('e30-9', 'contractions', 'I ___ find my shoes anywhere.', "couldn't"),
     mistake('e30-10', 'contractions', 'We could’nt hear the announcement.', 'could’nt', "couldn't"),
 
     novel(build('e30-11', 'contractions', ['can', 'not'], "can't", { difficulty: 2 })),

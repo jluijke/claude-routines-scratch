@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, cloze, letters, mistake, novel, sort } from '../build'
+import { aud, letters, mistake, novel, sort } from '../build'
 
 /**
  * Exercise 10 — the same trick as Exercise 9, applied to plurals: the ending
@@ -31,8 +31,6 @@ export const exercise10: Exercise = {
     letters('e10-5', 'plural-sounds', 'horses'),
     letters('e10-6', 'plural-sounds', 'clocks'),
 
-    cloze('e10-7', 'plural-sounds', 'The ___ in the garden smelled wonderful.', 'roses'),
-    cloze('e10-8', 'plural-sounds', 'Three ___ were asleep under the tree.', 'dogs'),
     mistake('e10-9', 'plural-sounds', 'Two horsez stood by the gate.', 'horsez', 'horses'),
 
     novel(aud('e10-10', 'plural-sounds', 'glasses', { difficulty: 2 })),

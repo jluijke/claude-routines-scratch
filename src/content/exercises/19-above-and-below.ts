@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, build, cloze, novel, sort, syl } from '../build'
+import { aud, build, novel, sort, syl } from '../build'
 
 /**
  * Exercise 19 — prefixes that carry real meaning. The words are longer here,
@@ -33,8 +33,6 @@ export const exercise19: Exercise = {
 
     aud('e19-7', 'prefix-meaning', 'underwater'),
     aud('e19-8', 'prefix-meaning', 'defrost'),
-
-    cloze('e19-9', 'prefix-meaning', 'The tunnel runs ___ the whole city.', 'underground'),
 
     novel(aud('e19-10', 'prefix-meaning', 'deactivate', { difficulty: 3 })),
     novel(aud('e19-11', 'prefix-meaning', 'understand', { difficulty: 2 })),

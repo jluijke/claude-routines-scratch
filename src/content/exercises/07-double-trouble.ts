@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, build, cloze, mistake, novel, sort } from '../build'
+import { aud, build, mistake, novel, sort } from '../build'
 
 /**
  * Exercise 7 — doubling. The contrast with "hope → hoping" is in from the
@@ -34,7 +34,6 @@ export const exercise7: Exercise = {
     aud('e7-7', 'consonant-doubling', 'shopping'),
     aud('e7-8', 'consonant-doubling', 'planned'),
 
-    cloze('e7-9', 'consonant-doubling', 'The rain kept ___ on the tin roof.', 'dropping', { difficulty: 2 }),
     mistake('e7-10', 'consonant-doubling', 'The bus stoped at the corner.', 'stoped', 'stopped'),
 
     novel(build('e7-11', 'consonant-doubling', ['drum', '+ing'], 'drumming', { difficulty: 2 })),

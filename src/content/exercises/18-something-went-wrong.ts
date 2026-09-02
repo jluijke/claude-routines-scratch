@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, build, cloze, mistake, novel, sort } from '../build'
+import { aud, build, mistake, novel, sort } from '../build'
 
 /**
  * Exercise 18 — mis-, dis- and pre-. "misspell" earns its place here: the
@@ -37,7 +37,6 @@ export const exercise18: Exercise = {
     aud('e18-7', 'prefix-mis-dis-pre', 'preheat'),
     aud('e18-8', 'prefix-mis-dis-pre', 'mistake'),
 
-    cloze('e18-9', 'prefix-mis-dis-pre', 'I ___ with almost everything he said.', 'disagree'),
     mistake('e18-10', 'prefix-mis-dis-pre', 'The rabbit began to disapear into the grass.', 'disapear', 'disappear'),
 
     novel(aud('e18-11', 'prefix-mis-dis-pre', 'disobey', { difficulty: 2 })),

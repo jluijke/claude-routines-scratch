@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, build, cloze, mistake, novel, sort } from '../build'
+import { aud, build, mistake, novel, sort } from '../build'
 
 /**
  * Exercise 21 — -ness, which quietly needs the y-to-i rule from Exercise 12
@@ -33,7 +33,6 @@ export const exercise21: Exercise = {
     aud('e21-7', 'suffix-ness', 'fitness'),
     aud('e21-8', 'suffix-ness', 'weakness'),
 
-    cloze('e21-9', 'suffix-ness', 'We waited in the ___ for our eyes to adjust.', 'darkness'),
     mistake('e21-10', 'suffix-ness', 'Her happyness was obvious to everyone.', 'happyness', 'happiness'),
 
     novel(aud('e21-11', 'suffix-ness', 'brightness', { difficulty: 2 })),

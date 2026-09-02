@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, cloze, letters, mistake, novel, syl } from '../build'
+import { aud, letters, mistake, novel, syl } from '../build'
 
 /**
  * Exercise 31 — the schwa. The lesson is uncomfortable on purpose: here is a
@@ -28,7 +28,6 @@ export const exercise31: Exercise = {
     aud('e31-8', 'schwa', 'general', { difficulty: 2 }),
     aud('e31-9', 'schwa', 'memory'),
 
-    cloze('e31-10', 'schwa', 'We ate the whole block of ___.', 'chocolate', { difficulty: 2 }),
     mistake('e31-11', 'schwa', 'That is a diffrent problem entirely.', 'diffrent', 'different'),
 
     novel(aud('e31-12', 'schwa', 'separate', { difficulty: 3 })),

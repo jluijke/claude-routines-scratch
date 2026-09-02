@@ -1,5 +1,5 @@
 import type { Exercise } from '../../spelling/types'
-import { aud, cloze, letters, novel, pat, sort } from '../build'
+import { aud, letters, novel, pat, sort } from '../build'
 
 /**
  * Exercise 3 — the /oa/ sound, and the first exercise where some answers must
@@ -37,7 +37,6 @@ export const exercise3: Exercise = {
     aud('e3-9', 'oa-sound', 'coach', { difficulty: 2 }),
     letters('e3-10', 'oa-sound', 'float'),
     letters('e3-11', 'oa-sound', 'shadow', { difficulty: 2 }),
-    cloze('e3-12', 'oa-sound', 'I put my ___ on before going outside.', 'coat'),
 
     novel(aud('e3-13', 'oa-sound', 'throat', { difficulty: 2 })),
     novel(aud('e3-14', 'oa-sound', 'tiptoe', { difficulty: 2 })),
