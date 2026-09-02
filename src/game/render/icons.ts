@@ -71,6 +71,8 @@ export function itemSprite(id: ItemId): SpriteName {
       return 'bait'
     case 'blueRing':
       return 'ring'
+    case 'map':
+      return 'worldMap'
     default:
       return 'heart'
   }

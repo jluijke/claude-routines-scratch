@@ -113,11 +113,18 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
   // For a parent checking the game works, not for the child. Playing the whole
   // curriculum to find out whether the bomb shop opens is not a reasonable way
   // to test anything.
-  const sellable = Object.values(ITEMS).filter((item) => item.price !== undefined)
+  // Everything a shopkeeper stocks, plus the map — which no shop sells, and
+  // which you would otherwise have to bomb your way to before you could test
+  // the map screen at all.
+  const sellable = Object.values(ITEMS).filter((item) => item.price !== undefined || item.id === 'map')
 
   const grantSelect = el('select', { class: 'kit-select' }, [
     el('option', { value: '' }, ['Choose an item…']),
-    ...sellable.map((item) => el('option', { value: item.id }, [`${item.name} — ${item.price} rupees`])),
+    ...sellable.map((item) =>
+      el('option', { value: item.id }, [
+        item.price === undefined ? `${item.name} — found, never sold` : `${item.name} — ${item.price} rupees`,
+      ]),
+    ),
   ])
   const grantNote = el('p', { class: 'q-hint-line' }, [
     'Adds the item straight to the pack, with no rupees and no spelling. ' +

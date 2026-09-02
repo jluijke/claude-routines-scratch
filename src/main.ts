@@ -500,7 +500,7 @@ function openShop(kind: ShopKind): void {
 
 function openHelp(): void {
   world?.setPaused(true)
-  showHelp(root, () => world?.setPaused(false))
+  showHelp(root, () => world?.setPaused(false), { onToggleMusic: toggleMusic })
 }
 
 /**
@@ -532,9 +532,12 @@ function handleDefeat(): void {
 // --------------------------------------------------- parent view and dev keys
 
 window.addEventListener('keydown', (event) => {
-  // M mutes the music, anywhere, except while typing an answer.
+  // N mutes the music, anywhere, except while typing an answer. It was M, but
+  // M now opens the map — a thing he goes looking for, against a toggle he
+  // presses once. The controls panel carries a button for it too, so nobody has
+  // to remember which letter it moved to.
   if (
-    (event.key === 'm' || event.key === 'M') &&
+    (event.key === 'n' || event.key === 'N') &&
     !event.ctrlKey &&
     !event.metaKey &&
     !(event.target instanceof HTMLInputElement) &&

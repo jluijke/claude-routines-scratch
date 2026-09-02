@@ -15,6 +15,8 @@ export interface InputState {
   confirm: boolean
   /** Show the controls, and pause while they are up. */
   help: boolean
+  /** Open or close the map, if he is carrying one. */
+  map: boolean
   /** Where the player last clicked, in world pixels, or undefined. */
   moveTarget?: { x: number; y: number }
 }
@@ -33,6 +35,7 @@ const MOVE_KEYS: Record<string, [number, number]> = {
 const ATTACK_KEYS = new Set([' ', 'z', 'Z', 'Enter', '0'])
 const ITEM_KEYS = new Set(['x', 'X', 'Shift', '5'])
 const CYCLE_KEYS = new Set(['c', 'C', 'Tab', '.'])
+const MAP_KEYS = new Set(['m', 'M'])
 // Not 'P'. It used to be, and the parent dashboard is Ctrl/Cmd+Shift+P — so one
 // keypress meant both "show the child the controls" and "open the parent panel",
 // and which you got came down to which window listener ran first.
@@ -50,7 +53,8 @@ export const BINDINGS: { keys: string[]; what: string; group: 'Moving' | 'Doing'
   { group: 'Doing', keys: ['X'], what: 'Use the item in the B slot' },
   { group: 'Doing', keys: ['C', 'Tab'], what: 'Swap to your next item' },
   { group: 'The rest', keys: ['Esc', 'H'], what: 'This list, and pause the game' },
-  { group: 'The rest', keys: ['M'], what: 'Music on and off' },
+  { group: 'The rest', keys: ['M'], what: 'Your map — once you have found one' },
+  { group: 'The rest', keys: ['N'], what: 'Music on and off' },
   { group: 'The rest', keys: ['Esc'], what: 'In an exercise: leave it for now' },
 ]
 
@@ -60,6 +64,7 @@ export class Input {
   private itemEdge = false
   private helpEdge = false
   private cycleEdge = false
+  private mapEdge = false
   private target: { x: number; y: number } | undefined
   private pointerHeld = false
   /**
@@ -149,7 +154,8 @@ export class Input {
       ATTACK_KEYS.has(event.key) ||
       ITEM_KEYS.has(event.key) ||
       CYCLE_KEYS.has(event.key) ||
-      HELP_KEYS.has(event.key)
+      HELP_KEYS.has(event.key) ||
+      MAP_KEYS.has(event.key)
     ) {
       event.preventDefault()
     }
@@ -161,6 +167,7 @@ export class Input {
     if (ITEM_KEYS.has(event.key)) this.itemEdge = true
     if (HELP_KEYS.has(event.key)) this.helpEdge = true
     if (CYCLE_KEYS.has(event.key)) this.cycleEdge = true
+    if (MAP_KEYS.has(event.key)) this.mapEdge = true
   }
 
   private onKeyUp = (event: KeyboardEvent): void => {
@@ -217,6 +224,7 @@ export class Input {
       cycleItem: this.cycleEdge,
       confirm: this.held.has('Enter'),
       help: this.helpEdge,
+      map: this.mapEdge,
       ...(this.target ? { moveTarget: this.target } : {}),
     }
 
@@ -224,6 +232,7 @@ export class Input {
     this.itemEdge = false
     this.helpEdge = false
     this.cycleEdge = false
+    this.mapEdge = false
     return state
   }
 

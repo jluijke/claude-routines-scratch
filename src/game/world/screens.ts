@@ -469,8 +469,8 @@ const AUTHORED: Screen[] = [
       'TTTTTTT..TTTTTTT',
       'T....,.......,.T',
       'T..T......T....T',
-      'T..............T',
-      'T......,.......T',
+      'T..........RXR.T',
+      'T......,...RRR.T',
       'T...T.......T..T',
       'T..............T',
       '.....,....,....T',
@@ -479,10 +479,54 @@ const AUTHORED: Screen[] = [
       'TTTTTTT..TTTTTTT',
     ],
     exits: { up: 'forest-5', down: 'village-north', left: 'river-bridge' },
+    // One boulder in the outcrop is cracked, and nothing else says so. He walks
+    // past this on every trip north, which is the point: the map is worth
+    // finding, so it is put where he will keep wondering about it.
+    portals: [{ col: 12, row: 3, to: 'map-cave', spawnCol: 7, spawnRow: 8 }],
     spawns: [
       { kind: 'shooter', col: 6, row: 5 },
       { kind: 'shooter', col: 11, row: 8 },
     ],
+  },
+  {
+    id: 'map-cave',
+    name: 'Under the Boulder',
+    region: 'Forest',
+    rows: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#....######....#',
+      '#....#....#....#',
+      '#....#....#....#',
+      '#....##..##....#',
+      '#..............#',
+      '#######..#######',
+      '#######..#######',
+      '#######..#######',
+    ],
+    exits: {},
+    // Deliberately not dark. It is already behind a bomb; making it want the
+    // candle as well would put two secrets in front of the one thing that
+    // helps him find secrets.
+    pickup: {
+      id: 'forest-map',
+      col: 7,
+      row: 4,
+      item: 'map',
+      message:
+        'A map of the whole land, rolled up and left here long ago. Press M to ' +
+        'open it — it fills itself in as you go.',
+    },
+    props: [
+      {
+        sprite: 'scribe',
+        col: 4,
+        row: 7,
+        talk: 'You blasted your way in for this? Good. Nobody else bothered.',
+      },
+    ],
+    portals: [{ col: 7, row: 10, to: 'forest-3', spawnCol: 12, spawnRow: 2 }],
   },
   {
     id: 'forest-4',

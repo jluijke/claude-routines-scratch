@@ -27,6 +27,7 @@ export type ItemId =
   | 'blueRing'
   | 'recoveryHeart'
   | 'heartContainer'
+  | 'map'
 
 export type ItemCategory = 'sword' | 'shield' | 'tunic' | 'tool' | 'consumable' | 'ring'
 
@@ -212,6 +213,14 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     name: 'Heart Container',
     category: 'consumable',
     description: 'Raises your maximum life by one heart. Never sold — only earned.',
+  },
+  map: {
+    id: 'map',
+    name: 'Map of the Land',
+    category: 'tool',
+    // No price, so no shopkeeper can stock it. There is one, it is under a
+    // rock on the Forest Path, and a bomb is the only way to it.
+    description: 'Every place you have been, drawn as you found it. Press M.',
   },
 }
 

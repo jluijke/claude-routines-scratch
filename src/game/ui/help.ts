@@ -8,14 +8,31 @@
 import { button, el } from '../../spelling/ui/dom'
 import { BINDINGS } from '../../core/input'
 import { spriteCanvas } from '../render/icons'
+import { music } from '../../core/audio/music'
 
 const GROUPS = ['Moving', 'Doing', 'The rest'] as const
 
-export function showHelp(root: HTMLElement, onClose: () => void): () => void {
+export interface HelpOptions {
+  /** Flips the music and remembers the choice. */
+  onToggleMusic: () => void
+}
+
+export function showHelp(root: HTMLElement, onClose: () => void, options?: HelpOptions): () => void {
   const done = button('Back to the quest', () => {
     close()
     onClose()
   }, { class: 'btn btn-primary' })
+
+  // A button as well as a key. The music toggle moved from M to N when the map
+  // took M, and nobody should have to know that to turn the music off.
+  const musicButton = button(musicLabel(), () => {
+    options?.onToggleMusic()
+    musicButton.textContent = musicLabel()
+  }, { class: 'btn btn-quiet' })
+
+  function musicLabel(): string {
+    return music.isMuted() ? '🔇 Music is off' : '🔊 Music is on'
+  }
 
   const columns = el('div', { class: 'help-columns' })
   for (const group of GROUPS) {
@@ -37,7 +54,7 @@ export function showHelp(root: HTMLElement, onClose: () => void): () => void {
         'You can also click where you want to go, and right-click to swing. ' +
           'The B slot in the corner shows what X will use — press C to change it.',
       ]),
-      el('div', { class: 'gate-actions' }, [done]),
+      el('div', { class: 'gate-actions' }, [...(options ? [musicButton] : []), done]),
     ]),
   ])
 

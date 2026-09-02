@@ -14,6 +14,7 @@ import { Rng } from '../core/rng'
 import { Atlas } from './render/atlas'
 import type { SpriteName } from './render/sprites'
 import { drawHud, HUD_H } from './render/hud'
+import { drawWorldMap } from './render/map'
 import { drawBarriers, drawDarkness, drawGlimmers, drawSpeech, drawTiles, themeFor } from './render/world'
 import { itemSprite } from './render/icons'
 import { Enemy, isBossKind, overlaps, type Projectile } from './entities/enemies'
@@ -164,6 +165,8 @@ export class World {
    * that later adds another way to close that panel must call it too.
    */
   private victory: Victory | undefined
+  /** True while he is reading the map. The world holds still underneath. */
+  private mapOpen = false
   private message = ''
   private messageTimer = 0
   /** Barrier the hero is standing against, if any. */
@@ -392,6 +395,7 @@ export class World {
     // a position that no longer means anything.
     this.flight = undefined
     this.victory = undefined
+    this.mapOpen = false
     this.transition = 12
 
     const cleared = this.save.world.defeatedBosses
@@ -514,6 +518,21 @@ export class World {
     }
 
     const state = this.input.read()
+    // The map is read while the world holds still, so nothing can wander into
+    // him while he has his nose in it.
+    if (this.mapOpen) {
+      if (state.map || state.help) this.mapOpen = false
+      return
+    }
+    if (state.map) {
+      if ((this.save.inventory.map ?? 0) > 0) {
+        this.mapOpen = true
+        sfx.play('select')
+      } else {
+        this.showMessage('You have no map. There must be one somewhere.', 140)
+      }
+      return
+    }
     if (state.help) {
       this.callbacks.onHelp()
       return
@@ -1159,6 +1178,12 @@ export class World {
     // Over the darkness, so a boss room lights up when its guardian falls.
     if (this.victory) this.drawVictoryLight(ctx)
 
+    // Over everything: the map covers the play field, but not the HUD, so he
+    // can still see his hearts and rupees while he reads it.
+    if (this.mapOpen) {
+      drawWorldMap(ctx, { here: this.screen.id, visited: this.save.world.visitedScreens }, this.frame)
+    }
+
     if (this.transition > 0) {
       ctx.fillStyle = `rgba(0,0,0,${this.transition / 12})`
       ctx.fillRect(0, 0, SCREEN_W, SCREEN_H)
@@ -1445,6 +1470,7 @@ export class World {
     return {
       screen: this.screen.id,
       flying: this.flight !== undefined,
+      mapOpen: this.mapOpen,
       x: Math.round(this.player.x),
       y: Math.round(this.player.y),
       facing: this.player.facing,
@@ -1465,6 +1491,8 @@ export class World {
         : undefined,
       pendingGate: this.pendingGate?.id,
       paused: this.paused,
+      /** Whatever the message bar is showing, so a check can read it. */
+      message: this.message,
     }
   }
 

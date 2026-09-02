@@ -808,6 +808,26 @@ const WINGS = S([
   '................',
 ])
 
+/** The map: a sheet of parchment with a coastline and a marked spot on it. */
+const MAP = S([
+  '................',
+  '..kkkkkkkkkkkk..',
+  '.kxxxxxxxxxxxxk.',
+  '.kxwwwwwwwwwwxk.',
+  '.kxwwnnwwwwwwxk.',
+  '.kxwnnnnnwwwwxk.',
+  '.kxwwnnnnnnwwxk.',
+  '.kxwwwnnnnnwwxk.',
+  '.kxwwwnnnnwwwxk.',
+  '.kxwwwwnnwwrwxk.',
+  '.kxwwwwwwwwwwxk.',
+  '.kxwwwwwwwwwwxk.',
+  '.kxxxxxxxxxxxxk.',
+  '..kkkkkkkkkkkk..',
+  '................',
+  '................',
+])
+
 const RING = S([
   '................',
   '.......kk.......',
@@ -922,6 +942,7 @@ export const SPRITES = {
   bow: BOW,
   arrow: ARROW,
   wings: WINGS,
+  worldMap: MAP,
   ring: RING,
   tunicBlue: mapColours(TUNIC, { g: 'b', G: 'B' }),
   tunicRed: mapColours(TUNIC, { g: 'r', G: 'R' }),

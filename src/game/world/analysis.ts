@@ -98,12 +98,22 @@ const STEP: Record<Direction, [number, number]> = {
 }
 
 /**
- * Lays the world on a grid by following exits from the village, and reports
- * any exit that disagrees with where its target already sits. A screen that is
- * both "left of the village" and "below the crossing" cannot be drawn.
+ * Where each screen sits, found by walking the exits out from the village.
+ *
+ * Only the screens he can *walk* to appear here. Everything else — caves, shop
+ * interiors, dungeon rooms, the island — is reached through a door and has no
+ * position relative to anything, which is why the map he carries draws the
+ * overworld and nothing else.
+ *
+ * The second return value is every exit that disagreed with where its target
+ * already sits; `layoutConflicts` is that list, and it is empty, which is what
+ * makes this safe to draw from.
  */
-export function layoutConflicts(start = 'village-square'): string[] {
-  const position = new Map<string, string>([[start, '0,0']])
+export function overworldLayout(start = 'village-square'): {
+  cells: Map<string, { x: number; y: number }>
+  conflicts: string[]
+} {
+  const cells = new Map<string, { x: number; y: number }>([[start, { x: 0, y: 0 }]])
   const queue: string[] = [start]
   const conflicts: string[] = []
 
@@ -111,23 +121,32 @@ export function layoutConflicts(start = 'village-square'): string[] {
     const id = queue.shift() as string
     const screen = screenById(id)
     if (!screen) continue
-    const [x, y] = (position.get(id) as string).split(',').map(Number) as [number, number]
+    const { x, y } = cells.get(id) as { x: number; y: number }
 
     for (const [direction, target] of Object.entries(screen.exits ?? {})) {
       const step = STEP[direction as Direction]
-      const expected = `${x + step[0]},${y + step[1]}`
-      const existing = position.get(target)
+      const expected = { x: x + step[0], y: y + step[1] }
+      const existing = cells.get(target)
       if (existing === undefined) {
-        position.set(target, expected)
+        cells.set(target, expected)
         queue.push(target)
-      } else if (existing !== expected) {
+      } else if (existing.x !== expected.x || existing.y !== expected.y) {
         conflicts.push(
-          `${id} --${direction}--> ${target}: that would put it at ${expected}, but it already sits at ${existing}`,
+          `${id} --${direction}--> ${target}: that would put it at ${expected.x},${expected.y}, but it already sits at ${existing.x},${existing.y}`,
         )
       }
     }
   }
-  return conflicts
+  return { cells, conflicts }
+}
+
+/**
+ * Lays the world on a grid by following exits from the village, and reports
+ * any exit that disagrees with where its target already sits. A screen that is
+ * both "left of the village" and "below the crossing" cannot be drawn.
+ */
+export function layoutConflicts(start = 'village-square'): string[] {
+  return overworldLayout(start).conflicts
 }
 
 /**
