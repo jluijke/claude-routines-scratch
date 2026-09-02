@@ -51,14 +51,30 @@ check('N does', (await page.evaluate(() => window.zsq.music.isMuted())) !== musi
 await page.keyboard.press('n')
 await page.waitForTimeout(200)
 
-// ------------------------------------------------ bomb the boulder and take it
-await page.keyboard.press('Meta+Shift+P')
-await page.waitForSelector('.dashboard')
-await page.selectOption('.kit-select', 'bomb')
-await page.getByRole('button', { name: /give it to him/i }).click()
-await page.getByRole('button', { name: /^close$/i }).click()
+// --------------------------------- the shopkeeper points him at the boulder
+// The only secret in the game that cannot be found by walking into it, and the
+// map behind it is the very thing that would have shown him where to look. So
+// the man selling the bombs says it out loud.
+await page.evaluate(() => {
+  window.zsq.state.player.rupees = 400
+})
+await page.evaluate(() => window.zsq.goTo('shop-interior', 7, 8))
+await page.waitForSelector('.shop', { timeout: 8000 })
+const bombRow = page.locator('.shop-row', { hasText: 'Bombs' })
+await bombRow.getByRole('button', { name: /buy/i }).click()
 await page.waitForTimeout(300)
+const said = await page.textContent('.shop-note')
+check('buying bombs mentions the cracked boulder', /cracked boulder/i.test(said ?? ''))
+check('and says which way to go', /north|forest path/i.test(said ?? ''))
 check('the shop sells him bombs', await has('bomb'))
+
+// Buy a second lot: he still has no map, so the hint is still worth giving.
+await bombRow.getByRole('button', { name: /buy/i }).click()
+await page.waitForTimeout(300)
+check('it keeps saying so while he still has no map',
+  /cracked boulder/i.test((await page.textContent('.shop-note')) ?? ''))
+await page.getByRole('button', { name: /leave the shop/i }).first().click()
+await page.waitForTimeout(400)
 
 // Stand just above the cracked boulder at col 12, row 3 and drop one.
 await page.evaluate(() => window.zsq.goTo('forest-3', 12, 2))
@@ -101,6 +117,16 @@ for (let i = 0; i < 26 && !took; i++) {
   took = await has('map')
 }
 check('the map is picked up by walking over it', took)
+
+// And now he has it, the shopkeeper stops repeating himself.
+await page.evaluate(() => window.zsq.goTo('shop-interior', 7, 8))
+await page.waitForSelector('.shop', { timeout: 8000 })
+await page.locator('.shop-row', { hasText: 'Bombs' }).getByRole('button', { name: /buy/i }).click()
+await page.waitForTimeout(300)
+check('with the map found, he drops the hint',
+  !/cracked boulder/i.test((await page.textContent('.shop-note')) ?? ''))
+await page.getByRole('button', { name: /leave the shop/i }).first().click()
+await page.waitForTimeout(400)
 
 // ---------------------------------------------------------- M opens it now
 await page.waitForTimeout(400)

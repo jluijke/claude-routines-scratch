@@ -709,13 +709,16 @@ textarea.answer { width: 100%; line-height: 1.5; resize: vertical; }
 }
 .shop-row.is-dear .shop-price { color: var(--heart); }
 .shop-row.is-owned .shop-price { color: var(--hud-faint); }
+/* What the shopkeeper just said. Sentence case, not the uppercase it used to
+   be: it was three words when it was written, and a whole spoken hint set in
+   letter-spaced capitals is a wall to read at nine. */
 .shop-note {
   min-height: 1.4rem;
-  margin: 0.7rem 0 0;
+  margin: 0.5rem 0 0;
   color: var(--gold);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-size: 0.82rem;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  font-style: italic;
 }
 
 /* ------------------------------------------------------------------- help */

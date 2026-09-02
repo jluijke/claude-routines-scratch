@@ -16,6 +16,25 @@ export type ShopKind = 'village' | 'secret' | 'smith' | 'castaway'
 
 const SMITH_STOCK: ItemId[] = ['metalSword', 'bronzeSword', 'goldenSword']
 
+/**
+ * What the shopkeeper says as he hands it over.
+ *
+ * Pleasantries, except for the first bombs. Everything else in the world can
+ * be found by walking into it; the cracked boulder on the forest path cannot,
+ * and the map behind it is the one thing that would have told him where to
+ * look. So the man selling the bombs mentions it, once, and stops as soon as
+ * the map is in the pack.
+ */
+function patter(item: ItemDef, save: SaveData): string {
+  if (item.id === 'bomb' && (save.inventory.map ?? 0) === 0) {
+    return (
+      '"Bombs. Mind your toes. And if you are going north — there is a cracked ' +
+      'boulder in the rocks on the forest path. Something is behind it."'
+    )
+  }
+  return `"${item.name}. Good choice."`
+}
+
 const TITLES: Record<ShopKind, string> = {
   village: 'The Village Shop',
   secret: 'A Hidden Trader',
@@ -62,9 +81,12 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
     el('section', { class: 'shop panel-game' }, [
       el('h2', { class: 'panel-title' }, [TITLES[kind]]),
       el('p', { class: 'shop-greeting' }, [GREETINGS[kind]]),
+      // Up here with the greeting, not under the list. The village shelf is
+      // long enough that a reply printed at the bottom lands well off the
+      // screen from the button that caused it.
+      note,
       el('div', { class: 'shop-purse' }, [spriteCanvas('rupee', 3), rupeeLine]),
       list,
-      note,
       el('div', { class: 'gate-actions' }, [closeButton]),
     ]),
   ])
@@ -165,7 +187,7 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
     save.inventory[item.id] = (save.inventory[item.id] ?? 0) + bundle
 
     sfx.play('rupee')
-    note.textContent = `"${item.name}. Good choice."`
+    note.textContent = patter(item, save)
     options.onPurchase()
     render()
   }
