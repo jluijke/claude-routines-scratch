@@ -111,6 +111,32 @@ export function themeFor(screen: Screen): Theme {
   return 'overworld'
 }
 
+/**
+ * Which tile to draw at a spot, once anything cleared there is taken into
+ * account.
+ *
+ * Cleared ground — a barrier opened, a wall bombed, a bush burned — is drawn as
+ * ordinary ground, because the collision map already treats it that way and it
+ * would otherwise be walkable but still look like rock. The exception is a
+ * cleared tile with a doorway on it: that is drawn as the doorway it now is.
+ * Bombing a rock used to leave nothing but a gap the colour of the grass, so
+ * the way in was invisible and you had to walk the exact tile to find it, which
+ * is no way to reward someone for spending a bomb on it.
+ */
+export function visibleTile(
+  screen: Screen,
+  openedTiles: ReadonlySet<string>,
+  col: number,
+  row: number,
+): TileChar {
+  const char = ((screen.rows[row] ?? '')[col] ?? '.') as TileChar
+  if (!openedTiles.has(`${col},${row}`)) return char
+  const def = TILES[char]
+  if (char !== '=' && !def?.cracked && !def?.bush) return char
+  const door = (screen.portals ?? []).some((portal) => portal.col === col && portal.row === row)
+  return door ? 'C' : '.'
+}
+
 export function drawTiles(
   ctx: CanvasRenderingContext2D,
   screen: Screen,
@@ -123,14 +149,7 @@ export function drawTiles(
   for (let row = 0; row < SCREEN_ROWS; row++) {
     const line = screen.rows[row] as string
     for (let col = 0; col < SCREEN_COLS; col++) {
-      let char = (line[col] ?? '.') as TileChar
-      // Anything cleared — a barrier opened, a wall bombed, a bush burned —
-      // becomes ordinary ground. The collision map already treats it that way,
-      // so without this the tile would be walkable but still drawn as rock.
-      if (openedTiles.has(`${col},${row}`)) {
-        const def = TILES[char]
-        if (char === '=' || def?.cracked || def?.bush) char = '.'
-      }
+      const char = visibleTile(screen, openedTiles, col, row)
 
       const x = col * TILE
       const y = row * TILE
