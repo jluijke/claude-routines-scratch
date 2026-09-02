@@ -134,23 +134,31 @@ function drawCell(
   ctx.strokeStyle = '#12131a'
   ctx.strokeRect(at.x + 0.5, at.y + 0.5, CELL_W - 1, CELL_H - 1)
 
-  // A door he has actually been through. Never one he has not: the map is a
-  // record of where he has gone, not a list of what is left.
-  const doors = (screen.portals ?? []).filter((p) => seen.has(p.to))
-  if (doors.length > 0) {
+  // Doors he has actually been through, each drawn where it really stands on
+  // that screen — so the map tells him which corner to walk to, not merely
+  // that there is something here. Never a door he has not been through: this
+  // is a record of where he has gone, not a list of what is left.
+  for (const door of screen.portals ?? []) {
+    if (!seen.has(door.to)) continue
+    const x = at.x + 2 + Math.round((door.col / 16) * (CELL_W - 5))
+    const y = at.y + 2 + Math.round((door.row / 11) * (CELL_H - 5))
+    // A dark mouth with a gold lintel, big enough to spot at this size.
     ctx.fillStyle = '#12131a'
-    ctx.fillRect(at.x + CELL_W / 2 - 2, at.y + CELL_H - 5, 4, 4)
+    ctx.fillRect(x - 1, y - 1, 5, 5)
     ctx.fillStyle = '#e6b422'
-    ctx.fillRect(at.x + CELL_W / 2 - 1, at.y + CELL_H - 4, 2, 3)
+    ctx.fillRect(x, y, 3, 1)
+    ctx.fillRect(x, y, 1, 3)
+    ctx.fillRect(x + 2, y, 1, 3)
   }
 
   if (cell.id === view.here) {
-    // Blinking, the way the original marked you.
-    if (Math.floor(frame / 16) % 2 === 0) {
-      ctx.fillStyle = '#49a95a'
-      ctx.fillRect(at.x + CELL_W / 2 - 3, at.y + CELL_H / 2 - 3, 6, 6)
-      ctx.fillStyle = '#f6f3e7'
-      ctx.fillRect(at.x + CELL_W / 2 - 2, at.y + CELL_H / 2 - 2, 4, 4)
-    }
+    // Pulsing rather than blinking out. The original blinked, but a marker
+    // that is missing half the time is a poor thing to track when you are nine
+    // and looking for yourself on a map.
+    const bright = Math.floor(frame / 16) % 2 === 0
+    ctx.fillStyle = '#12131a'
+    ctx.fillRect(at.x + CELL_W / 2 - 3, at.y + CELL_H / 2 - 3, 6, 6)
+    ctx.fillStyle = bright ? '#f6f3e7' : '#8fd39c'
+    ctx.fillRect(at.x + CELL_W / 2 - 2, at.y + CELL_H / 2 - 2, 4, 4)
   }
 }
