@@ -45,10 +45,13 @@ export interface Gate {
    */
   optional?: boolean
   /**
-   * Runs the two-question intro instead of a curriculum exercise. Used once, to
-   * put something spellable between a child and his first candle.
+   * Runs something other than the next curriculum exercise.
+   *
+   *  'intro' — the shopkeeper's two questions, before his first candle.
+   *  'half'  — half the length of a real exercise, for side content that
+   *            should cost something without costing a whole lesson.
    */
-  intro?: boolean
+  challenge?: 'intro' | 'half'
 }
 
 const GATE_LIST: Gate[] = [
@@ -82,7 +85,7 @@ const GATE_LIST: Gate[] = [
       'The shopkeeper reaches for the Blue Candle, then stops. "A candle in the wrong hands burns a village down. Two words first, and it is yours to buy."',
     openMessage: '"Good. Mind how you carry it."',
     reward: { rupees: 70 },
-    intro: true,
+    challenge: 'intro',
   },
   {
     id: 'shop-wings',
@@ -157,6 +160,28 @@ const GATE_LIST: Gate[] = [
     message: 'A hermit bars the way. "One question, traveller."',
     openMessage: '"Go on through, then."',
     reward: { rupees: 40, hearts: 2 },
+  },
+
+  // --- the lagoon --------------------------------------------------------
+  {
+    id: 'lagoon-passage',
+    kind: 'seal',
+    message:
+      'Someone has driven a line of carved stakes across the sand. The water beyond them is very wide, and something stands on the far side.',
+    openMessage: 'The stakes sink into the sand as if they had never been there.',
+    reward: { rupees: 60 },
+    challenge: 'half',
+  },
+  {
+    id: 'castaway-toll',
+    kind: 'npc',
+    message:
+      'A voice drifts up from the dark below. "Lovely island, isn\'t it? Wide water, though. Did you give any thought to how you were getting home?" Something down there laughs. "Come down. Answer me one thing and we will talk."',
+    openMessage: '"Down you come, then. Mind the step."',
+    // The rupees are the fare home, so nobody can be stranded here; and the
+    // castaway does not care whether the village shop vouched for you.
+    reward: { rupees: 300, unlock: 'shop-wings' },
+    challenge: 'half',
   },
 
   // --- the river ---------------------------------------------------------
@@ -568,7 +593,7 @@ export function gateById(id: string): Gate | undefined {
 /** Barriers that consume a curriculum exercise, as opposed to side content. */
 /** Barriers that spend a curriculum exercise. The intro spends its own. */
 export function majorGateCount(): number {
-  return GATE_LIST.filter((g) => !g.optional && !g.intro).length
+  return GATE_LIST.filter((g) => !g.optional && !g.challenge).length
 }
 
 export function totalGateCount(): number {

@@ -31,7 +31,7 @@ export interface WorldCallbacks {
   /** The hero touched a sealed barrier. Resolve true once it should open. */
   onGate: (gate: Gate) => void
   /** The hero walked into a shop. */
-  onShop: (kind: 'village' | 'secret' | 'smith') => void
+  onShop: (kind: 'village' | 'secret' | 'smith' | 'castaway') => void
   /** Something worth saving happened. */
   onChange: () => void
   /** The hero ran out of hearts. */
@@ -540,6 +540,20 @@ export class World {
       // and the candle would have nothing to find.
       const char = ((this.screen.rows[row] ?? '')[col] ?? '.') as TileChar
       if (TILES[char]?.bush && !this.isBroken(col, row)) return
+      // A stretch of open water is crossed with the Wings, and the crossing
+      // wears them out — so the island is a place you fly to, not a place you
+      // wander in and out of.
+      if (portal.requires && (this.save.inventory[portal.requires] ?? 0) === 0) {
+        this.showMessage(portal.refusal ?? 'You cannot get across this without help.')
+        return
+      }
+      if (portal.requires && portal.consumes) {
+        const left = (this.save.inventory[portal.requires] ?? 0) - 1
+        if (left > 0) this.save.inventory[portal.requires] = left
+        else delete this.save.inventory[portal.requires]
+        this.equipBest()
+      }
+
       this.loadScreen(portal.to)
       this.player.placeAtTile(portal.spawnCol, portal.spawnRow)
       this.ensureFree()

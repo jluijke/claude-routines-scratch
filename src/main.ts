@@ -187,7 +187,7 @@ window.addEventListener('resize', fitStage)
  */
 function handleGate(gate: Gate): void {
   const up = nextExercise(state.spelling.completedExercises)
-  const isReview = gate.intro === true || gate.optional === true || up === undefined
+  const isReview = gate.challenge !== undefined || gate.optional === true || up === undefined
 
   world?.setPaused(true)
 
@@ -196,7 +196,8 @@ function handleGate(gate: Gate): void {
     isReview,
     ...(up && !isReview ? { exerciseTitle: up.title, exerciseNumber: up.id } : {}),
     onAccept: () => {
-      if (gate.intro) return startShortChallenge(gate, INTRO_CANDLE)
+      if (gate.challenge === 'intro') return startShortChallenge(gate, INTRO_CANDLE)
+      if (gate.challenge === 'half') return startHalfChallenge(gate)
       if (isReview) return startReviewChallenge(gate)
       if (!up) {
         showNotice(root, 'You have finished every exercise there is. This door opens for you anyway.', () => {
@@ -271,6 +272,42 @@ function startExercise(exercise: Exercise, gate?: Gate): void {
       // way, and the prompt fires again on the first frame with no input —
       // which is the opposite of letting him go and explore somewhere else.
       if (abandoned) world?.suppressGate(abandoned.id)
+    },
+  })
+}
+
+/**
+ * Half a real exercise.
+ *
+ * For side content that should cost something without costing a whole lesson —
+ * the crossing to the island, and the ride home from it. Built from the last
+ * exercise finished, so the words are ones he has met, and it never records a
+ * completion: the forty are the forty.
+ */
+function startHalfChallenge(gate: Gate): void {
+  const learned = EXERCISES.filter((e) => state.spelling.completedExercises.includes(e.id))
+  const source = learned[learned.length - 1] ?? EXERCISES[0]
+  if (!source) return
+  const half = Math.max(2, Math.ceil(source.activities.length / 2))
+
+  startShortChallenge(gate, {
+    ...source,
+    title: 'A short challenge',
+    targetMinutes: Math.max(2, Math.round(source.targetMinutes / 2)),
+    // No concepts to prove: the engine would otherwise top the queue back up
+    // with a mastery question for each one, and half an exercise would quietly
+    // become most of an exercise. Mastery is the curriculum's job, not the
+    // island's — every answer is still recorded either way.
+    concepts: [],
+    // Take the questions that prove something, then fill from the front.
+    activities: [
+      ...source.activities.filter((q) => q.novel || q.masteryRequired),
+      ...source.activities.filter((q) => !q.novel && !q.masteryRequired),
+    ].slice(0, half),
+    ruleReveal: {
+      title: source.ruleReveal.title,
+      text: source.ruleReveal.text,
+      examples: source.ruleReveal.examples.slice(0, 2),
     },
   })
 }

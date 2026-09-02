@@ -50,6 +50,12 @@ export interface Portal {
   spawnRow: number
   /** This door should only be reachable once the named barrier is open. */
   guardedBy?: string
+  /** Cannot be used without this item — a stretch of water needs the Wings. */
+  requires?: ItemId
+  /** Using it uses the item up. A flight across water goes one way only. */
+  consumes?: boolean
+  /** Said when he has not got what it takes. */
+  refusal?: string
 }
 
 /**
@@ -97,7 +103,7 @@ export interface Screen {
   /** An item lying on the ground, picked up by walking over it. */
   pickup?: Pickup
   /** Opens the shop interface on entry. */
-  shop?: 'village' | 'secret' | 'smith'
+  shop?: 'village' | 'secret' | 'smith' | 'castaway'
 }
 
 const AUTHORED: Screen[] = [
@@ -664,11 +670,11 @@ const AUTHORED: Screen[] = [
       'T......,,......T',
       'T.X............T',
       'T....,....,....T',
-      'T..............T',
+      '...............T',
       'T..............T',
       'TTTTTTT..TTTTTTT',
     ],
-    exits: { down: 'river-north' },
+    exits: { down: 'river-north', left: 'lagoon-shore' },
     portals: [{ col: 2, row: 6, to: 'd3-entrance', spawnCol: 7, spawnRow: 8 }],
     gates: [
       {
@@ -688,6 +694,162 @@ const AUTHORED: Screen[] = [
   },
 
   // -------------------------------------------------------------- graveyard
+  // --- the lagoon --------------------------------------------------------
+  //
+  // The far end of the map, and the only place in the world you leave on
+  // purpose without a way back. The Wings carry you over the water once and
+  // tear doing it; what is on the island pays for the ride home.
+  {
+    id: 'lagoon-shore',
+    name: 'The Long Water',
+    region: 'Lagoon',
+    rows: [
+      'TTTTTTTTTTTTTTTT',
+      '~~~~~~~SSS.....T',
+      '~~~~~~~SSS.....T',
+      '~~~~~~SSSS=....T',
+      '~~~~~~SSSS=....T',
+      '~~~~~SSSSS=.....',
+      '~~~~~~SSSS=....T',
+      '~~~~~~~SSS=....T',
+      '~~~~~~~SSS.....T',
+      '~~~~~~~,,......T',
+      'TTTTTTTTTTTTTTTT',
+    ],
+    exits: { right: 'waterfall' },
+    gates: [
+      {
+        gateId: 'lagoon-passage',
+        col: 10,
+        row: 5,
+        opens: [
+          { col: 10, row: 3 },
+          { col: 10, row: 4 },
+          { col: 10, row: 5 },
+          { col: 10, row: 6 },
+          { col: 10, row: 7 },
+        ],
+      },
+    ],
+    portals: [
+      {
+        col: 5,
+        row: 5,
+        to: 'lagoon-island',
+        // Beside the way back, never on it, or the two doors bounce him
+        // between the screens forever.
+        spawnCol: 10,
+        spawnRow: 5,
+        requires: 'wings',
+        consumes: true,
+        refusal: 'The water runs on further than you can see. Nothing walks across that.',
+      },
+    ],
+    spawns: [{ kind: 'flyer', col: 13, row: 3 }],
+    props: [
+      {
+        sprite: 'scribe',
+        col: 13,
+        row: 8,
+        talk: 'Nobody has crossed that water in my lifetime. There is an island out there, and whatever is on it has stayed on it.',
+      },
+    ],
+  },
+  {
+    id: 'lagoon-island',
+    name: 'The Island',
+    region: 'Lagoon',
+    rows: [
+      '~~~~~~~~~~~~~~~~',
+      '~~~~~~~~~~~~~~~~',
+      '~~~~~SSSSSS~~~~~',
+      '~~~~SSSSSSSS~~~~',
+      '~~~SSSSCSSSSS~~~',
+      '~~~SSSSSSSSSS~~~',
+      '~~~~SSSSSSSS~~~~',
+      '~~~~~SSSSSS~~~~~',
+      '~~~~~~SSSS~~~~~~',
+      '~~~~~~~~~~~~~~~~',
+      '~~~~~~~~~~~~~~~~',
+    ],
+    exits: {},
+    portals: [
+      { col: 7, row: 4, to: 'lagoon-cave', spawnCol: 7, spawnRow: 8 },
+      {
+        col: 11,
+        row: 5,
+        to: 'lagoon-shore',
+        spawnCol: 6,
+        spawnRow: 5,
+        requires: 'wings',
+        consumes: true,
+        refusal: 'The mainland is a long way off, and you have nothing to fly with.',
+      },
+    ],
+  },
+  {
+    id: 'lagoon-cave',
+    name: 'The Castaway\'s Hold',
+    region: 'Lagoon',
+    rows: [
+      '################',
+      '#..............#',
+      '#..RR......RR..#',
+      '#..............#',
+      '#.......^......#',
+      '#..............#',
+      '#..RR......RR..#',
+      '#..............#',
+      '#..............#',
+      '#######..#######',
+      '#######..#######',
+    ],
+    exits: {},
+    dark: true,
+    treasure: {
+      id: 'lagoon-hoard',
+      col: 7,
+      row: 1,
+      rupees: 500,
+      message: 'A sea chest, packed to the lid. Whoever left this here never came back for it.',
+    },
+    gates: [{ gateId: 'castaway-toll', col: 8, row: 4 }],
+    portals: [
+      { col: 7, row: 10, to: 'lagoon-island', spawnCol: 7, spawnRow: 5 },
+      { col: 8, row: 4, to: 'lagoon-deep', spawnCol: 7, spawnRow: 8, guardedBy: 'castaway-toll' },
+    ],
+    spawns: [{ kind: 'chaser', col: 4, row: 7 }],
+  },
+  {
+    id: 'lagoon-deep',
+    name: 'The Castaway',
+    region: 'Lagoon',
+    rows: [
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#######..#######',
+      '#######..#######',
+      '#######..#######',
+    ],
+    exits: {},
+    shop: 'castaway',
+    portals: [{ col: 7, row: 10, to: 'lagoon-cave', spawnCol: 8, spawnRow: 5 }],
+    props: [
+      {
+        sprite: 'shopkeeper',
+        col: 7,
+        row: 3,
+        talk: 'He shrugs. "I did the same thing you did. Difference is, I started selling."',
+      },
+    ],
+  },
+
   {
     id: 'graveyard-1',
     name: 'The Old Graves',

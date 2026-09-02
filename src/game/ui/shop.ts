@@ -6,13 +6,13 @@
  * challenge before the shopkeeper will sell at all.
  */
 import { button, clear, el } from '../../spelling/ui/dom'
-import { ITEMS, SECRET_SHOP, VILLAGE_SHOP, type ItemDef, type ItemId } from '../items'
+import { CASTAWAY_SHOP, ITEMS, SECRET_SHOP, VILLAGE_SHOP, type ItemDef, type ItemId } from '../items'
 import { gateById, type Gate } from '../gates'
 import type { SaveData } from '../../core/save'
 import { sfx } from '../../core/audio/sfx'
 import { itemIcon, spriteCanvas } from '../render/icons'
 
-export type ShopKind = 'village' | 'secret' | 'smith'
+export type ShopKind = 'village' | 'secret' | 'smith' | 'castaway'
 
 const SMITH_STOCK: ItemId[] = ['metalSword', 'bronzeSword', 'goldenSword']
 
@@ -20,12 +20,15 @@ const TITLES: Record<ShopKind, string> = {
   village: 'The Village Shop',
   secret: 'A Hidden Trader',
   smith: 'The Smithy',
+  castaway: 'The Castaway',
 }
 
 const GREETINGS: Record<ShopKind, string> = {
   village: '"Come in, come in. Rupees on the counter."',
   secret: 'The hooded figure says nothing, and gestures at the shelf.',
   smith: '"I forge blades. Bring me rupees and a steady mind."',
+  castaway:
+    'He does not look up. "Everyone who comes here needs the same thing, and I am the only one selling it. Three hundred. I am not sorry."',
 }
 
 export interface ShopOptions {
@@ -40,7 +43,11 @@ export interface ShopOptions {
 
 export function showShop(root: HTMLElement, options: ShopOptions): { close: () => void; refresh: () => void } {
   const { kind, save } = options
-  const stock = kind === 'village' ? VILLAGE_SHOP : kind === 'secret' ? SECRET_SHOP : SMITH_STOCK
+  const stock =
+    kind === 'village' ? VILLAGE_SHOP
+    : kind === 'secret' ? SECRET_SHOP
+    : kind === 'castaway' ? CASTAWAY_SHOP
+    : SMITH_STOCK
 
   const rupeeLine = el('span', { class: 'shop-rupees' })
   const list = el('div', { class: 'shop-list' })

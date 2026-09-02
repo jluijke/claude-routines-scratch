@@ -96,6 +96,21 @@ recognise. The growth never touches a barrier, a door, a spawn or the lane into
 an exit, and any planting that would cut a screen in two is undone on the spot,
 so the map checks run over the finished result.
 
+## The island
+
+Past the waterfall, at the far western end of the map, is a long stretch of open
+water. A line of carved stakes on the shore costs half an exercise to pass. The
+water itself costs the **Wings** — they carry you over once and tear doing it,
+so the island is a place you fly *to*, not somewhere you wander in and out of.
+
+On it is a cave holding a sea chest with 500 rupees, and below that a castaway
+who was marooned the same way and has since gone into business. He asks for
+another half exercise, pays 300 for it, and sells the only thing anyone on that
+island ever wants — a second pair of Wings, at exactly 300.
+
+Nobody can be stranded there: the fare home is the barrier's own reward, so it
+is always affordable even on a second visit with the chest already emptied.
+
 ## Items worth knowing about
 
 **Bombs** blow open cracked walls. A cracked wall looks different from ordinary

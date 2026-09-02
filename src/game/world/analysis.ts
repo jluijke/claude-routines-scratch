@@ -478,8 +478,14 @@ export function walledInFeatures(screen: Screen): string[] {
     push(0, row)
     push(SCREEN_COLS - 1, row)
   }
-  // Arriving through a door counts as a way in.
-  for (const portal of screen.portals ?? []) push(portal.spawnCol, portal.spawnRow)
+  // Arriving through a door counts as a way in — the tile *other* screens
+  // land you on, not this screen's own spawn coordinates, which belong to
+  // wherever its doors lead.
+  for (const other of SCREENS) {
+    for (const portal of other.portals ?? []) {
+      if (portal.to === screen.id) push(portal.spawnCol, portal.spawnRow)
+    }
+  }
 
   while (queue.length > 0) {
     const { col, row } = queue.shift() as { col: number; row: number }

@@ -237,6 +237,9 @@ export const VILLAGE_SHOP: ItemId[] = [
 /** The hidden cave in the graveyard. */
 export const SECRET_SHOP: ItemId[] = ['blueRing', 'bomb', 'recoveryHeart', 'arrows']
 
+/** The castaway under the island. He sells one thing, and knows it. */
+export const CASTAWAY_SHOP: ItemId[] = ['wings', 'recoveryHeart']
+
 /**
  * Items that occupy the B slot and are used with the item key. Ordered the way
  * the child cycles through them.
