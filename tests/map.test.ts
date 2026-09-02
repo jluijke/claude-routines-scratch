@@ -9,6 +9,7 @@ import {
   trappingGates,
   unmarkedBarriers,
   walledInFeatures,
+  strandedFeatures,
   unreachableDoors,
   workingLines,
 } from '../src/game/world/analysis'
@@ -112,6 +113,42 @@ describe('the checks themselves', () => {
       // A seal or a cracked wall is a door, not a wall.
       expect(walledInFeatures(screenById('graveyard-1') as Screen)).toEqual([])
       expect(walledInFeatures(screenById('mountain-2') as Screen)).toEqual([])
+    })
+
+    it('finds nothing stranded on any screen he walks onto', () => {
+      expect(SCREENS.flatMap(strandedFeatures)).toEqual([])
+    })
+
+    it('catches a door only its own far side can vouch for', () => {
+      // The real fault: the boulder on the forest path was planted against the
+      // treeline, the scenery pass grew a wall around the one tile he can
+      // stand on to bomb it, and the cave behind it became unreachable on
+      // foot. walledInFeatures stayed quiet because it counts arriving through
+      // a door as a way in — and the cave's own return spawn sat inside the
+      // sealed pocket, so the unreachable door vouched for itself.
+      const sealed = {
+        ...(screenById('forest-3') as Screen),
+        rows: [
+          'TTTTTTT..TTTTTTT',
+          'TTTTT,....TTT,TT',
+          'T..T.....TTT...T',
+          'TTT........RXRTT',
+          'TTTT.......RRRTT',
+          'TT..T.......T..T',
+          'TT............TT',
+          '.....,....,...TT',
+          'T.............TT',
+          'T.TT..T..T...TTT',
+          'TTTTTTT..TTTTTTT',
+        ],
+        portals: [{ col: 12, row: 3, to: 'map-cave', spawnCol: 12, spawnRow: 2 }],
+      } as Screen
+      // Verified against the data as it stood: walledInFeatures(forest-3)
+      // returned [] while the cave was unreachable on foot, because the cave's
+      // return spawn sat at 12,2 inside the sealed pocket. That cannot be
+      // reproduced from here — the seeding reads the live screen list — so
+      // this asserts the new check catches the shape of it.
+      expect(strandedFeatures(sealed).some((p) => p.includes('map-cave'))).toBe(true)
     })
   })
 

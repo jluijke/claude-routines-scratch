@@ -479,6 +479,68 @@ function passable(screen: Screen, col: number, row: number): boolean {
  * there from the edge of the screen — with every openable barrier counted as
  * open, so what it finds is solid rock and nothing else.
  */
+/**
+ * Things on an outdoor screen he cannot walk to from its own edges.
+ *
+ * `walledInFeatures` also counts arriving through a door as a way in, which is
+ * right for a cave but circular outdoors: the map cave's own return spawn sat
+ * inside the pocket that was walled off, so the one door that could not be
+ * reached vouched for itself and the check stayed quiet. A screen he walks onto
+ * is only allowed to seed from the edges he walks in through.
+ *
+ * Anything he can open — a cracked wall, a bush, a sealed barrier — counts as a
+ * way through, because "can he ever get there" is the question. Interiors are
+ * skipped: they have no edges, and are entered by door by design.
+ */
+export function strandedFeatures(screen: Screen): string[] {
+  const exits = screen.exits ?? {}
+  if (Object.keys(exits).length === 0) return []
+
+  const seen = new Set<string>()
+  const queue: { col: number; row: number }[] = []
+  const push = (col: number, row: number): void => {
+    const key = `${col},${row}`
+    if (seen.has(key) || !passable(screen, col, row)) return
+    seen.add(key)
+    queue.push({ col, row })
+  }
+
+  if (exits.up) for (let col = 0; col < SCREEN_COLS; col++) push(col, 0)
+  if (exits.down) for (let col = 0; col < SCREEN_COLS; col++) push(col, SCREEN_ROWS - 1)
+  if (exits.left) for (let row = 0; row < SCREEN_ROWS; row++) push(0, row)
+  if (exits.right) for (let row = 0; row < SCREEN_ROWS; row++) push(SCREEN_COLS - 1, row)
+
+  while (queue.length > 0) {
+    const { col, row } = queue.shift() as { col: number; row: number }
+    push(col, row - 1)
+    push(col, row + 1)
+    push(col - 1, row)
+    push(col + 1, row)
+  }
+
+  const problems: string[] = []
+  const reached = (col: number, row: number): boolean => seen.has(`${col},${row}`)
+  for (const portal of screen.portals ?? []) {
+    if (!reached(portal.col, portal.row)) {
+      problems.push(
+        `${screen.id}: the door to "${portal.to}" at ${portal.col},${portal.row} cannot be walked to from any edge of this screen`,
+      )
+    }
+  }
+  for (const placement of screen.gates ?? []) {
+    if (!reached(placement.col, placement.row)) {
+      problems.push(`${screen.id}: the barrier "${placement.gateId}" cannot be walked to from any edge of this screen`)
+    }
+  }
+  if (screen.treasure && !reached(screen.treasure.col, screen.treasure.row)) {
+    problems.push(`${screen.id}: the chest "${screen.treasure.id}" cannot be walked to from any edge of this screen`)
+  }
+  if (screen.pickup && !reached(screen.pickup.col, screen.pickup.row)) {
+    problems.push(`${screen.id}: the "${screen.pickup.id}" pickup cannot be walked to from any edge of this screen`)
+  }
+  return problems
+}
+
 export function walledInFeatures(screen: Screen): string[] {
   const seen = new Set<string>()
   const queue: { col: number; row: number }[] = []
@@ -500,6 +562,11 @@ export function walledInFeatures(screen: Screen): string[] {
   // Arriving through a door counts as a way in — the tile *other* screens
   // land you on, not this screen's own spawn coordinates, which belong to
   // wherever its doors lead.
+  //
+  // This is circular where the door that lands you here is itself the one
+  // walled in: the way in vouches for itself and the pocket looks reachable.
+  // `strandedFeatures` above is the non-circular check, and covers every
+  // screen he walks onto. Interiors still rely on this one.
   for (const other of SCREENS) {
     for (const portal of other.portals ?? []) {
       if (portal.to === screen.id) push(portal.spawnCol, portal.spawnRow)

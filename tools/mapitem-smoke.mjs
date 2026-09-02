@@ -20,7 +20,10 @@ page.on('pageerror', (e) => errors.push(String(e)))
 
 const failures = []
 const check = (name, ok) => { if (!ok) failures.push(name) }
-const world = () => page.evaluate(() => window.zsq.world.debugState())
+const world = () => page.evaluate(() => {
+  const d = window.zsq.world.debugState()
+  return { ...d, col: Math.round(d.x / 16), row: Math.round(d.y / 16) }
+})
 const has = (id) => page.evaluate((i) => (window.zsq.state.inventory[i] ?? 0) > 0, id)
 
 await page.goto(BASE, { waitUntil: 'networkidle' })
@@ -76,20 +79,24 @@ check('it keeps saying so while he still has no map',
 await page.getByRole('button', { name: /leave the shop/i }).first().click()
 await page.waitForTimeout(400)
 
-// Stand just above the cracked boulder at col 12, row 3 and drop one.
-await page.evaluate(() => window.zsq.goTo('forest-3', 12, 2))
+// Walk on from the bottom edge, the way he arrives from North Gate, and get
+// there on foot. Teleporting onto the approach tile is exactly what hid the
+// first version of this: the scenery pass had walled the whole pocket off and
+// the check jumped the wall.
+await page.evaluate(() => window.zsq.goTo('forest-3', 7, 9))
 await page.waitForTimeout(400)
 check('the Forest Path is two screens from the square', (await world()).screen === 'forest-3')
 
+for (let i = 0; i < 6; i++) {
+  await page.keyboard.down('ArrowUp')
+  await page.waitForTimeout(150)
+  await page.keyboard.up('ArrowUp')
+}
+const atRock = await world()
+check('walking up brings him against the rock', atRock.row === 7 || atRock.y >= 108)
+
 let blasted = false
 for (let attempt = 0; attempt < 6 && !blasted; attempt++) {
-  await page.evaluate(() => window.zsq.goTo('forest-3', 12, 2))
-  await page.waitForTimeout(350)
-  // Face the boulder first: the bomb lands ahead of him, and a bomb dropped
-  // facing the wrong way is a bomb thrown at nothing.
-  await page.keyboard.down('ArrowDown')
-  await page.waitForTimeout(160)
-  await page.keyboard.up('ArrowDown')
   await page.keyboard.press('x')
   // The fuse is a hundred frames, so a shade under two seconds.
   await page.waitForTimeout(2600)
@@ -98,12 +105,15 @@ for (let attempt = 0; attempt < 6 && !blasted; attempt++) {
 }
 check('a bomb opens the cracked boulder', blasted)
 
-// Walk down onto the opened tile — the boulder sits below where he stood.
+// Into the opening. His own blast knocks him a tile sideways, so he lines up
+// on the mouth first — which he can now do because it is drawn as a mouth.
 let inside = false
-for (let i = 0; i < 20 && !inside; i++) {
-  await page.keyboard.down('ArrowDown')
-  await page.waitForTimeout(110)
-  await page.keyboard.up('ArrowDown')
+for (let i = 0; i < 16 && !inside; i++) {
+  const at = await world()
+  const key = at.col < 7 ? 'ArrowRight' : at.col > 7 ? 'ArrowLeft' : 'ArrowUp'
+  await page.keyboard.down(key)
+  await page.waitForTimeout(140)
+  await page.keyboard.up(key)
   inside = (await world()).screen === 'map-cave'
 }
 check('the boulder opens onto a cave', inside)
@@ -112,7 +122,7 @@ check('the boulder opens onto a cave', inside)
 let took = false
 for (let i = 0; i < 26 && !took; i++) {
   await page.keyboard.down('ArrowUp')
-  await page.waitForTimeout(110)
+  await page.waitForTimeout(120)
   await page.keyboard.up('ArrowUp')
   took = await has('map')
 }

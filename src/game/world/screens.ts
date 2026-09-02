@@ -469,10 +469,10 @@ const AUTHORED: Screen[] = [
       'TTTTTTT..TTTTTTT',
       'T....,.......,.T',
       'T..T......T....T',
-      'T..........RXR.T',
-      'T......,...RRR.T',
-      'T...T.......T..T',
       'T..............T',
+      'T..............T',
+      'T...T.RRR...T..T',
+      'T.....RXR......T',
       '.....,....,....T',
       'T..............T',
       'T..............T',
@@ -482,9 +482,15 @@ const AUTHORED: Screen[] = [
     // One boulder in the outcrop is cracked, and nothing else says so. He walks
     // past this on every trip north, which is the point: the map is worth
     // finding, so it is put where he will keep wondering about it.
-    portals: [{ col: 12, row: 3, to: 'map-cave', spawnCol: 7, spawnRow: 8 }],
+    //
+    // Out in the middle of the clearing on purpose. Against the treeline the
+    // scenery pass grew a wall around the only tile he can stand on to reach
+    // it, and walled the cave off from the whole screen. The cracked face is on
+    // the near side too, so it opens towards the way he arrives from the
+    // village rather than making him walk round the back of the rock.
+    portals: [{ col: 7, row: 6, to: 'map-cave', spawnCol: 7, spawnRow: 8 }],
     spawns: [
-      { kind: 'shooter', col: 6, row: 5 },
+      { kind: 'shooter', col: 4, row: 3 },
       { kind: 'shooter', col: 11, row: 8 },
     ],
   },
@@ -526,7 +532,7 @@ const AUTHORED: Screen[] = [
         talk: 'You blasted your way in for this? Good. Nobody else bothered.',
       },
     ],
-    portals: [{ col: 7, row: 10, to: 'forest-3', spawnCol: 12, spawnRow: 2 }],
+    portals: [{ col: 7, row: 10, to: 'forest-3', spawnCol: 7, spawnRow: 7 }],
   },
   {
     id: 'forest-4',
