@@ -1358,9 +1358,6 @@ export class World {
     this.atlas.draw(ctx, `hero${shieldTier}${way}${beat ? 'A' : 'B'}` as SpriteName, x, y)
   }
 
-  /** Remembered once, so he is not waiting on the other screen afterwards. */
-  private static readonly DOG_MET = 'dog-friend'
-
   /**
    * Puts the dog on the screen, if he belongs on it.
    *
@@ -1386,8 +1383,10 @@ export class World {
       return
     }
 
+    // One dog at a time: if one is already walking with him, the other stays
+    // put and is still there to be found later.
     if (!next.dog) return
-    if (this.save.world.takenChests.includes(World.DOG_MET)) return
+    if (this.save.world.takenChests.includes(next.dog.id)) return
     this.dog = {
       x: next.dog.col * TILE + 2,
       y: next.dog.row * TILE + 2,
@@ -1409,6 +1408,7 @@ export class World {
   private updateDog(step: number): void {
     const dog = this.dog
     if (!dog) return
+    const waiting = this.screen.dog
     const following = this.save.world.dogScreensLeft > 0
     const blocked = this.blockedHere()
     const hero = this.player.centre()
@@ -1455,8 +1455,8 @@ export class World {
     if (!following) {
       // Waiting. Say hello by walking up to him.
       const gap = Math.hypot(hero.x - (dog.x + 6), hero.y - (dog.y + 8))
-      if (gap <= DOG_HELLO_RANGE) {
-        this.save.world.takenChests.push(World.DOG_MET)
+      if (gap <= DOG_HELLO_RANGE && waiting) {
+        this.save.world.takenChests.push(waiting.id)
         this.save.world.dogScreensLeft = DOG_SCREENS + 1
         sfx.play('bark')
         this.showMessage('The little dog decides you are worth following. He falls in behind you.')

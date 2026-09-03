@@ -1,11 +1,12 @@
 /**
- * The dog.
+ * The dogs.
  *
- * He waits on one of two screens, joins whoever says hello, walks along for a
- * few screens biting things, and then goes for good. The two that matter most
- * are the ones a child would be upset by: he must not turn up again on the
- * other screen after being met, and he must never touch a dungeon guardian —
- * a dog chipping away at a boss takes the fight off the child.
+ * There are two, in two places, met independently. Each joins whoever says
+ * hello, walks along for a couple of screens biting things, and then goes for
+ * good. The ones that matter most are the ones a child would be upset by: a dog
+ * must not come back after leaving, meeting one must not use up the other, and
+ * neither may touch a dungeon guardian — a dog chipping away at a boss takes
+ * the fight off the child.
  */
 import { chromium } from 'playwright'
 
@@ -32,10 +33,13 @@ await page.getByRole('button', { name: /begin|continue/i }).click()
 await page.waitForSelector('.game-canvas')
 await page.waitForTimeout(400)
 
-// ------------------------------------------------------------- he is there
+// ------------------------------------------------------------- both are there
 await goTo('village-north', 11, 6)
-check('the dog is waiting on the North Gate', Boolean((await world()).dog))
+check('the first dog is waiting on the North Gate', Boolean((await world()).dog))
 check('and is not following anyone yet', (await world()).dogScreensLeft === 0)
+await goTo('river-north', 12, 5)
+check('the second is out on the North Bank', Boolean((await world()).dog))
+await goTo('village-north', 11, 6)
 
 // ------------------------------------------------------- saying hello to him
 let met = false
@@ -79,12 +83,21 @@ check('and is gone from the screen', !(await world()).dog)
 
 await goTo('village-square', 7, 6)
 check('he does not come back', !(await world()).dog)
-
-// The other screen he might have been on is empty too — there was only one dog.
-await goTo('forest-1', 7, 4)
-check('and he is not waiting on the other screen either', !(await world()).dog)
 await goTo('village-north', 11, 6)
-check('nor back where they met', !(await world()).dog)
+check('nor is he back where they met', !(await world()).dog)
+
+// But the other one is untouched — that is the whole point of two of them.
+await goTo('river-north', 12, 5)
+check('the second dog is still waiting, further out', Boolean((await world()).dog))
+
+let metAgain = false
+for (let i = 0; i < 14 && !metAgain; i++) {
+  await page.keyboard.down('ArrowUp')
+  await page.waitForTimeout(140)
+  await page.keyboard.up('ArrowUp')
+  metAgain = (await world()).dogScreensLeft > 0
+}
+check('and can be made friends with in his own right', metAgain)
 
 // --------------------------------------------- he leaves the guardians alone
 // A fresh save, so there is a dog to bring, and a boss for him to ignore.

@@ -105,11 +105,12 @@ export interface Screen {
   /** Opens the shop interface on entry. */
   shop?: 'village' | 'secret' | 'smith' | 'castaway'
   /**
-   * Where the dog waits, if he waits here. He is on two screens so there are
-   * two chances of running into him — but there is only one dog, and once he
-   * has been met he is not on either.
+   * A dog waiting here, if one does. Each has its own id, so each is met once
+   * and independently — there are two in the world, and finding the second
+   * after losing the first is meant to be a small surprise rather than a
+   * puzzle about where the first one went.
    */
-  dog?: { col: number; row: number }
+  dog?: { id: string; col: number; row: number }
 }
 
 const AUTHORED: Screen[] = [
@@ -284,9 +285,8 @@ const AUTHORED: Screen[] = [
       'TTTTTTT..TTTTTTT',
     ],
     exits: { up: 'forest-3', down: 'village-square' },
-    // One of the two places the dog might be. He is on two screens so a child
-    // wandering either way runs into him — but there is only one of him.
-    dog: { col: 11, row: 8 },
+    // The first dog, one screen from the village, where he will be found early.
+    dog: { id: 'dog-village', col: 11, row: 8 },
     gates: [
       {
         gateId: 'village-north-seal',
@@ -410,7 +410,6 @@ const AUTHORED: Screen[] = [
       'TTTTTTTTTTTTTTTT',
     ],
     exits: { left: 'village-east', right: 'forest-2' },
-    dog: { col: 4, row: 9 },
     // Nothing marks this bush out. Burning bushes is the point of the candle,
     // and finding this by trying is a better moment than being told.
     portals: [{ col: 8, row: 8, to: 'forest-grotto', spawnCol: 7, spawnRow: 8 }],
@@ -714,6 +713,9 @@ const AUTHORED: Screen[] = [
       'TTTTTTT..TTTTTTT',
     ],
     exits: { up: 'waterfall', down: 'river-bridge', left: 'graveyard-1' },
+    // The second dog, four screens out on the riverbank — far enough that
+    // losing the first one has had time to sting.
+    dog: { id: 'dog-river', col: 12, row: 2 },
     gates: [
       { gateId: 'river-north-seal', col: 2, row: 4, guards: 'left', opens: [{ col: 2, row: 4 }] },
     ],
