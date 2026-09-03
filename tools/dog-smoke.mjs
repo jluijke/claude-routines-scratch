@@ -65,11 +65,39 @@ await page.waitForTimeout(300)
 const health = (list) => list.reduce((sum, m) => sum + m.hp, 0)
 const before = (await world()).monsters ?? []
 check('there is something for him to bite', before.length > 0)
-// Stand on top of a monster so the dog closes on it.
-await page.evaluate((m) => window.zsq.world.teleport('forest-1', Math.round(m.x / 16), Math.round(m.y / 16)), before[0])
+
+// ---------------------------------------------------- he starts the fight
+// The point of this one. A dog that only bites whatever bumps into him would
+// stay glued to a standing hero forever, so the hero does not move a step:
+// anything the dog does here, he decided to do. Watch for him breaking off to
+// run at something, and for how far he is willing to leave the hero's side.
+// Sampled from inside the page: he can clear a small room in under two
+// seconds, and a round trip per reading is slow enough to miss the whole run.
+const hunt = await page.evaluate(() => new Promise((resolve) => {
+  let farthest = 0
+  let sawHunt = false
+  let ticks = 0
+  const timer = setInterval(() => {
+    const s = window.zsq.world.debugState()
+    if (s.dog) {
+      if (s.dog.hunting) sawHunt = true
+      farthest = Math.max(farthest, Math.hypot(s.dog.x + 6 - s.x, s.dog.y + 8 - s.y))
+    }
+    if (++ticks > 240) { clearInterval(timer); resolve({ farthest, sawHunt }) }
+  }, 16)
+}))
+check('he goes looking for a fight rather than waiting to be walked into one', hunt.sawHunt)
+// The follow gap is 18px. A dog that only bites what touches him never has a
+// reason to be further off than that from a hero who has not moved.
+check('and leaves the hero’s side to do it', hunt.farthest > 35)
+
+// Stand on top of a monster so a bite is certain, whatever the wandering did.
+const stillThere = (await world()).monsters ?? []
+const beforeBite = stillThere.length > 0 ? stillThere : before
+await page.evaluate((m) => window.zsq.world.teleport('forest-1', Math.round(m.x / 16), Math.round(m.y / 16)), beforeBite[0])
 await page.waitForTimeout(5000)
 const after = (await world()).monsters ?? []
-check('the dog bites what comes near', health(after) < health(before))
+check('the dog bites what comes near', health(after) < health(beforeBite))
 
 // ------------------------------------------------------------- and then he goes
 // Two screens after the one they met on, he leaves — and stays gone.

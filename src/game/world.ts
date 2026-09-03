@@ -135,9 +135,9 @@ const DISCOVERY_FRAMES = 110
  * The dog.
  *
  * He waits on one of two screens, joins whoever says hello, trots along behind
- * for a few screens biting anything that comes near, and then goes. He is not
- * a pet and he does not come back — which is the point of him. He will not go
- * near a dungeon guardian, and nothing in the game depends on him.
+ * for a few screens and picks fights with anything he can see, and then goes.
+ * He is not a pet and he does not come back — which is the point of him. He
+ * will not go near a dungeon guardian, and nothing in the game depends on him.
  */
 interface Dog {
   x: number
@@ -153,6 +153,14 @@ interface Dog {
    * hero was standing on the *last* screen — usually the far side of the room.
    */
   pending: boolean
+  /** True while he is running something down, rather than trotting along. */
+  hunting: boolean
+  /** How far off his quarry was last tick, for spotting a hopeless charge. */
+  lastGap: number
+  /** Frames of charging without gaining ground — a tree is in the way. */
+  stuck: number
+  /** Frames left of sulking after a charge he could not finish. */
+  giveUp: number
 }
 
 /** How many screens he stays for after the one where they meet. */
@@ -165,6 +173,22 @@ const DOG_BITE_DAMAGE = 1
 const DOG_BITE_COOLDOWN = 34
 /** How near the hero has to be before the dog decides to come along. */
 const DOG_HELLO_RANGE = 26
+/**
+ * How far off he spots something and goes for it. Wide enough that he picks a
+ * fight across half a room rather than waiting to be walked into one.
+ */
+const DOG_HUNT_RANGE = 88
+/**
+ * ...but he will not chase past this far from the hero. He is an escort, not a
+ * loose dog: a companion who runs off to the far corner stops reading as one.
+ */
+const DOG_LEASH = 120
+/** A charge is a run, not a trot — a shade quicker than the hero can walk. */
+const DOG_CHARGE_SPEED = 72
+/** Frames of charging with no ground gained before he writes that one off. */
+const DOG_STUCK_FRAMES = 40
+/** And how long he sticks with the hero afterwards before trying again. */
+const DOG_GIVE_UP_FRAMES = 70
 
 /**
  * The rooms with a guardian in them, in map order. Derived rather than written
@@ -1378,6 +1402,10 @@ export class World {
         cooldown: 0,
         leaving: this.save.world.dogScreensLeft <= 0,
         pending: true,
+        hunting: false,
+        lastGap: Infinity,
+        stuck: 0,
+        giveUp: 0,
       }
       if (this.dog.leaving) this.showMessage('The dog barks once, and trots away up the road.')
       return
@@ -1394,13 +1422,17 @@ export class World {
       cooldown: 0,
       leaving: false,
       pending: false,
+      hunting: false,
+      lastGap: Infinity,
+      stuck: 0,
+      giveUp: 0,
     }
   }
 
   /**
-   * The dog: waits, then follows, then goes.
+   * The dog: waits, then follows, fights, and goes.
    *
-   * He keeps his distance rather than standing on the hero, bites anything
+   * He keeps his distance rather than standing on the hero, runs down anything
    * that is not a dungeon guardian, and leaves by the nearest edge when his
    * time is up. He cannot be hurt — a companion a nine-year-old can lose to a
    * stray arrow is a companion that makes the game worse.
@@ -1465,37 +1497,65 @@ export class World {
       return
     }
 
-    // Bite the nearest thing worth biting. Never a guardian: a dog that could
-    // chip away at a boss would take the fight off the child.
+    // He picks the fight rather than waiting to be walked into one: anything he
+    // can see from here, and that the hero has not already left far behind, he
+    // runs at. Never a guardian, though — a dog that could chip away at a boss
+    // would take the fight off the child.
     if (dog.cooldown > 0) dog.cooldown -= 1
+    if (dog.giveUp > 0) dog.giveUp -= 1
+    const snout = { x: dog.x + 6, y: dog.y + 8 }
     let quarry: Enemy | undefined
-    let closest = DOG_BITE_RANGE
-    for (const enemy of this.enemies) {
-      if (enemy.isBoss) continue
-      const at = enemy.centre()
-      const gap = Math.hypot(at.x - (dog.x + 6), at.y - (dog.y + 8))
-      if (gap < closest) {
-        closest = gap
-        quarry = enemy
+    let closest = DOG_HUNT_RANGE
+    if (dog.giveUp === 0) {
+      for (const enemy of this.enemies) {
+        if (enemy.isBoss) continue
+        const at = enemy.centre()
+        // Out of the hero's half of the room is out of the dog's business.
+        if (Math.hypot(at.x - hero.x, at.y - hero.y) > DOG_LEASH) continue
+        const gap = Math.hypot(at.x - snout.x, at.y - snout.y)
+        if (gap < closest) {
+          closest = gap
+          quarry = enemy
+        }
       }
     }
 
     if (quarry) {
-      const at = quarry.centre()
-      move(at.x - (dog.x + 6), at.y - (dog.y + 8), DOG_SPEED * 1.25)
-      if (dog.cooldown === 0) {
-        dog.cooldown = DOG_BITE_COOLDOWN
+      // One bark as he sets off, so the child hears him decide.
+      if (!dog.hunting) {
+        dog.hunting = true
+        dog.lastGap = Infinity
+        dog.stuck = 0
         sfx.play('bark')
-        if (quarry.hurt(DOG_BITE_DAMAGE)) {
-          sfx.play('enemyHit')
-          if (quarry.isDead()) this.defeat(quarry)
-        }
       }
-      return
+      // A charge that gains no ground is a charge into a tree. Rather than
+      // scrabbling there for the rest of the screen, he writes that one off and
+      // goes back to the hero for a moment.
+      if (closest >= dog.lastGap - 0.25) dog.stuck += 1
+      else dog.stuck = 0
+      dog.lastGap = closest
+      if (dog.stuck > DOG_STUCK_FRAMES) {
+        dog.hunting = false
+        dog.giveUp = DOG_GIVE_UP_FRAMES
+      } else {
+        const at = quarry.centre()
+        move(at.x - snout.x, at.y - snout.y, DOG_CHARGE_SPEED)
+        if (closest <= DOG_BITE_RANGE && dog.cooldown === 0) {
+          dog.cooldown = DOG_BITE_COOLDOWN
+          sfx.play('bark')
+          if (quarry.hurt(DOG_BITE_DAMAGE)) {
+            sfx.play('enemyHit')
+            if (quarry.isDead()) this.defeat(quarry)
+          }
+        }
+        return
+      }
     }
 
-    const dx = hero.x - (dog.x + 6)
-    const dy = hero.y - (dog.y + 8)
+    dog.hunting = false
+    dog.lastGap = Infinity
+    const dx = hero.x - snout.x
+    const dy = hero.y - snout.y
     if (Math.hypot(dx, dy) > DOG_FOLLOW_GAP) move(dx, dy, DOG_SPEED)
   }
 
@@ -1508,7 +1568,8 @@ export class World {
     ctx.fillStyle = '#0a1a3a'
     ctx.fillRect(Math.round(dog.x) + 2, Math.round(dog.y) + 13, 12, 2)
     ctx.restore()
-    const trotting = Math.floor(this.frame / 7) % 2 === 0
+    // Quicker legs when he is running something down than when he is trotting.
+    const trotting = Math.floor(this.frame / (dog.hunting ? 4 : 7)) % 2 === 0
     const sprite: SpriteName = trotting ? 'dogA' : 'dogB'
     if (dog.facing === 'left') {
       // Mirrored by flipping the context, so one drawing faces both ways.
@@ -1800,7 +1861,14 @@ export class World {
       flying: this.flight !== undefined,
       mapOpen: this.mapOpen,
       discovering: this.discovery !== undefined,
-      dog: this.dog ? { x: Math.round(this.dog.x), y: Math.round(this.dog.y), leaving: this.dog.leaving } : undefined,
+      dog: this.dog
+        ? {
+            x: Math.round(this.dog.x),
+            y: Math.round(this.dog.y),
+            leaving: this.dog.leaving,
+            hunting: this.dog.hunting,
+          }
+        : undefined,
       dogScreensLeft: this.save.world.dogScreensLeft,
       x: Math.round(this.player.x),
       y: Math.round(this.player.y),
