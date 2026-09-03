@@ -132,6 +132,41 @@ interface Discovery {
 const DISCOVERY_FRAMES = 110
 
 /**
+ * The dog.
+ *
+ * He waits on one of two screens, joins whoever says hello, trots along behind
+ * for a few screens biting anything that comes near, and then goes. He is not
+ * a pet and he does not come back — which is the point of him. He will not go
+ * near a dungeon guardian, and nothing in the game depends on him.
+ */
+interface Dog {
+  x: number
+  y: number
+  facing: Facing
+  /** Frames until he can bite again. */
+  cooldown: number
+  /** Set once he has decided to leave; he heads for the nearest edge. */
+  leaving: boolean
+  /**
+   * True until he has been put beside the hero. A screen is loaded before the
+   * hero is placed on it, so a dog positioned at load time appears wherever the
+   * hero was standing on the *last* screen — usually the far side of the room.
+   */
+  pending: boolean
+}
+
+/** How many screens he stays for after the one where they meet. */
+const DOG_SCREENS = 2
+const DOG_SPEED = 46
+/** He trots along about this far behind, and stops when he is close enough. */
+const DOG_FOLLOW_GAP = 18
+const DOG_BITE_RANGE = 13
+const DOG_BITE_DAMAGE = 1
+const DOG_BITE_COOLDOWN = 34
+/** How near the hero has to be before the dog decides to come along. */
+const DOG_HELLO_RANGE = 26
+
+/**
  * The rooms with a guardian in them, in map order. Derived rather than written
  * down, so adding a fifth dungeon cannot leave the sign counting to four.
  */
@@ -188,6 +223,8 @@ export class World {
   private mapOpen = false
   /** Set from the moment he picks something up until the sign is dismissed. */
   private discovery: Discovery | undefined
+  /** The dog, once he is on this screen — waiting to be met, or following. */
+  private dog: Dog | undefined
   private message = ''
   private messageTimer = 0
   /** Barrier the hero is standing against, if any. */
@@ -418,6 +455,7 @@ export class World {
     this.victory = undefined
     this.discovery = undefined
     this.mapOpen = false
+    this.placeDog(next, remember)
     this.transition = 12
 
     const cleared = this.save.world.defeatedBosses
@@ -614,6 +652,7 @@ export class World {
     }
 
     this.resolveCombat()
+    this.updateDog(step)
     this.updateProjectiles(step)
     this.updateDrops(step)
     this.updateBombs(step)
@@ -1210,6 +1249,8 @@ export class World {
       this.atlas.draw(ctx, burst.kind === 'explosion' ? 'explosion' : 'flame', burst.x, burst.y)
     }
 
+    this.drawDog(ctx)
+
     if (this.flight) this.drawFlight(ctx)
     else if (this.victory) this.drawVictoryHero(ctx)
     else if (this.discovery) this.drawDiscoveryHero(ctx)
@@ -1315,6 +1356,170 @@ export class World {
     const shieldTier = capitalise(materialOf(this.player.loadout.shield))
     const way = capitalise(flight.facing)
     this.atlas.draw(ctx, `hero${shieldTier}${way}${beat ? 'A' : 'B'}` as SpriteName, x, y)
+  }
+
+  /** Remembered once, so he is not waiting on the other screen afterwards. */
+  private static readonly DOG_MET = 'dog-friend'
+
+  /**
+   * Puts the dog on the screen, if he belongs on it.
+   *
+   * Two cases: he is waiting to be met, or he is already walking with the hero.
+   * A dog already along for the walk spends one of his screens on arrival, and
+   * on the last one he turns up only to run off it.
+   */
+  private placeDog(next: Screen, remember: boolean): void {
+    this.dog = undefined
+
+    if (this.save.world.dogScreensLeft > 0) {
+      // Only a real change of screen costs him a screen — a reload should not.
+      if (remember) this.save.world.dogScreensLeft -= 1
+      this.dog = {
+        x: 0,
+        y: 0,
+        facing: 'down',
+        cooldown: 0,
+        leaving: this.save.world.dogScreensLeft <= 0,
+        pending: true,
+      }
+      if (this.dog.leaving) this.showMessage('The dog barks once, and trots away up the road.')
+      return
+    }
+
+    if (!next.dog) return
+    if (this.save.world.takenChests.includes(World.DOG_MET)) return
+    this.dog = {
+      x: next.dog.col * TILE + 2,
+      y: next.dog.row * TILE + 2,
+      facing: 'down',
+      cooldown: 0,
+      leaving: false,
+      pending: false,
+    }
+  }
+
+  /**
+   * The dog: waits, then follows, then goes.
+   *
+   * He keeps his distance rather than standing on the hero, bites anything
+   * that is not a dungeon guardian, and leaves by the nearest edge when his
+   * time is up. He cannot be hurt — a companion a nine-year-old can lose to a
+   * stray arrow is a companion that makes the game worse.
+   */
+  private updateDog(step: number): void {
+    const dog = this.dog
+    if (!dog) return
+    const following = this.save.world.dogScreensLeft > 0
+    const blocked = this.blockedHere()
+    const hero = this.player.centre()
+
+    // First tick on a new screen: fall in beside the hero, wherever he ended up.
+    if (dog.pending) {
+      dog.pending = false
+      dog.x = hero.x - 14
+      dog.y = hero.y + 6
+    }
+
+    const move = (dx: number, dy: number, speed: number): void => {
+      const length = Math.hypot(dx, dy)
+      if (length === 0) return
+      const stepX = (dx / length) * speed * step
+      const stepY = (dy / length) * speed * step
+      if (!blocked(dog.x + stepX + 6, dog.y + 8)) dog.x += stepX
+      if (!blocked(dog.x + 6, dog.y + stepY + 8)) dog.y += stepY
+      if (Math.abs(dx) > Math.abs(dy)) dog.facing = dx > 0 ? 'right' : 'left'
+      else dog.facing = dy > 0 ? 'down' : 'up'
+    }
+
+    if (dog.leaving) {
+      // Out by whichever edge is nearest, and then he is gone for good.
+      const toLeft = dog.x
+      const toRight = SCREEN_W - dog.x
+      const toTop = dog.y
+      const toBottom = SCREEN_H - dog.y
+      const nearest = Math.min(toLeft, toRight, toTop, toBottom)
+      const dx = nearest === toLeft ? -1 : nearest === toRight ? 1 : 0
+      const dy = nearest === toTop ? -1 : nearest === toBottom ? 1 : 0
+      // Straight out, ignoring the scenery — he knows the way and it is his
+      // last few seconds on screen.
+      dog.x += dx * DOG_SPEED * 1.4 * step
+      dog.y += dy * DOG_SPEED * 1.4 * step
+      if (dx !== 0) dog.facing = dx > 0 ? 'right' : 'left'
+      else dog.facing = dy > 0 ? 'down' : 'up'
+      if (dog.x < -20 || dog.x > SCREEN_W + 20 || dog.y < -20 || dog.y > SCREEN_H + 20) {
+        this.dog = undefined
+      }
+      return
+    }
+
+    if (!following) {
+      // Waiting. Say hello by walking up to him.
+      const gap = Math.hypot(hero.x - (dog.x + 6), hero.y - (dog.y + 8))
+      if (gap <= DOG_HELLO_RANGE) {
+        this.save.world.takenChests.push(World.DOG_MET)
+        this.save.world.dogScreensLeft = DOG_SCREENS + 1
+        sfx.play('bark')
+        this.showMessage('The little dog decides you are worth following. He falls in behind you.')
+        this.callbacks.onChange()
+      }
+      return
+    }
+
+    // Bite the nearest thing worth biting. Never a guardian: a dog that could
+    // chip away at a boss would take the fight off the child.
+    if (dog.cooldown > 0) dog.cooldown -= 1
+    let quarry: Enemy | undefined
+    let closest = DOG_BITE_RANGE
+    for (const enemy of this.enemies) {
+      if (enemy.isBoss) continue
+      const at = enemy.centre()
+      const gap = Math.hypot(at.x - (dog.x + 6), at.y - (dog.y + 8))
+      if (gap < closest) {
+        closest = gap
+        quarry = enemy
+      }
+    }
+
+    if (quarry) {
+      const at = quarry.centre()
+      move(at.x - (dog.x + 6), at.y - (dog.y + 8), DOG_SPEED * 1.25)
+      if (dog.cooldown === 0) {
+        dog.cooldown = DOG_BITE_COOLDOWN
+        sfx.play('bark')
+        if (quarry.hurt(DOG_BITE_DAMAGE)) {
+          sfx.play('enemyHit')
+          if (quarry.isDead()) this.defeat(quarry)
+        }
+      }
+      return
+    }
+
+    const dx = hero.x - (dog.x + 6)
+    const dy = hero.y - (dog.y + 8)
+    if (Math.hypot(dx, dy) > DOG_FOLLOW_GAP) move(dx, dy, DOG_SPEED)
+  }
+
+  /** Trotting, with a shadow so he sits on the ground rather than floating. */
+  private drawDog(ctx: CanvasRenderingContext2D): void {
+    const dog = this.dog
+    if (!dog) return
+    ctx.save()
+    ctx.globalAlpha = 0.3
+    ctx.fillStyle = '#0a1a3a'
+    ctx.fillRect(Math.round(dog.x) + 2, Math.round(dog.y) + 13, 12, 2)
+    ctx.restore()
+    const trotting = Math.floor(this.frame / 7) % 2 === 0
+    const sprite: SpriteName = trotting ? 'dogA' : 'dogB'
+    if (dog.facing === 'left') {
+      // Mirrored by flipping the context, so one drawing faces both ways.
+      ctx.save()
+      ctx.translate(Math.round(dog.x) + 16, Math.round(dog.y))
+      ctx.scale(-1, 1)
+      this.atlas.draw(ctx, sprite, 0, 0)
+      ctx.restore()
+      return
+    }
+    this.atlas.draw(ctx, sprite, dog.x, dog.y)
   }
 
   /** The sign has been read: he lowers it and carries on. */
@@ -1595,6 +1800,8 @@ export class World {
       flying: this.flight !== undefined,
       mapOpen: this.mapOpen,
       discovering: this.discovery !== undefined,
+      dog: this.dog ? { x: Math.round(this.dog.x), y: Math.round(this.dog.y), leaving: this.dog.leaving } : undefined,
+      dogScreensLeft: this.save.world.dogScreensLeft,
       x: Math.round(this.player.x),
       y: Math.round(this.player.y),
       facing: this.player.facing,

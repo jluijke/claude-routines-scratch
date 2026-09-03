@@ -20,6 +20,7 @@ export type SfxName =
   | 'wings'
   | 'bossFanfare'
   | 'itemGet'
+  | 'bark'
 
 interface Tone {
   kind?: 'tone'
@@ -111,6 +112,15 @@ const PATCHES: Record<SfxName, Sound[]> = {
     // Touchdown.
     { kind: 'noise', at: 1.21, duration: 0.1, from: 600, to: 120, gain: 0.14, q: 1.5 },
     { freq: 120, at: 1.21, duration: 0.14, type: 'triangle', slideTo: 60, gain: 0.1 },
+  ],
+
+  // A small dog. Two short yaps: a band of noise for the breath and a quick
+  // falling tone for the voice, pitched high because he is little.
+  bark: [
+    { kind: 'noise', at: 0, duration: 0.05, from: 1800, to: 600, gain: 0.1, q: 3 },
+    { freq: 620, at: 0, duration: 0.07, type: 'square', slideTo: 380, gain: 0.09 },
+    { kind: 'noise', at: 0.11, duration: 0.05, from: 1900, to: 640, gain: 0.09, q: 3 },
+    { freq: 680, at: 0.11, duration: 0.07, type: 'square', slideTo: 420, gain: 0.08 },
   ],
 
   // Holding something up over your head deserves its own tune. Shorter and

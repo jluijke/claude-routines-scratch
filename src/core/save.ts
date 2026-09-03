@@ -7,7 +7,7 @@ import type { ItemId } from '../game/items'
 import { emptyMasteryStore, type MasteryStore } from '../spelling/mastery'
 
 const STORAGE_KEY = 'zsq.save'
-export const SAVE_VERSION = 3
+export const SAVE_VERSION = 4
 
 export interface SaveData {
   version: number
@@ -34,6 +34,12 @@ export interface SaveData {
     defeatedBosses: string[]
     takenChests: string[]
     visitedScreens: string[]
+    /**
+     * How many more screens the dog stays for. Zero means no dog — either he
+     * has not met it yet, or it has already run off. Kept in the save so
+     * closing the tab does not quietly lose a friend mid-walk.
+     */
+    dogScreensLeft: number
     /**
      * Cracked walls blown open and bushes burned away, as "screenId:col,row".
      * A wall he has opened must stay open — nothing is more annoying than
@@ -85,6 +91,7 @@ export function newSave(): SaveData {
       takenChests: [],
       visitedScreens: [],
       brokenTiles: [],
+      dogScreensLeft: 0,
     },
     spelling: {
       completedExercises: [],
@@ -122,6 +129,15 @@ const MIGRATIONS: Record<number, Migration> = {
     data['spelling'] = spelling
     return data
   },
+
+  // 3 -> 4: a dog you can make friends with, who walks with you for a few
+  // screens and then goes. An older save simply has not met him.
+  3: (data) => {
+    const world = (data['world'] as Record<string, unknown>) ?? {}
+    if (typeof world['dogScreensLeft'] !== 'number') world['dogScreensLeft'] = 0
+    data['world'] = world
+    return data
+  },
 }
 
 export function migrate(raw: Record<string, unknown>): SaveData {
@@ -144,6 +160,7 @@ export function withDefaults(data: Record<string, unknown>): SaveData {
   merged.inventory = { ...base.inventory, ...(data['inventory'] as object) }
   merged.world = { ...base.world, ...(data['world'] as object) }
   merged.world.brokenTiles = merged.world.brokenTiles ?? []
+  merged.world.dogScreensLeft = merged.world.dogScreensLeft ?? 0
   merged.spelling = { ...base.spelling, ...(data['spelling'] as object) }
   merged.spelling.mastery = merged.spelling.mastery ?? emptyMasteryStore()
   merged.spelling.mastery.concepts = merged.spelling.mastery.concepts ?? {}

@@ -808,6 +808,48 @@ const WINGS = S([
   '................',
 ])
 
+/**
+ * The dog: small, scruffy, ears up, tail out. Two frames so he trots rather
+ * than slides — the second has his legs swapped and his tail down.
+ */
+const DOG_A = S([
+  '................',
+  '................',
+  '................',
+  '................',
+  '.....kk......kk.',
+  '....knnk....knk.',
+  '...knnnnkkkknnk.',
+  '..knnwwnnnnnnnk.',
+  '..knnnnnnnnnnk..',
+  '..knwnnnnnnnnk..',
+  '..kknnnnnnnnkk..',
+  '...kkkkkkkkkk...',
+  '...kn.kk.kn.k...',
+  '...kk.kk.kk.k...',
+  '................',
+  '................',
+])
+
+const DOG_B = S([
+  '................',
+  '................',
+  '................',
+  '................',
+  '.....kk.........',
+  '....knnk.....kk.',
+  '...knnnnkkkknnk.',
+  '..knnwwnnnnnnnk.',
+  '..knnnnnnnnnnk..',
+  '..knwnnnnnnnnk..',
+  '..kknnnnnnnnkk..',
+  '...kkkkkkkkkk...',
+  '...k.knnk.k.k...',
+  '...k.kk.k.kkk...',
+  '................',
+  '................',
+])
+
 /** The map: a sheet of parchment with a coastline and a marked spot on it. */
 const MAP = S([
   '................',
@@ -943,6 +985,8 @@ export const SPRITES = {
   arrow: ARROW,
   wings: WINGS,
   worldMap: MAP,
+  dogA: DOG_A,
+  dogB: DOG_B,
   ring: RING,
   tunicBlue: mapColours(TUNIC, { g: 'b', G: 'B' }),
   tunicRed: mapColours(TUNIC, { g: 'r', G: 'R' }),

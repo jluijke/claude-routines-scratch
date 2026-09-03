@@ -104,6 +104,12 @@ export interface Screen {
   pickup?: Pickup
   /** Opens the shop interface on entry. */
   shop?: 'village' | 'secret' | 'smith' | 'castaway'
+  /**
+   * Where the dog waits, if he waits here. He is on two screens so there are
+   * two chances of running into him — but there is only one dog, and once he
+   * has been met he is not on either.
+   */
+  dog?: { col: number; row: number }
 }
 
 const AUTHORED: Screen[] = [
@@ -278,6 +284,9 @@ const AUTHORED: Screen[] = [
       'TTTTTTT..TTTTTTT',
     ],
     exits: { up: 'forest-3', down: 'village-square' },
+    // One of the two places the dog might be. He is on two screens so a child
+    // wandering either way runs into him — but there is only one of him.
+    dog: { col: 11, row: 8 },
     gates: [
       {
         gateId: 'village-north-seal',
@@ -401,6 +410,7 @@ const AUTHORED: Screen[] = [
       'TTTTTTTTTTTTTTTT',
     ],
     exits: { left: 'village-east', right: 'forest-2' },
+    dog: { col: 4, row: 9 },
     // Nothing marks this bush out. Burning bushes is the point of the candle,
     // and finding this by trying is a better moment than being told.
     portals: [{ col: 8, row: 8, to: 'forest-grotto', spawnCol: 7, spawnRow: 8 }],
