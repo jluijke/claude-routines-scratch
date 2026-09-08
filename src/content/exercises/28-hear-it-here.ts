@@ -6,7 +6,7 @@ export const exercise28: Exercise = {
   title: 'Hear It Here',
   level: 4,
   levelName: 'Meaning Masters',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['homophones-more'],
   reviewConcepts: ['apostrophe-pairs', 'homophones-to-too-two', 'homophones-there'],
   activities: [

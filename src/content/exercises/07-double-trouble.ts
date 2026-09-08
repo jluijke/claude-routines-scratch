@@ -11,7 +11,7 @@ export const exercise7: Exercise = {
   title: 'Double Trouble',
   level: 1,
   levelName: 'Sound Detectives',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['consonant-doubling'],
   reviewConcepts: ['compound-words', 'plural-y-ies', 'ee-sound'],
   activities: [

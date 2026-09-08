@@ -6,7 +6,7 @@ export const exercise30: Exercise = {
   title: 'Missing Letters',
   level: 4,
   levelName: 'Meaning Masters',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['contractions'],
   reviewConcepts: ['homophone-proofreading', 'apostrophe-pairs', 'homophones-more'],
   activities: [

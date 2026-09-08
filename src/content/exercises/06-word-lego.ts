@@ -11,7 +11,7 @@ export const exercise6: Exercise = {
   title: 'Word Lego',
   level: 1,
   levelName: 'Sound Detectives',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['compound-words'],
   reviewConcepts: ['plural-y-ies', 'plural-s-es', 'oa-sound'],
   activities: [

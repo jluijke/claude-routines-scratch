@@ -10,7 +10,7 @@ export const exercise10: Exercise = {
   title: 'Sneaky S',
   level: 2,
   levelName: 'Pattern Hunters',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['plural-sounds'],
   reviewConcepts: ['ed-endings', 'drop-silent-e', 'plural-y-ies'],
   activities: [

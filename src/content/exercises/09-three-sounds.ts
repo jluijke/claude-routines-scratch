@@ -10,7 +10,7 @@ export const exercise9: Exercise = {
   title: 'Three Sounds, One Ending',
   level: 2,
   levelName: 'Pattern Hunters',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['ed-endings'],
   reviewConcepts: ['drop-silent-e', 'consonant-doubling', 'compound-words'],
   activities: [

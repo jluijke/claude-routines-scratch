@@ -16,12 +16,29 @@ import { strugglingConcepts } from './mastery'
 import { estimateSeconds, estimateTotalSeconds } from './costs'
 import type { Rng } from '../core/rng'
 
+/**
+ * The most questions one exercise may ask.
+ *
+ * The binding constraint, ahead of the time budget below. Cumulative review
+ * used to push a late exercise past twenty-five questions, which is a long sit
+ * for a nine-year-old however well judged each question is — and a child who
+ * has stopped caring by question twenty is not learning from questions twenty
+ * to twenty-eight. Everything else here divides this number up.
+ *
+ * Getting one wrong can still add a question, because proving a pattern
+ * unaided is the point of the whole engine; the cap is on what is asked for
+ * up front.
+ */
+export const MAX_QUESTIONS = 14
+
 /** Share of the time budget given to review, once review starts (Exercise 6). */
 const REVIEW_SHARE = 0.4
 /** What is left for the current lesson — spec §12's 60%. */
 const CURRENT_SHARE = 1 - REVIEW_SHARE
 /** Of that review time, how much goes to the previous 5-8 exercises. */
 const RECENT_SHARE = 0.625
+/** The fewest review questions an exercise may end up with once review starts. */
+const REVIEW_FLOOR = 2
 /** How many exercises back still counts as "recent". */
 const RECENT_WINDOW = 8
 /**
@@ -48,18 +65,20 @@ export interface ScheduledQueue {
 }
 
 /**
- * Keeps the current lesson inside its share of the budget so review always has
- * room. Questions that carry the exercise — the opening discovery activity, and
- * anything marked as a mastery or transfer test — are never dropped; ordinary
- * practice items go first.
+ * Keeps the current lesson inside its share of the exercise so review always
+ * has room — its share of the questions, and of the time. Questions that carry
+ * the exercise — the opening discovery activity, and anything marked as a
+ * mastery or transfer test — are never dropped; ordinary practice items go
+ * first.
  */
-function trimToBudget(activities: Question[], budgetSeconds: number): {
+function trimToBudget(activities: Question[], budgetSeconds: number, maxCount: number): {
   kept: Question[]
   trimmed: number
 } {
-  if (estimateTotalSeconds(activities) <= budgetSeconds) {
-    return { kept: activities, trimmed: 0 }
-  }
+  const fits = (list: Question[]): boolean =>
+    list.length <= maxCount && estimateTotalSeconds(list) <= budgetSeconds
+
+  if (fits(activities)) return { kept: activities, trimmed: 0 }
 
   const protectedIndexes = new Set<number>()
   if (activities.length > 0) protectedIndexes.add(0)
@@ -70,12 +89,16 @@ function trimToBudget(activities: Question[], budgetSeconds: number): {
   const kept = activities.slice()
   // Drop optional practice from the end until the lesson fits.
   for (let i = activities.length - 1; i >= 0; i--) {
-    if (estimateTotalSeconds(kept.filter(Boolean)) <= budgetSeconds) break
+    if (fits(kept.filter(Boolean))) break
     if (protectedIndexes.has(i)) continue
     kept[i] = undefined as unknown as Question
   }
 
-  const result = kept.filter(Boolean)
+  // An exercise whose protected questions alone overrun the cap keeps the ones
+  // it meets first. Rare, and better than an exercise that ignores the cap.
+  let result = kept.filter(Boolean)
+  if (result.length > maxCount) result = result.slice(0, maxCount)
+
   return { kept: result, trimmed: activities.length - result.length }
 }
 
@@ -112,12 +135,13 @@ function reviewCandidates(
 function drawReview(
   pool: Concept[],
   budgetSeconds: number,
+  maxCount: number,
   struggling: ReadonlySet<ConceptId>,
   used: Set<string>,
   rng: Rng,
   startIndex: number,
 ): Question[] {
-  if (pool.length === 0 || budgetSeconds <= 0) return []
+  if (pool.length === 0 || budgetSeconds <= 0 || maxCount <= 0) return []
 
   // Struggling concepts go to the front: their questions replace ordinary
   // review rather than being added on top of it.
@@ -130,12 +154,12 @@ function drawReview(
   let spent = 0
   let guard = 0
 
-  while (spent < budgetSeconds && guard < 200) {
+  while (spent < budgetSeconds && drawn.length < maxCount && guard < 200) {
     guard += 1
     let addedThisPass = false
 
     for (const concept of ordered) {
-      if (spent >= budgetSeconds) break
+      if (spent >= budgetSeconds || drawn.length >= maxCount) break
       const available = concept.reviewPool.filter((q) => !used.has(q.id))
       const question = rng.pick(available)
       if (!question) continue
@@ -161,24 +185,45 @@ export function buildQueue(params: ScheduleParams): ScheduledQueue {
 
   const budgetSeconds = exercise.targetMinutes * 60
   const current = exercise.activities.slice()
-  const currentSeconds = estimateTotalSeconds(current)
 
   const { recent, older } = reviewCandidates(exercise, concepts)
   const hasReview = exercise.id >= REVIEW_STARTS_AT && (recent.length > 0 || older.length > 0)
 
   if (!hasReview) {
+    // The early exercises are their own lesson and nothing else, but the cap
+    // is the cap: Exercise 5 authored fifteen activities.
+    const { kept, trimmed } = trimToBudget(current, budgetSeconds, MAX_QUESTIONS)
     return {
-      questions: current,
-      estimatedSeconds: currentSeconds,
-      breakdown: { current: current.length, recent: 0, older: 0 },
-      trimmed: 0,
+      questions: kept,
+      estimatedSeconds: estimateTotalSeconds(kept),
+      breakdown: { current: kept.length, recent: 0, older: 0 },
+      trimmed,
     }
   }
 
   // Review is not optional once the curriculum has material to revisit, so the
-  // current lesson is held to its 60% share rather than crowding review out.
-  const { kept, trimmed } = trimToBudget(current, budgetSeconds * CURRENT_SHARE)
-  const reviewBudget = Math.max(0, budgetSeconds - estimateTotalSeconds(kept))
+  // current lesson is held to its 60% share of the questions rather than
+  // crowding review out.
+  //
+  // By count, not by the clock. The lesson's own questions are the ones an
+  // author chose deliberately, and holding them to 60% of the *minutes* as
+  // well cut two of the four questions out of the exercises whose activities
+  // are long ones — spending the lesson to buy review of older material.
+  const currentCap = Math.round(MAX_QUESTIONS * CURRENT_SHARE)
+  const { kept, trimmed } = trimToBudget(current, budgetSeconds, currentCap)
+  // A lesson made of long questions — four proofreads, say — can spend the
+  // whole budget on its own. Cumulative review still gets a footing: it is the
+  // thing that keeps Exercise 12 alive at Exercise 39, and an exercise that
+  // quietly drops it is worse than one that runs half a minute over.
+  const reviewFloorSeconds = REVIEW_FLOOR * 30
+  const reviewBudget = Math.max(
+    budgetSeconds - estimateTotalSeconds(kept),
+    reviewFloorSeconds,
+  )
+  // Whatever the lesson did not use goes to review, so a short lesson still
+  // fills the exercise rather than ending early.
+  const reviewCap = Math.max(0, MAX_QUESTIONS - kept.length)
+  const recentCap = Math.round(reviewCap * RECENT_SHARE)
 
   const struggling = new Set(strugglingConcepts(mastery))
   const used = new Set(kept.map((q) => q.id))
@@ -186,14 +231,18 @@ export function buildQueue(params: ScheduleParams): ScheduledQueue {
   const recentQuestions = drawReview(
     recent,
     reviewBudget * RECENT_SHARE,
+    recentCap,
     struggling,
     used,
     rng,
     0,
   )
+  // Counted against what recent actually drew, not what it was allowed, so a
+  // thin recent pool does not shorten the exercise.
   const olderQuestions = drawReview(
     older.length > 0 ? older : recent,
     reviewBudget * (1 - RECENT_SHARE),
+    reviewCap - recentQuestions.length,
     struggling,
     used,
     rng,

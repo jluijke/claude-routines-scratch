@@ -11,7 +11,7 @@ export const exercise15: Exercise = {
   title: 'Bridge or Huge?',
   level: 2,
   levelName: 'Pattern Hunters',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['dge-ge'],
   reviewConcepts: ['silent-letters', 'ly-suffix', 'ed-endings'],
   activities: [

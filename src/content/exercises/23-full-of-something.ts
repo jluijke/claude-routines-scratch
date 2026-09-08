@@ -6,7 +6,7 @@ export const exercise23: Exercise = {
   title: 'Full of Something',
   level: 3,
   levelName: 'Word Engineers',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['suffix-ous'],
   reviewConcepts: ['suffix-ment', 'suffix-ness', 'prefix-mis-dis-pre'],
   activities: [

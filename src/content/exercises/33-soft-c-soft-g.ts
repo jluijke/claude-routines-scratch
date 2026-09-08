@@ -6,7 +6,7 @@ export const exercise33: Exercise = {
   title: 'Soft C, Soft G',
   level: 5,
   levelName: 'Spelling Detectives',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['soft-c-g'],
   reviewConcepts: ['two-way-splitting', 'schwa', 'contractions'],
   activities: [

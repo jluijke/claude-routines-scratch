@@ -11,7 +11,7 @@ export const exercise32: Exercise = {
   title: 'Break It Two Ways',
   level: 4,
   levelName: 'Meaning Masters',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['two-way-splitting'],
   reviewConcepts: ['schwa', 'contractions', 'word-families'],
   activities: [

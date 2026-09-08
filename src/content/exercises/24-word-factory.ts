@@ -11,7 +11,7 @@ export const exercise24: Exercise = {
   title: 'Word Factory',
   level: 3,
   levelName: 'Word Engineers',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['word-families'],
   reviewConcepts: ['suffix-ous', 'suffix-ment', 'suffix-ness', 'prefix-re-un'],
   activities: [

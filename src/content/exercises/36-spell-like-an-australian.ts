@@ -11,7 +11,7 @@ export const exercise36: Exercise = {
   title: 'Spell Like an Australian',
   level: 5,
   levelName: 'Spelling Detectives',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['australian-spelling'],
   reviewConcepts: ['word-roots', 'tion-ending', 'suffix-ous'],
   activities: [

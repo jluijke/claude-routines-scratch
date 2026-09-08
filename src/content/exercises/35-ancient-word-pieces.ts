@@ -10,7 +10,7 @@ export const exercise35: Exercise = {
   title: 'Ancient Word Pieces',
   level: 5,
   levelName: 'Spelling Detectives',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['word-roots'],
   reviewConcepts: ['tion-ending', 'soft-c-g', 'prefix-meaning'],
   activities: [

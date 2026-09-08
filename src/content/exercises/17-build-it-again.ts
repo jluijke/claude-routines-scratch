@@ -6,7 +6,7 @@ export const exercise17: Exercise = {
   title: 'Build It Again',
   level: 3,
   levelName: 'Word Engineers',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['prefix-re-un'],
   reviewConcepts: ['tch-ch', 'dge-ge', 'ly-suffix'],
   activities: [

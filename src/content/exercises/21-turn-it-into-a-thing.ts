@@ -10,7 +10,7 @@ export const exercise21: Exercise = {
   title: 'Turn It Into a Thing',
   level: 3,
   levelName: 'Word Engineers',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['suffix-ness'],
   reviewConcepts: ['suffix-ful-less', 'y-to-i', 'prefix-re-un'],
   activities: [

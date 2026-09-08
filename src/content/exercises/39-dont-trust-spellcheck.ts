@@ -10,7 +10,7 @@ export const exercise39: Exercise = {
   title: 'Don’t Trust Spellcheck',
   level: 5,
   levelName: 'Spelling Detectives',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['spellcheck-limits'],
   reviewConcepts: ['sentence-dictation', 'proofreading', 'homophones-more'],
   activities: [

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildQueue } from '../src/spelling/scheduler'
+import { buildQueue, MAX_QUESTIONS } from '../src/spelling/scheduler'
 import { estimateTotalSeconds } from '../src/spelling/costs'
 import { emptyMasteryStore, recordAttempt } from '../src/spelling/mastery'
 import { CONCEPTS } from '../src/content/concepts'
@@ -31,6 +31,42 @@ describe('duration budgeting', () => {
     expect(dictation).toBeDefined()
     expect(sorting).toBeDefined()
     expect(estimateTotalSeconds([dictation!])).toBeGreaterThan(50)
+  })
+})
+
+describe('the question cap', () => {
+  it.each(EXERCISES.map((e) => [e.id, e.title] as const))(
+    'exercise %i (%s) never asks more than the cap',
+    (id) => {
+      const queue = queueFor(exerciseById(id) as Exercise)
+      expect(queue.questions.length).toBeLessThanOrEqual(MAX_QUESTIONS)
+      // And not so few that the lesson has nothing left of it.
+      expect(queue.questions.length).toBeGreaterThanOrEqual(4)
+    },
+  )
+
+  it('holds even when a child is struggling with everything', () => {
+    // The worst case for length: adaptive practice re-picking every concept.
+    const mastery = emptyMasteryStore()
+    for (const concept of CONCEPTS.keys()) {
+      for (let i = 0; i < 3; i++) {
+        recordAttempt(mastery, { concept, correct: false, firstAttempt: i === 0, hintsUsed: 0 })
+      }
+    }
+    for (const exercise of EXERCISES) {
+      expect(queueFor(exercise, mastery).questions.length).toBeLessThanOrEqual(MAX_QUESTIONS)
+    }
+  })
+
+  it('spends the cap on the lesson first and review second', () => {
+    // Both are represented at every exercise that has review to draw on: a cap
+    // that swallowed one or the other would be a quieter kind of broken.
+    for (const exercise of EXERCISES.filter((e) => e.id >= 6)) {
+      const queue = queueFor(exercise)
+      expect(queue.breakdown.current).toBeGreaterThan(0)
+      expect(queue.breakdown.recent + queue.breakdown.older).toBeGreaterThan(0)
+      expect(queue.breakdown.current).toBeGreaterThanOrEqual(queue.breakdown.recent)
+    }
   })
 })
 
@@ -123,9 +159,12 @@ describe('review does not start early', () => {
     for (const exercise of EXERCISES.filter((e) => e.id < 6)) {
       const queue = queueFor(exercise)
       expect(queue.questions.some((q) => q.review)).toBe(false)
-      // And nothing the author wrote gets dropped to make room for it.
-      expect(queue.trimmed).toBe(0)
-      expect(queue.breakdown.current).toBe(exercise.activities.length)
+      // Every question is the lesson's own; the only thing that may shorten it
+      // is the cap, and what survives is in the order the author wrote it.
+      expect(queue.breakdown.current).toBe(queue.questions.length)
+      const authored = exercise.activities.map((q) => q.id)
+      const asked = queue.questions.map((q) => q.id)
+      expect(asked).toEqual(authored.filter((id) => asked.includes(id)))
     }
   })
 })

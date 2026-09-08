@@ -10,7 +10,7 @@ export const exercise13: Exercise = {
   title: 'Happily Ever After',
   level: 2,
   levelName: 'Pattern Hunters',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['ly-suffix'],
   reviewConcepts: ['y-to-i', 'er-est', 'ed-endings'],
   activities: [

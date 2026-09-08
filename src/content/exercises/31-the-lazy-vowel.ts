@@ -10,7 +10,7 @@ export const exercise31: Exercise = {
   title: 'The Lazy Vowel',
   level: 4,
   levelName: 'Meaning Masters',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['schwa'],
   reviewConcepts: ['contractions', 'homophone-proofreading', 'suffix-ous'],
   activities: [

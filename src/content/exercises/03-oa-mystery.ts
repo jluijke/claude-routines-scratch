@@ -10,7 +10,7 @@ export const exercise3: Exercise = {
   title: 'The /oa/ Mystery',
   level: 1,
   levelName: 'Sound Detectives',
-  targetMinutes: 7,
+  targetMinutes: 5,
   concepts: ['oa-sound'],
   reviewConcepts: [],
   activities: [

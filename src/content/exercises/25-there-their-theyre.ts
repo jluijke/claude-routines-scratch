@@ -13,7 +13,7 @@ export const exercise25: Exercise = {
   title: 'There, Their or They’re?',
   level: 4,
   levelName: 'Meaning Masters',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['homophones-there'],
   reviewConcepts: ['word-families', 'suffix-ous', 'suffix-ment'],
   activities: [

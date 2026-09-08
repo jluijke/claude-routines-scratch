@@ -11,7 +11,7 @@ export const exercise27: Exercise = {
   title: 'Your or You’re? Its or It’s?',
   level: 4,
   levelName: 'Meaning Masters',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['apostrophe-pairs'],
   reviewConcepts: ['homophones-to-too-two', 'homophones-there', 'suffix-ful-less'],
   activities: [

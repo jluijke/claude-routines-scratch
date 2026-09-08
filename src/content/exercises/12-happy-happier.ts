@@ -11,7 +11,7 @@ export const exercise12: Exercise = {
   title: 'Happy, Happier',
   level: 2,
   levelName: 'Pattern Hunters',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['y-to-i'],
   reviewConcepts: ['er-est', 'plural-sounds', 'plural-y-ies'],
   activities: [

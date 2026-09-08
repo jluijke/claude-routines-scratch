@@ -11,7 +11,7 @@ export const exercise5: Exercise = {
   title: 'Baby to Babies',
   level: 1,
   levelName: 'Sound Detectives',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['plural-y-ies'],
   reviewConcepts: [],
   activities: [

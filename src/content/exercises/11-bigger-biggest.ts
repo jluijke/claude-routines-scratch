@@ -10,7 +10,7 @@ export const exercise11: Exercise = {
   title: 'Bigger, Biggest',
   level: 2,
   levelName: 'Pattern Hunters',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['er-est'],
   reviewConcepts: ['plural-sounds', 'ed-endings', 'consonant-doubling'],
   activities: [

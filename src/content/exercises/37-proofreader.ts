@@ -11,7 +11,7 @@ export const exercise37: Exercise = {
   title: 'Proofreader',
   level: 5,
   levelName: 'Spelling Detectives',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['proofreading'],
   reviewConcepts: ['australian-spelling', 'word-roots', 'homophone-proofreading'],
   activities: [

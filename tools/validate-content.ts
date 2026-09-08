@@ -26,7 +26,7 @@ import {
   unreachableDoors,
 } from '../src/game/world/analysis'
 import { ITEMS, SECRET_SHOP, VILLAGE_SHOP } from '../src/game/items'
-import { buildQueue } from '../src/spelling/scheduler'
+import { buildQueue, MAX_QUESTIONS } from '../src/spelling/scheduler'
 import { emptyMasteryStore } from '../src/spelling/mastery'
 import { expectedAnswer } from '../src/spelling/grading'
 import { Rng } from '../src/core/rng'
@@ -98,8 +98,14 @@ for (const exercise of EXERCISES) {
       `${where}: estimated ${Math.round(queue.estimatedSeconds / 60 * 10) / 10} min against a ${exercise.targetMinutes} min target`,
     )
   }
-  if (queue.trimmed > 0) {
-    warn(`${where}: ${queue.trimmed} authored activities did not fit and were trimmed to make room for review`)
+  // Length: the cap the child actually feels. Trimming is no longer worth a
+  // warning — it is how the cap is enforced, and an author writing sixteen
+  // activities for one lesson is writing spares, not a sixteen-question sit.
+  if (queue.questions.length > MAX_QUESTIONS) {
+    fail(`${where}: asks ${queue.questions.length} questions; the cap is ${MAX_QUESTIONS}`)
+  }
+  if (queue.questions.length < 4) {
+    warn(`${where}: only ${queue.questions.length} questions — check the time estimates for its activity types`)
   }
 
   // Words used must exist in the bank, so hints and audio have something to

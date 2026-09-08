@@ -6,7 +6,7 @@ export const exercise20: Exercise = {
   title: 'Full or Empty?',
   level: 3,
   levelName: 'Word Engineers',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['suffix-ful-less'],
   reviewConcepts: ['prefix-meaning', 'prefix-mis-dis-pre', 'ly-suffix'],
   activities: [

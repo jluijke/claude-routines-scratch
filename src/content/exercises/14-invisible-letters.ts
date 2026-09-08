@@ -11,7 +11,7 @@ export const exercise14: Exercise = {
   title: 'Invisible Letters',
   level: 2,
   levelName: 'Pattern Hunters',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['silent-letters'],
   reviewConcepts: ['ly-suffix', 'y-to-i', 'consonant-doubling'],
   activities: [

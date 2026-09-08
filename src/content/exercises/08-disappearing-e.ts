@@ -11,7 +11,7 @@ export const exercise8: Exercise = {
   title: 'The Disappearing E',
   level: 1,
   levelName: 'Sound Detectives',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['drop-silent-e'],
   reviewConcepts: ['consonant-doubling', 'compound-words', 'plural-s-es'],
   activities: [

@@ -13,7 +13,7 @@ export const exercise40: Exercise = {
   title: 'The Spelling Mystery',
   level: 5,
   levelName: 'Spelling Detectives',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['mixed-mastery'],
   reviewConcepts: [
     'spellcheck-limits',

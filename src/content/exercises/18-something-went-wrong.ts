@@ -10,7 +10,7 @@ export const exercise18: Exercise = {
   title: 'Something Went Wrong',
   level: 3,
   levelName: 'Word Engineers',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['prefix-mis-dis-pre'],
   reviewConcepts: ['prefix-re-un', 'tch-ch', 'silent-letters'],
   activities: [

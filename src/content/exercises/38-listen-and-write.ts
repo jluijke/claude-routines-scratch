@@ -11,7 +11,7 @@ export const exercise38: Exercise = {
   title: 'Listen and Write',
   level: 5,
   levelName: 'Spelling Detectives',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['sentence-dictation'],
   reviewConcepts: ['proofreading', 'australian-spelling', 'schwa'],
   activities: [

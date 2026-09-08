@@ -12,7 +12,7 @@ export const exercise4: Exercise = {
   levelName: 'Sound Detectives',
   // Seven, not eight: the type-the-missing-word questions came out and this
   // lesson is honestly shorter for it, rather than padded back up with filler.
-  targetMinutes: 7,
+  targetMinutes: 5,
   concepts: ['plural-s-es'],
   reviewConcepts: [],
   activities: [

@@ -6,7 +6,7 @@ export const exercise26: Exercise = {
   title: 'To, Too or Two?',
   level: 4,
   levelName: 'Meaning Masters',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['homophones-to-too-two'],
   reviewConcepts: ['homophones-there', 'word-families', 'suffix-ness'],
   activities: [

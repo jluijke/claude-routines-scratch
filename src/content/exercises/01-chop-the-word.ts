@@ -11,7 +11,7 @@ export const exercise1: Exercise = {
   title: 'Chop the Word',
   level: 1,
   levelName: 'Sound Detectives',
-  targetMinutes: 5,
+  targetMinutes: 4,
   concepts: ['syllables'],
   reviewConcepts: [],
   activities: [

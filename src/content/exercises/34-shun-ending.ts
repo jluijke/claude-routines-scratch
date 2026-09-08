@@ -6,7 +6,7 @@ export const exercise34: Exercise = {
   title: 'The /shun/ Ending',
   level: 5,
   levelName: 'Spelling Detectives',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['tion-ending'],
   reviewConcepts: ['soft-c-g', 'two-way-splitting', 'suffix-ment'],
   activities: [

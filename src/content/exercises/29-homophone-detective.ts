@@ -11,7 +11,7 @@ export const exercise29: Exercise = {
   title: 'Homophone Detective',
   level: 4,
   levelName: 'Meaning Masters',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['homophone-proofreading'],
   reviewConcepts: ['homophones-more', 'apostrophe-pairs', 'homophones-there'],
   activities: [

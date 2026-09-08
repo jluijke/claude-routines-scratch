@@ -10,7 +10,7 @@ export const exercise19: Exercise = {
   title: 'Above and Below',
   level: 3,
   levelName: 'Word Engineers',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['prefix-meaning'],
   reviewConcepts: ['prefix-mis-dis-pre', 'prefix-re-un', 'dge-ge'],
   activities: [

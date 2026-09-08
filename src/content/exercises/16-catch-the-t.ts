@@ -10,7 +10,7 @@ export const exercise16: Exercise = {
   title: 'Catch the T',
   level: 2,
   levelName: 'Pattern Hunters',
-  targetMinutes: 10,
+  targetMinutes: 6,
   concepts: ['tch-ch'],
   reviewConcepts: ['dge-ge', 'silent-letters', 'y-to-i'],
   activities: [
