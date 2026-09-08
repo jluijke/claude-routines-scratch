@@ -4,10 +4,11 @@
  * play on more than one machine.
  */
 import type { ItemId } from '../game/items'
+import type { PetKind } from '../game/pets'
 import { emptyMasteryStore, type MasteryStore } from '../spelling/mastery'
 
 const STORAGE_KEY = 'zsq.save'
-export const SAVE_VERSION = 4
+export const SAVE_VERSION = 5
 
 export interface SaveData {
   version: number
@@ -35,11 +36,32 @@ export interface SaveData {
     takenChests: string[]
     visitedScreens: string[]
     /**
-     * How many more screens the dog stays for. Zero means no dog — either he
-     * has not met it yet, or it has already run off. Kept in the save so
-     * closing the tab does not quietly lose a friend mid-walk.
+     * The animal walking with him, chosen at the pet cave. Absent until he has
+     * been in and picked one; changing his mind there overwrites it.
      */
-    dogScreensLeft: number
+    pet?: PetKind
+    /**
+     * Screens of fight left in the animal after a feed. Counted down on every
+     * change of screen, so a sack of food buys the screen he is on and the one
+     * after it, and then the animal goes back to trotting along.
+     */
+    petFedScreens: number
+    /**
+     * Overworld screens entered since the last sack appeared. Caves and
+     * dungeons do not count, and neither does re-entering a screen he has
+     * already seen — walking back to the square four times is four screens.
+     */
+    screensSinceFood: number
+    /** A sack lying out there waiting for him, once one has appeared. */
+    foodTile?: { screen: string; col: number; row: number }
+    /** Which of the six grammar rules the next sack will teach. */
+    grammarRule: number
+    /**
+     * Grammar questions already asked, so the four in front of him are almost
+     * never four he has just done. Trimmed to the recent past, not kept
+     * forever: the pools are deep but they are not infinite.
+     */
+    grammarAsked: string[]
     /**
      * Cracked walls blown open and bushes burned away, as "screenId:col,row".
      * A wall he has opened must stay open — nothing is more annoying than
@@ -91,7 +113,10 @@ export function newSave(): SaveData {
       takenChests: [],
       visitedScreens: [],
       brokenTiles: [],
-      dogScreensLeft: 0,
+      petFedScreens: 0,
+      screensSinceFood: 0,
+      grammarRule: 0,
+      grammarAsked: [],
     },
     spelling: {
       completedExercises: [],
@@ -138,6 +163,21 @@ const MIGRATIONS: Record<number, Migration> = {
     data['world'] = world
     return data
   },
+
+  // 4 -> 5: the two waiting dogs became a pet cave where he chooses his own
+  // animal, and animal food that makes it fight. A save from before this does
+  // not inherit a pet, because choosing one is the whole point; any dog that
+  // was mid-walk has simply trotted off, which is what they always did.
+  4: (data) => {
+    const world = (data['world'] as Record<string, unknown>) ?? {}
+    delete world['dogScreensLeft']
+    if (typeof world['petFedScreens'] !== 'number') world['petFedScreens'] = 0
+    if (typeof world['screensSinceFood'] !== 'number') world['screensSinceFood'] = 0
+    if (typeof world['grammarRule'] !== 'number') world['grammarRule'] = 0
+    if (!Array.isArray(world['grammarAsked'])) world['grammarAsked'] = []
+    data['world'] = world
+    return data
+  },
 }
 
 export function migrate(raw: Record<string, unknown>): SaveData {
@@ -160,7 +200,10 @@ export function withDefaults(data: Record<string, unknown>): SaveData {
   merged.inventory = { ...base.inventory, ...(data['inventory'] as object) }
   merged.world = { ...base.world, ...(data['world'] as object) }
   merged.world.brokenTiles = merged.world.brokenTiles ?? []
-  merged.world.dogScreensLeft = merged.world.dogScreensLeft ?? 0
+  merged.world.petFedScreens = merged.world.petFedScreens ?? 0
+  merged.world.screensSinceFood = merged.world.screensSinceFood ?? 0
+  merged.world.grammarRule = merged.world.grammarRule ?? 0
+  merged.world.grammarAsked = merged.world.grammarAsked ?? []
   merged.spelling = { ...base.spelling, ...(data['spelling'] as object) }
   merged.spelling.mastery = merged.spelling.mastery ?? emptyMasteryStore()
   merged.spelling.mastery.concepts = merged.spelling.mastery.concepts ?? {}

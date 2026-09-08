@@ -103,14 +103,7 @@ export interface Screen {
   /** An item lying on the ground, picked up by walking over it. */
   pickup?: Pickup
   /** Opens the shop interface on entry. */
-  shop?: 'village' | 'secret' | 'smith' | 'castaway'
-  /**
-   * A dog waiting here, if one does. Each has its own id, so each is met once
-   * and independently — there are two in the world, and finding the second
-   * after losing the first is meant to be a small surprise rather than a
-   * puzzle about where the first one went.
-   */
-  dog?: { id: string; col: number; row: number }
+  shop?: 'village' | 'secret' | 'smith' | 'castaway' | 'pets'
 }
 
 const AUTHORED: Screen[] = [
@@ -277,7 +270,7 @@ const AUTHORED: Screen[] = [
       'TTTTTTT==TTTTTTT',
       'T......,,......T',
       'T..RR.....RR...T',
-      'T..RR.....RR...T',
+      'T..CR.....RR...T',
       'T..............T',
       'T....,....,....T',
       'T..............T',
@@ -285,8 +278,10 @@ const AUTHORED: Screen[] = [
       'TTTTTTT..TTTTTTT',
     ],
     exits: { up: 'forest-3', down: 'village-square' },
-    // The first dog, one screen from the village, where he will be found early.
-    dog: { id: 'dog-village', col: 11, row: 8 },
+    // The mouth in the rocks is the pet cave. Deliberately not hidden: this is
+    // the one place in the world where a nine-year-old gets to choose
+    // something purely because he likes it, and a secret would keep him from it.
+    portals: [{ col: 3, row: 5, to: 'pet-cave', spawnCol: 7, spawnRow: 8 }],
     gates: [
       {
         gateId: 'village-north-seal',
@@ -303,6 +298,40 @@ const AUTHORED: Screen[] = [
   },
 
   // ------------------------------------------------------------- interiors
+  {
+    // The pet cave, in the rocks by the North Gate. Not dark and not gated:
+    // one screen from the square, walk in, choose an animal, walk out with it.
+    // He can come back and change his mind as often as he likes.
+    id: 'pet-cave',
+    name: 'The Pet Cave',
+    region: 'Village',
+    rows: [
+      '################',
+      '#..............#',
+      '#..RR......RR..#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..RR......RR..#',
+      '#..............#',
+      '#..............#',
+      '#######..#######',
+      '#######..#######',
+    ],
+    exits: {},
+    shop: 'pets',
+    portals: [{ col: 7, row: 10, to: 'village-north', spawnCol: 3, spawnRow: 6 }],
+    props: [
+      {
+        sprite: 'shopkeeper',
+        col: 7,
+        row: 3,
+        talk:
+          'They all want to come with you. Pick the one you like the look of — ' +
+          'and if you change your mind, come back and pick another.',
+      },
+    ],
+  },
   {
     id: 'shop-interior',
     name: 'The Village Shop',
@@ -713,9 +742,6 @@ const AUTHORED: Screen[] = [
       'TTTTTTT..TTTTTTT',
     ],
     exits: { up: 'waterfall', down: 'river-bridge', left: 'graveyard-1' },
-    // The second dog, four screens out on the riverbank — far enough that
-    // losing the first one has had time to sting.
-    dog: { id: 'dog-river', col: 12, row: 2 },
     gates: [
       { gateId: 'river-north-seal', col: 2, row: 4, guards: 'left', opens: [{ col: 2, row: 4 }] },
     ],

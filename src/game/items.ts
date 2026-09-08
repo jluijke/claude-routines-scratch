@@ -28,6 +28,7 @@ export type ItemId =
   | 'recoveryHeart'
   | 'heartContainer'
   | 'map'
+  | 'animalFood'
 
 export type ItemCategory = 'sword' | 'shield' | 'tunic' | 'tool' | 'consumable' | 'ring'
 
@@ -221,6 +222,14 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     // No price, so no shopkeeper can stock it. There is one, it is under a
     // rock on the Forest Path, and a bomb is the only way to it.
     description: 'Every place you have been, drawn as you found it. Press M.',
+  },
+  animalFood: {
+    id: 'animalFood',
+    name: 'Animal Food',
+    category: 'consumable',
+    // No price: it is never sold. Sacks turn up in the open every few screens
+    // and are earned by answering four questions about a grammar rule.
+    description: 'Your animal fights beside you until you have left the next place behind.',
   },
 }
 

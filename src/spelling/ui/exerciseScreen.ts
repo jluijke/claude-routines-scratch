@@ -24,6 +24,12 @@ export interface ExerciseScreenOptions {
   onConceptProved?: (concept: string) => void
   onComplete: (exercise: Exercise) => void
   /**
+   * Skips the rule reveal at the end. For the grammar challenges, which state
+   * their rule *before* the questions — repeating it afterwards would turn a
+   * four-question errand into a lecture.
+   */
+  skipReveal?: boolean
+  /**
    * Lets the child walk away. The barrier stays shut and the exercise starts
    * again from the beginning next time — an abandoned run proves nothing — but
    * he is never stuck in front of a door he cannot face today.
@@ -281,6 +287,10 @@ export function mountExerciseScreen(
 
   function finish(): void {
     sfx.play('fanfare')
+    if (options.skipReveal) {
+      options.onComplete(engine.exercise)
+      return
+    }
     clear(screen)
     showRuleReveal(screen, engine.exercise, () => options.onComplete(engine.exercise))
   }

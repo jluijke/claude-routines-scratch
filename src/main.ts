@@ -25,6 +25,10 @@ import { showBossVictory } from './game/ui/victory'
 import { showDiscovery } from './game/ui/discovery'
 import { mapLayout } from './game/render/map'
 import { showShop, type ShopKind } from './game/ui/shop'
+import { showPetShop } from './game/ui/petShop'
+import { drawGrammar, GRAMMAR_QUESTIONS } from './content/grammar'
+import { showRulePreview } from './spelling/ui/rulePreview'
+import { Rng } from './core/rng'
 import { showHelp } from './game/ui/help'
 import { gateById, type Gate } from './game/gates'
 import { ITEMS } from './game/items'
@@ -179,6 +183,7 @@ function enterWorld(): void {
     onDefeat: () => handleDefeat(),
     onMessage: () => {},
     onHelp: () => openHelp(),
+    onFoodOffer: () => offerFood(),
     onDiscovery: (found) => {
       world?.setPaused(true)
       persist()
@@ -335,7 +340,10 @@ function startHalfChallenge(gate: Gate): void {
   startShortChallenge(gate, {
     ...source,
     title: 'A short challenge',
-    targetMinutes: Math.max(2, Math.round(source.targetMinutes / 2)),
+    // Halved by the question list below, not by the clock. Halving the minutes
+    // as well made the time budget the binding constraint once exercises came
+    // down to six minutes, and a "half exercise" quietly became a third of one.
+    targetMinutes: source.targetMinutes,
     // No concepts to prove: the engine would otherwise top the queue back up
     // with a mastery question for each one, and half an exercise would quietly
     // become most of an exercise. Mastery is the curriculum's job, not the
@@ -390,6 +398,130 @@ function startReviewChallenge(gate: Gate): void {
   }
 
   startShortChallenge(gate, challenge)
+}
+
+// ------------------------------------------------------------- animal food
+
+/**
+ * The barrier a sack of food puts up. Not in `gates.ts` with the others: those
+ * are places in the world, and each is opened once and remembered. This one
+ * turns up wherever the sack does, and again the next time.
+ */
+const FOOD_GATE: Gate = {
+  id: 'animal-food',
+  kind: 'food',
+  message:
+    'A sack of animal food, sitting in the open. Your friend has already ' +
+    'noticed it. There is a note tied to the string.',
+  openMessage: 'The sack is yours.',
+  reward: {},
+  optional: true,
+  challenge: 'grammar',
+}
+
+/** He stepped onto a sack. Ask first — he may be down to his last heart. */
+function offerFood(): void {
+  world?.setPaused(true)
+  showGatePrompt(root, {
+    gate: FOOD_GATE,
+    isReview: true,
+    onAccept: () => startFoodChallenge(),
+    onDecline: () => {
+      world?.declineFood()
+      world?.setPaused(false)
+    },
+  })
+}
+
+/**
+ * One grammar rule, stated first, then four questions on it.
+ *
+ * Deliberately not a spelling exercise: it teaches before it tests, it never
+ * counts towards the forty, and it is over in a minute. The rules come round in
+ * turn and the questions are drawn away from the ones he saw last time, so a
+ * child who feeds his animal all afternoon meets all six rules and very few
+ * repeats.
+ */
+function startFoodChallenge(): void {
+  primeAudio()
+  music.stop()
+  teardownWorldCanvasOnly()
+
+  const rng = new Rng(`grammar-${state.world.grammarRule}-${Date.now()}`)
+  const { rule, questions } = drawGrammar(
+    state.world.grammarRule,
+    state.world.grammarAsked,
+    (list) => rng.shuffle(list),
+  )
+
+  // The next sack teaches the next rule, and these questions are held back
+  // from the next few draws. Remembered now rather than on completion, so
+  // walking away from one does not mean seeing it again immediately.
+  state.world.grammarRule = (state.world.grammarRule + 1) % 6
+  state.world.grammarAsked = [
+    ...questions.map((q) => q.id),
+    ...state.world.grammarAsked,
+  ].slice(0, 24)
+  persist()
+
+  const challenge: Exercise = {
+    id: 0,
+    title: rule.title,
+    level: 1,
+    levelName: 'Animal food',
+    targetMinutes: 2,
+    // No concepts to prove: the engine would otherwise keep going until each
+    // was answered unaided, and four questions is four questions.
+    concepts: [],
+    activities: questions,
+    reviewConcepts: [],
+    ruleReveal: { title: rule.title, text: rule.text, examples: rule.examples },
+  }
+
+  clear(root)
+  teardownExerciseScreen()
+  showRulePreview(
+    root,
+    { title: rule.title, text: rule.text, examples: rule.examples, questions: GRAMMAR_QUESTIONS },
+    () => runFoodQuestions(challenge),
+  )
+}
+
+function runFoodQuestions(challenge: Exercise): void {
+  const engine = new ExerciseEngine({
+    exercise: challenge,
+    concepts: CONCEPTS,
+    bank: WORD_BANK,
+    mastery: state.spelling.mastery,
+    seed: `food-${Date.now()}`,
+  })
+  activeEngine = engine
+
+  clear(root)
+  teardownExerciseScreen()
+  activeScreen = mountExerciseScreen(root, {
+    engine,
+    bank: WORD_BANK,
+    speech,
+    // The rule was on the panel before the questions; saying it again after
+    // would turn a short errand into a lecture.
+    skipReveal: true,
+    onComplete: () => {
+      state.pacing.exerciseSeconds += creditSeconds(engine.elapsedSeconds())
+      activeEngine = undefined
+      enterWorld()
+      world?.takeFood()
+      persist()
+    },
+    onExit: () => {
+      state.pacing.exerciseSeconds += creditSeconds(engine.elapsedSeconds())
+      activeEngine = undefined
+      persist()
+      enterWorld()
+      // The sack stays where it is. He can come back to it.
+      world?.declineFood()
+    },
+  })
 }
 
 /**
@@ -491,6 +623,21 @@ let openShopPanel: { close: () => void; refresh: () => void } | undefined
 
 function openShop(kind: ShopKind): void {
   world?.setPaused(true)
+  if (kind === 'pets') {
+    openShopPanel = showPetShop(root, {
+      chosen: state.world.pet,
+      onChoose: (pet) => {
+        state.world.pet = pet
+        persist()
+      },
+      onClose: () => {
+        openShopPanel = undefined
+        world?.setPaused(false)
+        persist()
+      },
+    })
+    return
+  }
   openShopPanel = showShop(root, {
     kind,
     save: state,
@@ -609,6 +756,11 @@ function openParentDashboard(): void {
       world?.refreshFromSave()
       world?.equipBest()
       persist()
+    },
+    onDropFood: () => {
+      const dropped = world?.dropFood() ?? false
+      if (dropped) persist()
+      return dropped
     },
     onClose: () => {
       world?.setPaused(false)

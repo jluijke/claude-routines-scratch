@@ -12,7 +12,7 @@ import type { SaveData } from '../../core/save'
 import { sfx } from '../../core/audio/sfx'
 import { itemIcon, spriteCanvas } from '../render/icons'
 
-export type ShopKind = 'village' | 'secret' | 'smith' | 'castaway'
+export type ShopKind = 'village' | 'secret' | 'smith' | 'castaway' | 'pets'
 
 const SMITH_STOCK: ItemId[] = ['metalSword', 'bronzeSword', 'goldenSword']
 
@@ -40,6 +40,7 @@ const TITLES: Record<ShopKind, string> = {
   secret: 'A Hidden Trader',
   smith: 'The Smithy',
   castaway: 'The Castaway',
+  pets: 'The Pet Cave',
 }
 
 const GREETINGS: Record<ShopKind, string> = {
@@ -48,6 +49,9 @@ const GREETINGS: Record<ShopKind, string> = {
   smith: '"I forge blades. Bring me rupees and a steady mind."',
   castaway:
     'He does not look up. "Everyone who comes here needs the same thing, and I am the only one selling it. Three hundred. I am not sorry."',
+  // Unused: the pet cave has its own panel, because choosing a friend is not
+  // shopping. Here so the tables stay complete rather than optional.
+  pets: '"They all want to come with you. Pick the one you like the look of."',
 }
 
 export interface ShopOptions {

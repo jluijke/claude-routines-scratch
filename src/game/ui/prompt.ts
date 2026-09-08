@@ -22,6 +22,7 @@ const KIND_LABEL: Record<GateKind, string> = {
   shop: 'The shopkeeper wants proof',
   wall: 'Something is hidden behind here',
   smith: 'At the forge',
+  food: 'A sack of animal food',
 }
 
 export interface PromptOptions {
@@ -43,7 +44,9 @@ export function showGatePrompt(root: HTMLElement, options: PromptOptions): () =>
       ? 'Two quick words'
       : options.gate.challenge === 'half'
         ? 'A short challenge'
-        : 'A quick challenge'
+        : options.gate.challenge === 'grammar'
+          ? 'One rule, then four questions'
+          : 'A quick challenge'
     : `Exercise ${options.exerciseNumber}: ${options.exerciseTitle}`
 
   const accept = button(options.isReview ? 'Take the challenge' : 'Open it', () => {

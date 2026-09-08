@@ -136,6 +136,52 @@ describe('schema migration', () => {
     expect(migrated.spelling.completedExercises).toEqual([1, 2])
   })
 
+  it('turns a version 4 save from the days of the wandering dogs into a pet save', () => {
+    const old = {
+      version: 4,
+      player: { rupees: 400, maxHearts: 8 },
+      world: {
+        openedGates: ['forest-seal'],
+        defeatedBosses: ['d1-boss-room'],
+        // A dog was walking along with him when the game was updated.
+        dogScreensLeft: 2,
+        takenChests: ['dog-village'],
+        visitedScreens: ['forest-2'],
+        brokenTiles: [],
+      },
+      spelling: { completedExercises: [1, 2, 3], mastery: { concepts: {} }, paidConcepts: [] },
+      pacing: { playSeconds: 900, exerciseSeconds: 900 },
+    }
+    const migrated = migrate(old as unknown as Record<string, unknown>)
+
+    expect(migrated.version).toBe(SAVE_VERSION)
+    // No animal until he walks into the cave and chooses one: that choice is
+    // the whole point, and inheriting a dog would take it away from him.
+    expect(migrated.world.pet).toBeUndefined()
+    expect(migrated.world.petFedScreens).toBe(0)
+    expect(migrated.world.screensSinceFood).toBe(0)
+    expect(migrated.world.grammarRule).toBe(0)
+    expect(migrated.world.grammarAsked).toEqual([])
+    expect('dogScreensLeft' in migrated.world).toBe(false)
+    // And nothing he earned has gone.
+    expect(migrated.player.rupees).toBe(400)
+    expect(migrated.world.defeatedBosses).toEqual(['d1-boss-room'])
+    expect(migrated.spelling.completedExercises).toEqual([1, 2, 3])
+  })
+
+  it('keeps the animal and its food across a save and load', () => {
+    const data = newSave()
+    data.world.pet = 'kangaroo'
+    data.world.petFedScreens = 2
+    data.world.foodTile = { screen: 'forest-1', col: 4, row: 6 }
+    data.world.grammarRule = 3
+    const restored = migrate(JSON.parse(JSON.stringify(data)) as Record<string, unknown>)
+    expect(restored.world.pet).toBe('kangaroo')
+    expect(restored.world.petFedScreens).toBe(2)
+    expect(restored.world.foodTile).toEqual({ screen: 'forest-1', col: 4, row: 6 })
+    expect(restored.world.grammarRule).toBe(3)
+  })
+
   it('keeps the paid-concepts list across a save and load', () => {
     const data = newSave()
     data.spelling.paidConcepts.push('syllables', 'ee-sound')

@@ -14,7 +14,7 @@ export function makeAnswerer(page) {
    */
   async function expected() {
     return page.evaluate(async () => {
-      const [{ expectedAnswer }, { WORD_BANK }, { EXERCISES }, { CONCEPTS }, { INTRO_CANDLE }] =
+      const [{ expectedAnswer }, { WORD_BANK }, { EXERCISES }, { CONCEPTS }, { INTRO_CANDLE }, { GRAMMAR_RULES }] =
         await Promise.all([
           import('/src/spelling/grading.ts'),
           import('/src/content/words.ts'),
@@ -23,6 +23,8 @@ export function makeAnswerer(page) {
           // Deliberately not in EXERCISES — it is the shopkeeper's two
           // questions, and must never count as a curriculum exercise.
           import('/src/content/exercises/intro-candle.ts'),
+          // Nor are these: the grammar rules behind a sack of animal food.
+          import('/src/content/grammar.ts'),
         ])
       const shown = document.querySelector('.activity')?.dataset?.questionId
       if (!shown) return null
@@ -33,6 +35,7 @@ export function makeAnswerer(page) {
         ...INTRO_CANDLE.activities,
         ...EXERCISES.flatMap((e) => e.activities),
         ...[...CONCEPTS.values()].flatMap((c) => c.reviewPool),
+        ...GRAMMAR_RULES.flatMap((r) => r.questions),
       ]
       const question = pool.find((q) => q.id === base)
       if (!question) return null

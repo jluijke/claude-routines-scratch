@@ -20,6 +20,7 @@ export type GateKind =
   | 'shop' // the shopkeeper wants proof of skill
   | 'wall' // a cracked wall hiding something
   | 'smith' // forging the next sword
+  | 'food' // a sack of animal food lying in the open
 
 export interface Reward {
   rupees?: number
@@ -50,8 +51,10 @@ export interface Gate {
    *  'intro' — the shopkeeper's two questions, before his first candle.
    *  'half'  — half the length of a real exercise, for side content that
    *            should cost something without costing a whole lesson.
+   *  'grammar' — a grammar rule explained first, then four questions on it.
+   *            What a sack of animal food costs.
    */
-  challenge?: 'intro' | 'half'
+  challenge?: 'intro' | 'half' | 'grammar'
 }
 
 const GATE_LIST: Gate[] = [

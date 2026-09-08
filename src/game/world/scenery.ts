@@ -43,7 +43,6 @@ function protectedTiles(screen: Screen): Set<string> {
   for (const prop of screen.props ?? []) add(prop.col, prop.row)
   if (screen.treasure) add(screen.treasure.col, screen.treasure.row)
   if (screen.pickup) add(screen.pickup.col, screen.pickup.row)
-  if (screen.dog) add(screen.dog.col, screen.dog.row)
   return keep
 }
 
@@ -110,7 +109,6 @@ export function roughen(screen: Screen): Screen {
   for (const portal of screen.portals ?? []) mustReach.push(portal)
   if (screen.treasure) mustReach.push(screen.treasure)
   if (screen.pickup) mustReach.push(screen.pickup)
-  if (screen.dog) mustReach.push(screen.dog)
 
   const at = (col: number, row: number): TileChar => ((rows[row] ?? '')[col] ?? '#') as TileChar
   const set = (col: number, row: number, char: string): void => {

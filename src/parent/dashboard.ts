@@ -34,6 +34,8 @@ export interface DashboardOptions {
   onReset: () => void
   /** Hand over an item, or every item, for testing. */
   onGrant: (items: ItemId[]) => void
+  /** Leaves a sack of animal food on the screen he is standing on. */
+  onDropFood: () => boolean
   onClose: () => void
 }
 
@@ -155,6 +157,15 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
     grantNote.textContent = `Added all ${sellable.length} items, and 999 rupees.`
   }, { class: 'btn btn-quiet' })
 
+  // Animal food turns up on its own every four screens above ground, which is
+  // a long way to walk when what you want is to see the grammar questions.
+  const dropFood = button('Drop animal food here', () => {
+    const where = options.onDropFood()
+    grantNote.textContent = where
+      ? 'A sack is on this screen. Walk onto it.'
+      : 'Nowhere to put one here — he needs an animal first, and to be above ground.'
+  }, { class: 'btn btn-quiet' })
+
   // --- the voice ---------------------------------------------------------
   //
   // Which voices exist differs on every machine, and how good they sound cannot
@@ -216,7 +227,7 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
       ]),
 
       el('h3', {}, ['Testing kit']),
-      el('div', { class: 'dash-actions' }, [grantSelect, grantOne, grantAll]),
+      el('div', { class: 'dash-actions' }, [grantSelect, grantOne, grantAll, dropFood]),
       grantNote,
       skipNote,
 

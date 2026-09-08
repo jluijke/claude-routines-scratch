@@ -19,13 +19,15 @@ import { drawBarriers, drawDarkness, drawGlimmers, drawSpeech, drawTiles, themeF
 import { itemSprite } from './render/icons'
 import { Enemy, isBossKind, overlaps, type Projectile } from './entities/enemies'
 import { Player, PLAYER_SIZE, type Facing } from './entities/player'
-import { SCREEN_COLS, SCREEN_H, SCREEN_W, TILE, TILES, isSolidChar, toTile, type TileChar } from './world/tiles'
+import { SCREEN_COLS, SCREEN_H, SCREEN_ROWS, SCREEN_W, TILE, TILES, isSolidChar, toTile, type TileChar } from './world/tiles'
 import { screenById, SCREENS, START_SCREEN, type EnemyKind, type Screen } from './world/screens'
-import { stepBackFromGate } from './world/analysis'
+import { overworldLayout, stepBackFromGate } from './world/analysis'
 import { gateById, type Gate } from './gates'
 import { isTool, ITEMS, materialOf, TOOL_SLOT, type ItemId } from './items'
 import { dropMultiplier, opensFreely } from './pacing'
 import type { SaveData } from '../core/save'
+import { petByKind } from './pets'
+import type { ShopKind } from './ui/shop'
 import { TOTAL_EXERCISES } from '../content/exercises'
 
 /** What the sign says when a dungeon guardian falls. */
@@ -44,7 +46,7 @@ export interface WorldCallbacks {
   /** The hero touched a sealed barrier. Resolve true once it should open. */
   onGate: (gate: Gate) => void
   /** The hero walked into a shop. */
-  onShop: (kind: 'village' | 'secret' | 'smith' | 'castaway') => void
+  onShop: (kind: ShopKind) => void
   /** Something worth saving happened. */
   onChange: () => void
   /** The hero ran out of hearts. */
@@ -57,6 +59,8 @@ export interface WorldCallbacks {
   onBossDefeated: (win: BossVictory) => void
   /** He picked something up off the ground and held it over his head. */
   onDiscovery: (found: { item: ItemId; message: string }) => void
+  /** He stepped onto a sack of animal food. Ask, then run the four questions. */
+  onFoodOffer: () => void
 }
 
 interface Drop {
@@ -132,63 +136,76 @@ interface Discovery {
 const DISCOVERY_FRAMES = 110
 
 /**
- * The dog.
+ * The animal.
  *
- * He waits on one of two screens, joins whoever says hello, trots along behind
- * for a few screens and picks fights with anything he can see, and then goes.
- * He is not a pet and he does not come back — which is the point of him. He
- * will not go near a dungeon guardian, and nothing in the game depends on him.
+ * Chosen in the pet cave and kept. It walks with him everywhere above ground,
+ * and waits outside anything he goes into or flies over rather than following
+ * him down a hole. It fights only when it has been fed, never a dungeon
+ * guardian, and nothing in the game depends on it.
  */
-interface Dog {
+interface Pet {
   x: number
   y: number
   facing: Facing
-  /** Frames until he can bite again. */
+  /** Frames until it can bite again. */
   cooldown: number
-  /** Set once he has decided to leave; he heads for the nearest edge. */
-  leaving: boolean
   /**
-   * True until he has been put beside the hero. A screen is loaded before the
-   * hero is placed on it, so a dog positioned at load time appears wherever the
-   * hero was standing on the *last* screen — usually the far side of the room.
+   * True until it has been put beside the hero. A screen is loaded before the
+   * hero is placed on it, so an animal positioned at load time appears wherever
+   * the hero was standing on the *last* screen — usually the far side.
    */
   pending: boolean
-  /** True while he is running something down, rather than trotting along. */
+  /** True while it is running something down, rather than trotting along. */
   hunting: boolean
-  /** How far off his quarry was last tick, for spotting a hopeless charge. */
+  /** How far off its quarry was last tick, for spotting a hopeless charge. */
   lastGap: number
   /** Frames of charging without gaining ground — a tree is in the way. */
   stuck: number
-  /** Frames left of sulking after a charge he could not finish. */
+  /** Frames left of sulking after a charge it could not finish. */
   giveUp: number
 }
 
-/** How many screens he stays for after the one where they meet. */
-const DOG_SCREENS = 2
-const DOG_SPEED = 46
-/** He trots along about this far behind, and stops when he is close enough. */
-const DOG_FOLLOW_GAP = 18
-const DOG_BITE_RANGE = 13
-const DOG_BITE_DAMAGE = 1
-const DOG_BITE_COOLDOWN = 34
-/** How near the hero has to be before the dog decides to come along. */
-const DOG_HELLO_RANGE = 26
 /**
- * How far off he spots something and goes for it. Wide enough that he picks a
- * fight across half a room rather than waiting to be walked into one.
+ * Screens of fight one sack of food buys: the screen he takes it on, and the
+ * next one. Spent on every change of screen.
  */
-const DOG_HUNT_RANGE = 88
+const PET_FED_SCREENS = 2
+const PET_SPEED = 46
+/** It trots along about this far behind, and stops when it is close enough. */
+const PET_FOLLOW_GAP = 18
+const PET_BITE_RANGE = 13
+const PET_BITE_DAMAGE = 1
+const PET_BITE_COOLDOWN = 34
 /**
- * ...but he will not chase past this far from the hero. He is an escort, not a
- * loose dog: a companion who runs off to the far corner stops reading as one.
+ * How far off it spots something and goes for it, once fed. Wide enough that
+ * it picks a fight across half a room rather than waiting to be walked into one.
  */
-const DOG_LEASH = 120
+const PET_HUNT_RANGE = 88
+/**
+ * ...but it will not chase past this far from the hero. It is an escort, not a
+ * loose animal: a companion who runs off to the far corner stops reading as one.
+ */
+const PET_LEASH = 120
 /** A charge is a run, not a trot — a shade quicker than the hero can walk. */
-const DOG_CHARGE_SPEED = 72
-/** Frames of charging with no ground gained before he writes that one off. */
-const DOG_STUCK_FRAMES = 40
-/** And how long he sticks with the hero afterwards before trying again. */
-const DOG_GIVE_UP_FRAMES = 70
+const PET_CHARGE_SPEED = 72
+/** Frames of charging with no ground gained before it writes that one off. */
+const PET_STUCK_FRAMES = 40
+/** And how long it sticks with the hero afterwards before trying again. */
+const PET_GIVE_UP_FRAMES = 70
+
+/**
+ * Overworld screens entered between one sack of animal food and the next.
+ * Counted on arrival, so the fourth screen he walks onto has one waiting.
+ */
+const FOOD_EVERY = 4
+
+/**
+ * The screens the animal walks on, and the ones the food appears on: every
+ * screen he can *walk* to from the village. Everything else — caves, dungeon
+ * rooms, shop interiors, the island across the water — is through a door or
+ * over water, and that is exactly where the animal waits behind.
+ */
+const OVERWORLD = new Set(overworldLayout().cells.keys())
 
 /**
  * The rooms with a guardian in them, in map order. Derived rather than written
@@ -247,8 +264,12 @@ export class World {
   private mapOpen = false
   /** Set from the moment he picks something up until the sign is dismissed. */
   private discovery: Discovery | undefined
-  /** The dog, once he is on this screen — waiting to be met, or following. */
-  private dog: Dog | undefined
+  /** The animal, on the screens it comes to. */
+  private pet: Pet | undefined
+  /** True while the questions for a sack of food are being asked. */
+  private foodOffered = false
+  /** He said no to a sack; do not ask again until he steps off it. */
+  private foodDeclined = false
   private message = ''
   private messageTimer = 0
   /** Barrier the hero is standing against, if any. */
@@ -465,6 +486,10 @@ export class World {
   private loadScreen(id: string, remember = true): void {
     const next = screenById(id)
     if (!next) return
+    // Everything the animal counts is counted per screen *arrived at*, not per
+    // load: reloading the room he is already in must not spend the food he just
+    // earned, nor bring the next sack a screen closer.
+    const arrived = remember && this.screen?.id !== id
     this.screen = next
     this.enemies = []
     this.projectiles = []
@@ -479,7 +504,8 @@ export class World {
     this.victory = undefined
     this.discovery = undefined
     this.mapOpen = false
-    this.placeDog(next, remember)
+    this.placePet(next, arrived)
+    if (arrived) this.considerFood(next)
     this.transition = 12
 
     const cleared = this.save.world.defeatedBosses
@@ -667,6 +693,7 @@ export class World {
     this.checkGateContact(opened)
     this.checkTreasure()
     this.checkPickup()
+    this.checkFood()
     this.checkPortals()
     this.checkEdges()
 
@@ -676,7 +703,7 @@ export class World {
     }
 
     this.resolveCombat()
-    this.updateDog(step)
+    this.updatePet(step)
     this.updateProjectiles(step)
     this.updateDrops(step)
     this.updateBombs(step)
@@ -855,6 +882,134 @@ export class World {
     this.projectiles = []
     this.player.invulnerable = Math.max(this.player.invulnerable, DISCOVERY_FRAMES)
     this.discovery = { frames: DISCOVERY_FRAMES, item: pickup.item, message: pickup.message }
+    this.callbacks.onChange()
+  }
+
+  // ------------------------------------------------------------ animal food
+
+  /** The sack lying on this screen, if there is one here. */
+  private foodHere(): { col: number; row: number } | undefined {
+    const food = this.save.world.foodTile
+    if (!food || food.screen !== this.screen.id) return undefined
+    return { col: food.col, row: food.row }
+  }
+
+  /**
+   * Leaves a sack of food out every few screens.
+   *
+   * Counted on arrival and only above ground, so walking back into the village
+   * square four times earns one as surely as walking four screens out into the
+   * forest does — which matters, because a child who is stuck somewhere hard
+   * should still be able to earn his animal a fight.
+   *
+   * One sack at a time. Until he has taken the one that is out there, no more
+   * appear: otherwise a child who walks past three of them has three exercises
+   * queued up behind him, which is a debt rather than a treat.
+   */
+  private considerFood(next: Screen): void {
+    if (!this.save.world.pet) return
+    if (!OVERWORLD.has(next.id)) return
+    if (this.save.world.foodTile) return
+
+    this.save.world.screensSinceFood += 1
+    if (this.save.world.screensSinceFood < FOOD_EVERY) return
+
+    const spot = this.freeTile(next)
+    if (!spot) return
+    this.save.world.screensSinceFood = 0
+    this.save.world.foodTile = { screen: next.id, col: spot.col, row: spot.row }
+    this.showMessage('A sack of animal food is lying in the open.')
+  }
+
+  /**
+   * Somewhere on this screen to leave a sack. Away from the edges he walks in
+   * through, and off anything that already means something — a door, a
+   * barrier, a chest, the sword in the grass.
+   */
+  private freeTile(screen: Screen): { col: number; row: number } | undefined {
+    const taken = (col: number, row: number): boolean =>
+      (screen.portals ?? []).some((p) => p.col === col && p.row === row) ||
+      // The barrier's own tile as well as everything it opens: several
+      // placements list only the tiles that swing open, and a sack dropped on
+      // one of those put the barrier's prompt in front of the food's.
+      (screen.gates ?? []).some((g) =>
+        [{ col: g.col, row: g.row }, ...(g.opens ?? [])].some((t) => t.col === col && t.row === row),
+      ) ||
+      (screen.props ?? []).some((p) => p.col === col && p.row === row) ||
+      (screen.pickup?.col === col && screen.pickup?.row === row) ||
+      (screen.treasure?.col === col && screen.treasure?.row === row)
+
+    const options: { col: number; row: number }[] = []
+    for (let row = 2; row < SCREEN_ROWS - 2; row++) {
+      for (let col = 2; col < SCREEN_COLS - 2; col++) {
+        if (taken(col, row)) continue
+        const x = col * TILE + (TILE - PLAYER_SIZE) / 2
+        const y = row * TILE + (TILE - PLAYER_SIZE) / 2
+        if (this.wouldOverlap(x, y)) continue
+        options.push({ col, row })
+      }
+    }
+    return this.rng.pick(options)
+  }
+
+  /** Walking onto the sack offers the questions that earn it. */
+  private checkFood(): void {
+    const food = this.foodHere()
+    if (!food || this.foodOffered) return
+    const body = { x: this.player.x, y: this.player.y, w: PLAYER_SIZE, h: PLAYER_SIZE }
+    if (!overlaps(body, { x: food.col * TILE, y: food.row * TILE, w: TILE, h: TILE })) {
+      // Stepped off it: he may be asked again next time he walks over it.
+      this.foodDeclined = false
+      return
+    }
+    if (this.foodDeclined) return
+    this.foodOffered = true
+    this.callbacks.onFoodOffer()
+  }
+
+  /**
+   * Leaves a sack on this screen now, for the parent testing kit. Waiting four
+   * screens to see the grammar questions is not a reasonable way to check them.
+   */
+  dropFood(): boolean {
+    if (!this.save.world.pet) return false
+    if (!OVERWORLD.has(this.screen.id)) return false
+    const spot = this.freeTile(this.screen)
+    if (!spot) return false
+    this.save.world.foodTile = { screen: this.screen.id, col: spot.col, row: spot.row }
+    this.save.world.screensSinceFood = 0
+    this.foodDeclined = false
+    this.callbacks.onChange()
+    return true
+  }
+
+  /** He said no. Leave the sack where it is and stop asking until he moves. */
+  declineFood(): void {
+    this.foodOffered = false
+    this.foodDeclined = true
+    this.input.clearTarget()
+  }
+
+  /**
+   * He answered the four questions. The sack goes up over his head like
+   * everything else worth finding, and the animal is dangerous until he has
+   * left the next screen behind.
+   */
+  takeFood(): void {
+    this.foodOffered = false
+    this.foodDeclined = false
+    this.save.world.foodTile = undefined
+    this.save.world.petFedScreens = PET_FED_SCREENS
+    sfx.play('itemGet')
+    this.projectiles = []
+    this.player.invulnerable = Math.max(this.player.invulnerable, DISCOVERY_FRAMES)
+    this.discovery = {
+      frames: DISCOVERY_FRAMES,
+      item: 'animalFood',
+      message:
+        'You hold up a sack of animal food. Your friend has already smelled it — ' +
+        'and it is going to fight anything that comes near you.',
+    }
     this.callbacks.onChange()
   }
 
@@ -1273,7 +1428,15 @@ export class World {
       this.atlas.draw(ctx, burst.kind === 'explosion' ? 'explosion' : 'flame', burst.x, burst.y)
     }
 
-    this.drawDog(ctx)
+    // The sack, bobbing a little so it reads as something to walk to rather
+    // than part of the scenery.
+    const food = this.foodHere()
+    if (food) {
+      const bob = Math.floor(this.frame / 18) % 2 === 0 ? 0 : 1
+      this.atlas.draw(ctx, 'animalFood', food.col * TILE, food.row * TILE - bob)
+    }
+
+    this.drawPet(ctx)
 
     if (this.flight) this.drawFlight(ctx)
     else if (this.victory) this.drawVictoryHero(ctx)
@@ -1383,45 +1546,35 @@ export class World {
   }
 
   /**
-   * Puts the dog on the screen, if he belongs on it.
+   * Puts the animal on the screen, if this is a screen it comes to.
    *
-   * Two cases: he is waiting to be met, or he is already walking with the hero.
-   * A dog already along for the walk spends one of his screens on arrival, and
-   * on the last one he turns up only to run off it.
+   * Above ground it is always there. Underground and across the water it is
+   * not, and it does not need to be told to wait: it is simply back at his
+   * heel on the next screen he can walk to, which is what waiting outside a
+   * cave looks like from a nine-year-old's seat.
+   *
+   * Arriving somewhere new is also what spends a fed animal's fight, and what
+   * counts towards the next sack of food.
    */
-  private placeDog(next: Screen, remember: boolean): void {
-    this.dog = undefined
+  private placePet(next: Screen, remember: boolean): void {
+    this.pet = undefined
+    const kind = this.save.world.pet
+    if (!kind) return
 
-    if (this.save.world.dogScreensLeft > 0) {
-      // Only a real change of screen costs him a screen — a reload should not.
-      if (remember) this.save.world.dogScreensLeft -= 1
-      this.dog = {
-        x: 0,
-        y: 0,
-        facing: 'down',
-        cooldown: 0,
-        leaving: this.save.world.dogScreensLeft <= 0,
-        pending: true,
-        hunting: false,
-        lastGap: Infinity,
-        stuck: 0,
-        giveUp: 0,
-      }
-      if (this.dog.leaving) this.showMessage('The dog barks once, and trots away up the road.')
-      return
+    // Only a real change of screen counts — a reload or a respawn must not
+    // spend the food he just earned, or advance him towards the next sack.
+    if (remember && this.save.world.petFedScreens > 0) {
+      this.save.world.petFedScreens -= 1
     }
 
-    // One dog at a time: if one is already walking with him, the other stays
-    // put and is still there to be found later.
-    if (!next.dog) return
-    if (this.save.world.takenChests.includes(next.dog.id)) return
-    this.dog = {
-      x: next.dog.col * TILE + 2,
-      y: next.dog.row * TILE + 2,
+    if (!OVERWORLD.has(next.id)) return
+
+    this.pet = {
+      x: 0,
+      y: 0,
       facing: 'down',
       cooldown: 0,
-      leaving: false,
-      pending: false,
+      pending: true,
       hunting: false,
       lastGap: Infinity,
       stuck: 0,
@@ -1430,26 +1583,26 @@ export class World {
   }
 
   /**
-   * The dog: waits, then follows, fights, and goes.
+   * The animal: follows, and fights when it has been fed.
    *
-   * He keeps his distance rather than standing on the hero, runs down anything
-   * that is not a dungeon guardian, and leaves by the nearest edge when his
-   * time is up. He cannot be hurt — a companion a nine-year-old can lose to a
-   * stray arrow is a companion that makes the game worse.
+   * It keeps its distance rather than standing on the hero. Fed, it runs down
+   * anything that is not a dungeon guardian; unfed it just comes along, which
+   * is what makes a sack of food worth stopping for. It cannot be hurt — a
+   * companion a nine-year-old can lose to a stray arrow is a companion that
+   * makes the game worse.
    */
-  private updateDog(step: number): void {
-    const dog = this.dog
-    if (!dog) return
-    const waiting = this.screen.dog
-    const following = this.save.world.dogScreensLeft > 0
+  private updatePet(step: number): void {
+    const pet = this.pet
+    if (!pet) return
+    const fed = this.save.world.petFedScreens > 0
     const blocked = this.blockedHere()
     const hero = this.player.centre()
 
     // First tick on a new screen: fall in beside the hero, wherever he ended up.
-    if (dog.pending) {
-      dog.pending = false
-      dog.x = hero.x - 14
-      dog.y = hero.y + 6
+    if (pet.pending) {
+      pet.pending = false
+      pet.x = hero.x - 14
+      pet.y = hero.y + 6
     }
 
     const move = (dx: number, dy: number, speed: number): void => {
@@ -1457,61 +1610,27 @@ export class World {
       if (length === 0) return
       const stepX = (dx / length) * speed * step
       const stepY = (dy / length) * speed * step
-      if (!blocked(dog.x + stepX + 6, dog.y + 8)) dog.x += stepX
-      if (!blocked(dog.x + 6, dog.y + stepY + 8)) dog.y += stepY
-      if (Math.abs(dx) > Math.abs(dy)) dog.facing = dx > 0 ? 'right' : 'left'
-      else dog.facing = dy > 0 ? 'down' : 'up'
+      if (!blocked(pet.x + stepX + 6, pet.y + 8)) pet.x += stepX
+      if (!blocked(pet.x + 6, pet.y + stepY + 8)) pet.y += stepY
+      if (Math.abs(dx) > Math.abs(dy)) pet.facing = dx > 0 ? 'right' : 'left'
+      else pet.facing = dy > 0 ? 'down' : 'up'
     }
 
-    if (dog.leaving) {
-      // Out by whichever edge is nearest, and then he is gone for good.
-      const toLeft = dog.x
-      const toRight = SCREEN_W - dog.x
-      const toTop = dog.y
-      const toBottom = SCREEN_H - dog.y
-      const nearest = Math.min(toLeft, toRight, toTop, toBottom)
-      const dx = nearest === toLeft ? -1 : nearest === toRight ? 1 : 0
-      const dy = nearest === toTop ? -1 : nearest === toBottom ? 1 : 0
-      // Straight out, ignoring the scenery — he knows the way and it is his
-      // last few seconds on screen.
-      dog.x += dx * DOG_SPEED * 1.4 * step
-      dog.y += dy * DOG_SPEED * 1.4 * step
-      if (dx !== 0) dog.facing = dx > 0 ? 'right' : 'left'
-      else dog.facing = dy > 0 ? 'down' : 'up'
-      if (dog.x < -20 || dog.x > SCREEN_W + 20 || dog.y < -20 || dog.y > SCREEN_H + 20) {
-        this.dog = undefined
-      }
-      return
-    }
-
-    if (!following) {
-      // Waiting. Say hello by walking up to him.
-      const gap = Math.hypot(hero.x - (dog.x + 6), hero.y - (dog.y + 8))
-      if (gap <= DOG_HELLO_RANGE && waiting) {
-        this.save.world.takenChests.push(waiting.id)
-        this.save.world.dogScreensLeft = DOG_SCREENS + 1
-        sfx.play('bark')
-        this.showMessage('The little dog decides you are worth following. He falls in behind you.')
-        this.callbacks.onChange()
-      }
-      return
-    }
-
-    // He picks the fight rather than waiting to be walked into one: anything he
-    // can see from here, and that the hero has not already left far behind, he
-    // runs at. Never a guardian, though — a dog that could chip away at a boss
-    // would take the fight off the child.
-    if (dog.cooldown > 0) dog.cooldown -= 1
-    if (dog.giveUp > 0) dog.giveUp -= 1
-    const snout = { x: dog.x + 6, y: dog.y + 8 }
+    // Fed, it picks the fight rather than waiting to be walked into one:
+    // anything it can see from here, and that the hero has not already left far
+    // behind, it runs at. Never a guardian, though — an animal that could chip
+    // away at a boss would take the fight off the child.
+    if (pet.cooldown > 0) pet.cooldown -= 1
+    if (pet.giveUp > 0) pet.giveUp -= 1
+    const snout = { x: pet.x + 6, y: pet.y + 8 }
     let quarry: Enemy | undefined
-    let closest = DOG_HUNT_RANGE
-    if (dog.giveUp === 0) {
+    let closest = PET_HUNT_RANGE
+    if (fed && pet.giveUp === 0) {
       for (const enemy of this.enemies) {
         if (enemy.isBoss) continue
         const at = enemy.centre()
-        // Out of the hero's half of the room is out of the dog's business.
-        if (Math.hypot(at.x - hero.x, at.y - hero.y) > DOG_LEASH) continue
+        // Out of the hero's half of the room is out of the animal's business.
+        if (Math.hypot(at.x - hero.x, at.y - hero.y) > PET_LEASH) continue
         const gap = Math.hypot(at.x - snout.x, at.y - snout.y)
         if (gap < closest) {
           closest = gap
@@ -1521,29 +1640,29 @@ export class World {
     }
 
     if (quarry) {
-      // One bark as he sets off, so the child hears him decide.
-      if (!dog.hunting) {
-        dog.hunting = true
-        dog.lastGap = Infinity
-        dog.stuck = 0
+      // One cry as it sets off, so the child hears it decide.
+      if (!pet.hunting) {
+        pet.hunting = true
+        pet.lastGap = Infinity
+        pet.stuck = 0
         sfx.play('bark')
       }
       // A charge that gains no ground is a charge into a tree. Rather than
-      // scrabbling there for the rest of the screen, he writes that one off and
+      // scrabbling there for the rest of the screen, it writes that one off and
       // goes back to the hero for a moment.
-      if (closest >= dog.lastGap - 0.25) dog.stuck += 1
-      else dog.stuck = 0
-      dog.lastGap = closest
-      if (dog.stuck > DOG_STUCK_FRAMES) {
-        dog.hunting = false
-        dog.giveUp = DOG_GIVE_UP_FRAMES
+      if (closest >= pet.lastGap - 0.25) pet.stuck += 1
+      else pet.stuck = 0
+      pet.lastGap = closest
+      if (pet.stuck > PET_STUCK_FRAMES) {
+        pet.hunting = false
+        pet.giveUp = PET_GIVE_UP_FRAMES
       } else {
         const at = quarry.centre()
-        move(at.x - snout.x, at.y - snout.y, DOG_CHARGE_SPEED)
-        if (closest <= DOG_BITE_RANGE && dog.cooldown === 0) {
-          dog.cooldown = DOG_BITE_COOLDOWN
+        move(at.x - snout.x, at.y - snout.y, PET_CHARGE_SPEED)
+        if (closest <= PET_BITE_RANGE && pet.cooldown === 0) {
+          pet.cooldown = PET_BITE_COOLDOWN
           sfx.play('bark')
-          if (quarry.hurt(DOG_BITE_DAMAGE)) {
+          if (quarry.hurt(PET_BITE_DAMAGE)) {
             sfx.play('enemyHit')
             if (quarry.isDead()) this.defeat(quarry)
           }
@@ -1552,35 +1671,52 @@ export class World {
       }
     }
 
-    dog.hunting = false
-    dog.lastGap = Infinity
+    pet.hunting = false
+    pet.lastGap = Infinity
     const dx = hero.x - snout.x
     const dy = hero.y - snout.y
-    if (Math.hypot(dx, dy) > DOG_FOLLOW_GAP) move(dx, dy, DOG_SPEED)
+    if (Math.hypot(dx, dy) > PET_FOLLOW_GAP) move(dx, dy, PET_SPEED)
   }
 
-  /** Trotting, with a shadow so he sits on the ground rather than floating. */
-  private drawDog(ctx: CanvasRenderingContext2D): void {
-    const dog = this.dog
-    if (!dog) return
+  /**
+   * Trotting, with a shadow so it sits on the ground rather than floating, and
+   * a sparkle over it while the food is in it.
+   */
+  private drawPet(ctx: CanvasRenderingContext2D): void {
+    const pet = this.pet
+    const def = petByKind(this.save.world.pet)
+    if (!pet || !def) return
     ctx.save()
     ctx.globalAlpha = 0.3
     ctx.fillStyle = '#0a1a3a'
-    ctx.fillRect(Math.round(dog.x) + 2, Math.round(dog.y) + 13, 12, 2)
+    ctx.fillRect(Math.round(pet.x) + 2, Math.round(pet.y) + 13, 12, 2)
     ctx.restore()
-    // Quicker legs when he is running something down than when he is trotting.
-    const trotting = Math.floor(this.frame / (dog.hunting ? 4 : 7)) % 2 === 0
-    const sprite: SpriteName = trotting ? 'dogA' : 'dogB'
-    if (dog.facing === 'left') {
+
+    // Quicker legs when it is running something down than when trotting.
+    const beat = Math.floor(this.frame / (pet.hunting ? 4 : 7)) % 2 === 0
+    const sprite = beat ? def.frames[0] : def.frames[1]
+    if (pet.facing === 'left') {
       // Mirrored by flipping the context, so one drawing faces both ways.
       ctx.save()
-      ctx.translate(Math.round(dog.x) + 16, Math.round(dog.y))
+      ctx.translate(Math.round(pet.x) + 16, Math.round(pet.y))
       ctx.scale(-1, 1)
       this.atlas.draw(ctx, sprite, 0, 0)
       ctx.restore()
-      return
+    } else {
+      this.atlas.draw(ctx, sprite, pet.x, pet.y)
     }
-    this.atlas.draw(ctx, sprite, dog.x, dog.y)
+
+    // Fed: a couple of sparks over it, so "my animal is dangerous right now" is
+    // something he can see rather than something he has to remember.
+    if (this.save.world.petFedScreens > 0) {
+      const bob = Math.sin(this.frame / 6) * 1.5
+      ctx.save()
+      ctx.fillStyle = '#e8bb2c'
+      ctx.fillRect(Math.round(pet.x) + 6, Math.round(pet.y - 3 + bob), 2, 2)
+      ctx.fillRect(Math.round(pet.x) + 11, Math.round(pet.y - 5 - bob), 1, 1)
+      ctx.fillRect(Math.round(pet.x) + 2, Math.round(pet.y - 5 - bob), 1, 1)
+      ctx.restore()
+    }
   }
 
   /** The sign has been read: he lowers it and carries on. */
@@ -1861,15 +1997,17 @@ export class World {
       flying: this.flight !== undefined,
       mapOpen: this.mapOpen,
       discovering: this.discovery !== undefined,
-      dog: this.dog
+      pet: this.pet
         ? {
-            x: Math.round(this.dog.x),
-            y: Math.round(this.dog.y),
-            leaving: this.dog.leaving,
-            hunting: this.dog.hunting,
+            kind: this.save.world.pet,
+            x: Math.round(this.pet.x),
+            y: Math.round(this.pet.y),
+            hunting: this.pet.hunting,
           }
         : undefined,
-      dogScreensLeft: this.save.world.dogScreensLeft,
+      petFedScreens: this.save.world.petFedScreens,
+      screensSinceFood: this.save.world.screensSinceFood,
+      food: this.foodHere(),
       x: Math.round(this.player.x),
       y: Math.round(this.player.y),
       facing: this.player.facing,
