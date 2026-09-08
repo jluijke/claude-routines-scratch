@@ -40,6 +40,8 @@ const homes = await page.evaluate(async () => {
   const { SCREENS } = await import('/src/game/world/screens.ts')
   return SCREENS.filter((s) => s.pickup?.item === 'potion').map((s) => ({
     screen: s.id,
+    id: s.pickup.id,
+    region: s.region,
     col: s.pickup.col,
     row: s.pickup.row,
     char: s.rows[s.pickup.row][s.pickup.col],
@@ -47,6 +49,9 @@ const homes = await page.evaluate(async () => {
 })
 check('there are two potions in the world', homes.length === 2)
 check('each is inside a tree that burns', homes.every((h) => h.char === 'p'))
+check('and they are not on the same screen', homes[0]?.screen !== homes[1]?.screen)
+check('nor in the same region, so finding one is no help with the other',
+  homes[0]?.region !== homes[1]?.region)
 
 // --------------------------------------------------------- sealed until burned
 for (const home of homes) {
@@ -78,7 +83,7 @@ await page.evaluate(() => {
 await goTo(home.screen, home.col, home.row + 1)
 await page.waitForTimeout(1200)
 check('standing against the tree does not take the bottle through it',
-  (await page.evaluate(() => window.zsq.state.world.takenChests.includes('forest-potion'))) === false)
+  (await page.evaluate((id) => window.zsq.state.world.takenChests.includes(id), home.id)) === false)
 check('and nothing has been drunk', (await page.evaluate(() => window.zsq.state.world.invisibleScreens)) === 0)
 check('and no sign has gone up', !(await page.$('.found-panel')))
 

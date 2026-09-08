@@ -623,7 +623,7 @@ const AUTHORED: Screen[] = [
       'T......,,......T',
       'TTTTTTT==TTTTTTT',
       'T..............T',
-      'T..Tp.....TT...T',
+      'T..TT.....TT...T',
       'T..............T',
       'T..T........T..T',
       'T..............T',
@@ -632,16 +632,6 @@ const AUTHORED: Screen[] = [
       'TTTTTTT..TTTTTTT',
     ],
     exits: { up: 'forest-6', down: 'forest-3' },
-    // The second one, deeper in — the right-hand tree of the western pair.
-    pickup: {
-      id: 'warden-potion',
-      col: 4,
-      row: 4,
-      item: 'potion',
-      message:
-        'The tree goes up like dry grass and a bottle rolls out at your feet. ' +
-        'You drink it, and even your shadow thins out.',
-    },
     gates: [
       { gateId: 'forest-seal-3', col: 13, row: 8 },
       { gateId: 'forest-seal-2', col: 7, row: 2, guards: 'up', opens: [{ col: 7, row: 2 }, { col: 8, row: 2 }] },
@@ -1031,10 +1021,23 @@ const AUTHORED: Screen[] = [
       'T..###########.T',
       'T....*....*....T',
       'T......===.....T',
-      'T..............T',
+      'T..........p...T',
       'TTTTTTTTTTTTTTTT',
     ],
     exits: { up: 'graveyard-1' },
+    // The second potion, and a long way from the first: another region
+    // entirely, past two sealed barriers, in the corner where the woods grow
+    // in thickest behind the crypt. Something is glinting at the foot of one
+    // of the trees.
+    pickup: {
+      id: 'graveyard-potion',
+      col: 11,
+      row: 9,
+      item: 'potion',
+      message:
+        'The tree goes up like dry grass and a bottle rolls out at your feet, ' +
+        'colder than the air around it. You drink it, and even your shadow thins out.',
+    },
     gates: [
       { gateId: 'graveyard-crypt', col: 8, row: 3, opens: [{ col: 8, row: 3 }] },
       {
