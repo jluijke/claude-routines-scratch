@@ -8,7 +8,7 @@ import type { PetKind } from '../game/pets'
 import { emptyMasteryStore, type MasteryStore } from '../spelling/mastery'
 
 const STORAGE_KEY = 'zsq.save'
-export const SAVE_VERSION = 5
+export const SAVE_VERSION = 6
 
 export interface SaveData {
   version: number
@@ -54,6 +54,11 @@ export interface SaveData {
     screensSinceFood: number
     /** A sack lying out there waiting for him, once one has appeared. */
     foodTile?: { screen: string; col: number; row: number }
+    /**
+     * Screens of being unseeable left after drinking a potion, counted down on
+     * every arrival — above ground and below it alike.
+     */
+    invisibleScreens: number
     /** Which of the six grammar rules the next sack will teach. */
     grammarRule: number
     /**
@@ -115,6 +120,7 @@ export function newSave(): SaveData {
       brokenTiles: [],
       petFedScreens: 0,
       screensSinceFood: 0,
+      invisibleScreens: 0,
       grammarRule: 0,
       grammarAsked: [],
     },
@@ -178,6 +184,15 @@ const MIGRATIONS: Record<number, Migration> = {
     data['world'] = world
     return data
   },
+
+  // 5 -> 6: two vanishing potions, hidden inside trees that burn. A save from
+  // before this has not found either, and is not part-way through one.
+  5: (data) => {
+    const world = (data['world'] as Record<string, unknown>) ?? {}
+    if (typeof world['invisibleScreens'] !== 'number') world['invisibleScreens'] = 0
+    data['world'] = world
+    return data
+  },
 }
 
 export function migrate(raw: Record<string, unknown>): SaveData {
@@ -202,6 +217,7 @@ export function withDefaults(data: Record<string, unknown>): SaveData {
   merged.world.brokenTiles = merged.world.brokenTiles ?? []
   merged.world.petFedScreens = merged.world.petFedScreens ?? 0
   merged.world.screensSinceFood = merged.world.screensSinceFood ?? 0
+  merged.world.invisibleScreens = merged.world.invisibleScreens ?? 0
   merged.world.grammarRule = merged.world.grammarRule ?? 0
   merged.world.grammarAsked = merged.world.grammarAsked ?? []
   merged.spelling = { ...base.spelling, ...(data['spelling'] as object) }

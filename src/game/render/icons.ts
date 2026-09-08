@@ -75,6 +75,8 @@ export function itemSprite(id: ItemId): SpriteName {
       return 'worldMap'
     case 'animalFood':
       return 'animalFood'
+    case 'potion':
+      return 'potion'
     default:
       return 'heart'
   }

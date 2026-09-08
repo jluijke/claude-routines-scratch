@@ -27,6 +27,7 @@ export type TileChar =
   | '=' // sealed gate — opened by an exercise
   | '*' // statue
   | 'X' // cracked wall — blow it open with a bomb
+  | 'p' // a tree with something glinting in it — burn it with the candle
 
 export interface TileDef {
   solid: boolean
@@ -58,6 +59,9 @@ export const TILES: Record<TileChar, TileDef> = {
   '=': { solid: true, colour: '#79838f', accent: '#57d2c6' },
   '*': { solid: true, colour: '#8a8478', accent: '#a8a294' },
   X: { solid: true, cracked: true, colour: '#6f685c', accent: '#4a453c' },
+  // A tree, and solid like one — but it burns, and there is something in it.
+  // Only a corner of the bottle shows, which is the whole point of hiding it.
+  p: { solid: true, bush: true, colour: '#1f5c26', accent: '#2e7a33' },
 }
 
 export function tileAt(rows: readonly string[], col: number, row: number): TileChar {

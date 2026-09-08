@@ -187,6 +187,8 @@ function drawTile(
       return bridge(ctx, x, y, p)
     case 'T':
       return theme === 'overworld' ? tree(ctx, x, y, p) : block(ctx, x, y, col, row, p)
+    case 'p':
+      return hidingTree(ctx, x, y, p)
     case 'R':
       return cliff(ctx, x, y, col, row, p, line, screen)
     case '#':
@@ -283,6 +285,23 @@ function tree(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): 
       ctx.fillRect(x + col, y + row, 1, 1)
     }
   }
+}
+
+/**
+ * A tree with something in it.
+ *
+ * The same tree, with the neck and shoulder of a bottle showing at its foot —
+ * a couple of pixels of glass and a cork. Not a marker: from across the screen
+ * it is a tree, and it is meant to be found by someone who is looking.
+ */
+function hidingTree(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
+  tree(ctx, x, y, p)
+  ctx.fillStyle = '#2a2f3d'
+  ctx.fillRect(x + 6, y + 10, 4, 5)
+  ctx.fillStyle = '#9a55d1'
+  ctx.fillRect(x + 7, y + 11, 2, 4)
+  ctx.fillStyle = '#c9a86a'
+  ctx.fillRect(x + 7, y + 9, 2, 1)
 }
 
 /**

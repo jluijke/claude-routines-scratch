@@ -15,7 +15,7 @@ import { Atlas } from './render/atlas'
 import type { SpriteName } from './render/sprites'
 import { drawHud, HUD_H } from './render/hud'
 import { drawWorldMap } from './render/map'
-import { drawBarriers, drawDarkness, drawGlimmers, drawSpeech, drawTiles, themeFor } from './render/world'
+import { drawBarriers, drawDarkness, drawGlimmers, drawSpeech, drawTiles, themeFor, visibleTile } from './render/world'
 import { itemSprite } from './render/icons'
 import { Enemy, isBossKind, overlaps, type Projectile } from './entities/enemies'
 import { Player, PLAYER_SIZE, type Facing } from './entities/player'
@@ -210,6 +210,11 @@ const PET_SPOTS: [number, number][] = [
   [-14, 6], [14, 6], [-14, -6], [14, -6],
   [-16, 0], [16, 0], [0, 14], [0, -14],
 ]
+
+/**
+ * Screens a potion lasts: the one he drinks it on, and the two after it.
+ */
+const INVISIBLE_SCREENS = 3
 
 /**
  * Overworld screens entered between one sack of animal food and the next.
@@ -524,6 +529,13 @@ export class World {
     this.mapOpen = false
     this.placePet(next, arrived)
     if (arrived) this.considerFood(next)
+    // Underground counts too: the potion is three places, not three fields.
+    if (arrived && this.save.world.invisibleScreens > 0) {
+      this.save.world.invisibleScreens -= 1
+      if (this.save.world.invisibleScreens === 0) {
+        this.showMessage('The potion wears off. They can see you again.')
+      }
+    }
     this.transition = 12
 
     const cleared = this.save.world.defeatedBosses
@@ -715,7 +727,9 @@ export class World {
     this.checkPortals()
     this.checkEdges()
 
-    const target = this.player.centre()
+    // While a potion holds, nothing has a fix on him: the monsters steer for
+    // the middle of the room and shoot at where he is not.
+    const target = this.unseen() ? { x: SCREEN_W / 2, y: SCREEN_H / 2 } : this.player.centre()
     for (const enemy of this.enemies) {
       enemy.update(step, target, blocked, (p) => this.projectiles.push(p))
     }
@@ -883,12 +897,20 @@ export class World {
     const pickup = this.screen.pickup
     if (!pickup) return
     if (this.save.world.takenChests.includes(pickup.id)) return
+    // Still sealed inside something — a potion in a tree that has not been
+    // burned. Overlap alone used to be enough, so standing next to the tree
+    // took the bottle straight through it, and the one thing the potion cost
+    // was nothing at all.
+    if (this.pickupHidden(pickup)) return
 
     const body = { x: this.player.x, y: this.player.y, w: PLAYER_SIZE, h: PLAYER_SIZE }
     const tile = { x: pickup.col * TILE, y: pickup.row * TILE, w: TILE, h: TILE }
     if (!overlaps(body, tile)) return
 
     this.save.world.takenChests.push(pickup.id)
+    // A potion is drunk where it is found rather than carried: it is the one
+    // thing in the game that is a moment instead of a possession.
+    if (pickup.item === 'potion') this.save.world.invisibleScreens = INVISIBLE_SCREENS
     // A second candle is no better than the first, so a tool he already owns
     // tops up to one rather than to two.
     const held = this.save.inventory[pickup.item] ?? 0
@@ -904,6 +926,11 @@ export class World {
   }
 
   // ------------------------------------------------------------ animal food
+
+  /** True while a potion is holding — nothing can see him or touch him. */
+  private unseen(): boolean {
+    return this.save.world.invisibleScreens > 0
+  }
 
   /** The sack lying on this screen, if there is one here. */
   private foodHere(): { col: number; row: number } | undefined {
@@ -1088,7 +1115,8 @@ export class World {
         }
       }
 
-      if (overlaps(playerBox, box)) {
+      // Walking through a monster is exactly that, while the potion holds.
+      if (overlaps(playerBox, box) && !this.unseen()) {
         const centre = enemy.centre()
         if (this.player.hurt(enemy.def.damage, centre.x, centre.y)) {
           sfx.play('playerHurt')
@@ -1155,7 +1183,9 @@ export class World {
       if (!shot.throughWalls && this.isSolidAt(shot.x + 4, shot.y + 4, opened, canCrossWater)) continue
 
       const box = { x: shot.x, y: shot.y, w: 8, h: 8 }
-      if (overlaps(playerBox, box)) {
+      // Straight through him, and on across the room: not blocked, not
+      // absorbed, not even a clink off the shield.
+      if (overlaps(playerBox, box) && !this.unseen()) {
         // A shield only helps if you are facing the thing that is shooting you.
         if (this.player.blocks(shot.vx, shot.vy)) {
           sfx.play('enemyHit')
@@ -1324,9 +1354,13 @@ export class World {
     })
 
     if (bush) {
+      const char = ((this.screen.rows[bush.row] ?? '')[bush.col] ?? '.') as TileChar
       this.breakTile(bush.col, bush.row)
       sfx.play('secret')
-      this.showMessage('The bush burns away.')
+      // A tree is not a bush, and one with a bottle in it deserves saying so.
+      this.showMessage(
+        char === 'p' ? 'The tree burns away, and something rolls out of it.' : 'The bush burns away.',
+      )
     } else {
       this.showMessage('The flame gutters out.', 70)
     }
@@ -1406,7 +1440,10 @@ export class World {
     }
 
     const pickup = this.screen.pickup
-    if (pickup && !this.save.world.takenChests.includes(pickup.id)) {
+    // Nothing is drawn on a tile that has not been opened yet: a potion inside
+    // a tree is inside the tree, and drawing the bottle on top of it would give
+    // away the one thing that makes it worth finding.
+    if (pickup && !this.pickupHidden(pickup) && !this.save.world.takenChests.includes(pickup.id)) {
       // Bob it gently, so a sword in the grass reads as a thing to collect.
       const bob = Math.sin(this.frame / 20) > 0 ? 0 : 1
       this.atlas.draw(ctx, itemSprite(pickup.item), pickup.col * TILE, pickup.row * TILE - bob)
@@ -1653,6 +1690,32 @@ export class World {
     // or two.
     pet.x = hero.x - 6
     pet.y = hero.y - 8
+  }
+
+  /** Is this tile solid right now, opened walls and burned trees included? */
+  debugSolidAt(col: number, row: number): boolean {
+    return this.isSolidAt(
+      col * TILE + TILE / 2,
+      row * TILE + TILE / 2,
+      this.openedTiles(),
+      this.save.inventory.wings !== undefined,
+    )
+  }
+
+  /** Whether this screen's pickup is being drawn — hidden ones are not. */
+  debugPickupShown(): boolean {
+    const pickup = this.screen.pickup
+    if (!pickup || this.save.world.takenChests.includes(pickup.id)) return false
+    return !this.pickupHidden(pickup)
+  }
+
+  /**
+   * Is this pickup still inside something? A sword lying in the grass never is;
+   * a potion inside a tree is, until the tree is burned. It is neither drawn
+   * nor collectable while it is.
+   */
+  private pickupHidden(pickup: { col: number; row: number }): boolean {
+    return isSolidChar(visibleTile(this.screen, this.openedTiles(), pickup.col, pickup.row), true)
   }
 
   /** Shoves the animal into a given tile. For the checks only. */
@@ -1974,6 +2037,22 @@ export class World {
     // Flicker while invulnerable, the classic "you just got hit" signal.
     if (this.player.invulnerable > 0 && Math.floor(this.frame / 3) % 2 === 0) return
 
+    // Barely there while the potion holds — enough to steer by, not enough to
+    // forget that something remarkable is going on.
+    if (this.unseen()) {
+      ctx.save()
+      // Faint enough to feel like cheating, solid enough to steer by: a green
+      // tunic on green grass disappears completely below about a third.
+      ctx.globalAlpha = 0.34 + 0.07 * Math.sin(this.frame / 9)
+      this.drawHeroSprites(ctx)
+      ctx.restore()
+      return
+    }
+    this.drawHeroSprites(ctx)
+  }
+
+  private drawHeroSprites(ctx: CanvasRenderingContext2D): void {
+
     const facing = this.player.facing
     const frame = this.player.animationFrame
     const way = capitalise(facing)
@@ -2134,6 +2213,10 @@ export class World {
           }
         : undefined,
       petFedScreens: this.save.world.petFedScreens,
+      invisibleScreens: this.save.world.invisibleScreens,
+      projectiles: this.projectiles.length,
+      bursts: this.bursts.length,
+      candleUsedHere: this.candleUsedHere,
       screensSinceFood: this.save.world.screensSinceFood,
       food: this.foodHere(),
       x: Math.round(this.player.x),

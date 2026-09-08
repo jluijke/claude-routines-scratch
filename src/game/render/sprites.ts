@@ -1050,6 +1050,26 @@ const GOAT_B = S([
   '................',
 ])
 
+/** The vanishing potion: a round flask of something purple, corked. */
+const POTION = S([
+  '................',
+  '.....kkkk.......',
+  '.....kcck.......',
+  '.....kcck.......',
+  '....kkcckk......',
+  '....kcccck......',
+  '...kcppppck.....',
+  '...kppppppk.....',
+  '..kcpppppppk....',
+  '..kppppppppk....',
+  '..kppwppppwk....',
+  '..kpppppppppk...',
+  '..kppppppppk....',
+  '...kkkkkkkk.....',
+  '................',
+  '................',
+])
+
 /** A sack of feed, tied at the neck, with a bone stamped on the side. */
 const ANIMAL_FOOD = S([
   '................',
@@ -1218,6 +1238,7 @@ export const SPRITES = {
   goatA: GOAT_A,
   goatB: GOAT_B,
   animalFood: ANIMAL_FOOD,
+  potion: POTION,
   ring: RING,
   tunicBlue: mapColours(TUNIC, { g: 'b', G: 'B' }),
   tunicRed: mapColours(TUNIC, { g: 'r', G: 'R' }),

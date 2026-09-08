@@ -459,8 +459,18 @@ export function unmarkedBarriers(screen: Screen, kindOf: (gateId: string) => str
 
 // ------------------------------------------------------- walled-in features
 
-/** Barriers that open, so they are not what walls a place off. */
-const OPENABLE_TILES = new Set<TileChar>(['=', 'X', ','])
+/**
+ * Barriers that open, so they are not what walls a place off. Derived from the
+ * tile table rather than listed, so a new burnable or bombable tile is counted
+ * without anyone having to remember this line — the potion trees were not, and
+ * this check said, correctly, that they could not be reached.
+ */
+const OPENABLE_TILES = new Set<TileChar>(
+  (Object.keys(TILES) as TileChar[]).filter((char) => {
+    const def = TILES[char]
+    return char === '=' || def?.cracked === true || def?.bush === true
+  }),
+)
 
 function passable(screen: Screen, col: number, row: number): boolean {
   if (col < 0 || row < 0 || col >= SCREEN_COLS || row >= SCREEN_ROWS) return false

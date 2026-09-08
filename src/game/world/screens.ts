@@ -431,7 +431,7 @@ const AUTHORED: Screen[] = [
       'T..T...T..T....T',
       'T..............T',
       '................',
-      'T..T.......T...T',
+      'T..T.......Tp..T',
       'T..............T',
       'T..,...........T',
       'T.......,......T',
@@ -439,6 +439,18 @@ const AUTHORED: Screen[] = [
       'TTTTTTTTTTTTTTTT',
     ],
     exits: { left: 'village-east', right: 'forest-2' },
+    // A bottle glinting at the foot of the tree beside the one on the right.
+    // The woods thicken round it when the screen is roughened, which is what
+    // makes it something to notice rather than something in the way.
+    pickup: {
+      id: 'forest-potion',
+      col: 12,
+      row: 5,
+      item: 'potion',
+      message:
+        'The tree burns away in one breath of flame, and a bottle is sitting in the ash, ' +
+        'still cold. You drink it. Your hands go faint, and then the rest of you.',
+    },
     // Nothing marks this bush out. Burning bushes is the point of the candle,
     // and finding this by trying is a better moment than being told.
     portals: [{ col: 8, row: 8, to: 'forest-grotto', spawnCol: 7, spawnRow: 8 }],
@@ -611,7 +623,7 @@ const AUTHORED: Screen[] = [
       'T......,,......T',
       'TTTTTTT==TTTTTTT',
       'T..............T',
-      'T..TT.....TT...T',
+      'T..Tp.....TT...T',
       'T..............T',
       'T..T........T..T',
       'T..............T',
@@ -620,6 +632,16 @@ const AUTHORED: Screen[] = [
       'TTTTTTT..TTTTTTT',
     ],
     exits: { up: 'forest-6', down: 'forest-3' },
+    // The second one, deeper in — the right-hand tree of the western pair.
+    pickup: {
+      id: 'warden-potion',
+      col: 4,
+      row: 4,
+      item: 'potion',
+      message:
+        'The tree goes up like dry grass and a bottle rolls out at your feet. ' +
+        'You drink it, and even your shadow thins out.',
+    },
     gates: [
       { gateId: 'forest-seal-3', col: 13, row: 8 },
       { gateId: 'forest-seal-2', col: 7, row: 2, guards: 'up', opens: [{ col: 7, row: 2 }, { col: 8, row: 2 }] },
