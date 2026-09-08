@@ -286,6 +286,22 @@ const html = `<title>Atlas of the Land</title>
     </div>
   </div>
 
+  <h2>His animal, and the grammar behind it</h2>
+  <p class="note">The one thing on this page that is not a place. Worth knowing about, because it is where a good deal of the grammar practice happens.</p>
+  <div class="cols">
+    <div>
+      <h3>Choosing one</h3>
+      <p>In the rocks on the left of <b>North Gate</b>, one screen north of the square, there is a cave mouth. Inside, a keeper offers six animals — dog, cat, rabbit, wombat, kangaroo, goat. They are identical in everything but looks, and he can walk back in and swap as often as he likes.</p>
+      <p>The animal follows him everywhere above ground. It waits behind when he goes into a cave or dungeon, or flies to the island, and is at his heel again the moment he is back out.</p>
+    </div>
+    <div>
+      <h3>Animal food</h3>
+      <p>A sack turns up in the open every <b>four screens</b> he walks onto above ground — going back and forth over the same two screens counts just as well as exploring. Only one is ever out at a time.</p>
+      <p>Walking onto it asks whether he wants it. Saying yes puts <b>one grammar rule</b> on screen — explained first, not withheld — and then <b>four questions</b> on that rule. Six rules take turns: capital letters and sentence endings, apostrophes in contractions, apostrophes for owning, commas in lists, verbs matching their subject, and the past tense. Each has fourteen questions, and recent ones are held back.</p>
+      <p>Earning a sack makes the animal fight monsters for the screen he is on and the next one, then it goes back to just walking along. It never touches a dungeon guardian. None of this counts towards the forty exercises.</p>
+    </div>
+  </div>
+
   <footer>Drawn from the game's own screen data, so it cannot drift from what he is playing. The map he finds in the game shows only where he has been — this one shows everything.</footer>
 </div>
 
