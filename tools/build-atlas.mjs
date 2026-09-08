@@ -297,7 +297,7 @@ const html = `<title>Atlas of the Land</title>
     <div>
       <h3>Animal food</h3>
       <p>A sack turns up in the open every <b>four screens</b> he walks onto above ground — going back and forth over the same two screens counts just as well as exploring. Only one is ever out at a time.</p>
-      <p>Walking onto it asks whether he wants it. Saying yes puts <b>one grammar rule</b> on screen — explained first, not withheld — and then <b>four questions</b> on that rule. Six rules take turns: capital letters and sentence endings, apostrophes in contractions, apostrophes for owning, commas in lists, verbs matching their subject, and the past tense. Each has fourteen questions, and recent ones are held back.</p>
+      <p>Walking onto it asks whether he wants it. Saying yes puts <b>one grammar rule</b> on screen — explained first, not withheld — and then <b>four questions</b> on that rule. Six rules take turns: plural nouns, past-tense verbs, comparing with -er and -est, the two jobs of an apostrophe, verbs matching their subject, and commas. Each has fourteen questions, and recent ones are held back.</p>
       <p>Earning a sack makes the animal fight monsters for the screen he is on and the next one, then it goes back to just walking along. It never touches a dungeon guardian. None of this counts towards the forty exercises.</p>
     </div>
   </div>

@@ -26,7 +26,7 @@ import { gateById, type Gate } from './gates'
 import { isTool, ITEMS, materialOf, TOOL_SLOT, type ItemId } from './items'
 import { dropMultiplier, opensFreely } from './pacing'
 import type { SaveData } from '../core/save'
-import { petByKind } from './pets'
+import { hopOffset, petByKind } from './pets'
 import type { ShopKind } from './ui/shop'
 import { TOTAL_EXERCISES } from '../content/exercises'
 
@@ -163,6 +163,10 @@ interface Pet {
   stuck: number
   /** Frames left of sulking after a charge it could not finish. */
   giveUp: number
+  /** Where it is in its hop, 0 to 1, for the ones that hop rather than trot. */
+  hop: number
+  /** Whether it actually got anywhere this frame. A hop needs somewhere to go. */
+  moving: boolean
 }
 
 /**
@@ -1579,6 +1583,8 @@ export class World {
       lastGap: Infinity,
       stuck: 0,
       giveUp: 0,
+      hop: 0,
+      moving: false,
     }
   }
 
@@ -1594,6 +1600,19 @@ export class World {
   private updatePet(step: number): void {
     const pet = this.pet
     if (!pet) return
+    this.stepPet(pet, step)
+
+    // The hop turns over only while it is actually getting somewhere, and
+    // resets to the ground when it stops — so a rabbit sitting beside him is
+    // sitting, not bobbing on the spot. Quicker bounds while it is charging.
+    const rate = petByKind(this.save.world.pet)?.hopRate ?? 0
+    if (rate > 0) {
+      pet.hop = pet.moving ? (pet.hop + rate * step * (pet.hunting ? 1.35 : 1)) % 1 : 0
+    }
+  }
+
+  /** Where it decides to go, and whether it bites anything on the way. */
+  private stepPet(pet: Pet, step: number): void {
     const fed = this.save.world.petFedScreens > 0
     const blocked = this.blockedHere()
     const hero = this.player.centre()
@@ -1605,13 +1624,19 @@ export class World {
       pet.y = hero.y + 6
     }
 
+    pet.moving = false
     const move = (dx: number, dy: number, speed: number): void => {
       const length = Math.hypot(dx, dy)
       if (length === 0) return
       const stepX = (dx / length) * speed * step
       const stepY = (dy / length) * speed * step
+      const wasX = pet.x
+      const wasY = pet.y
       if (!blocked(pet.x + stepX + 6, pet.y + 8)) pet.x += stepX
       if (!blocked(pet.x + 6, pet.y + stepY + 8)) pet.y += stepY
+      // Wanting to move is not moving: an animal wedged against a tree should
+      // stand there rather than hop on the spot.
+      if (pet.x !== wasX || pet.y !== wasY) pet.moving = true
       if (Math.abs(dx) > Math.abs(dy)) pet.facing = dx > 0 ? 'right' : 'left'
       else pet.facing = dy > 0 ? 'down' : 'up'
     }
@@ -1679,31 +1704,42 @@ export class World {
   }
 
   /**
-   * Trotting, with a shadow so it sits on the ground rather than floating, and
-   * a sparkle over it while the food is in it.
+   * Trotting — or hopping — with a shadow so it sits on the ground rather than
+   * floating, and a sparkle over it while the food is in it.
    */
   private drawPet(ctx: CanvasRenderingContext2D): void {
     const pet = this.pet
     const def = petByKind(this.save.world.pet)
     if (!pet || !def) return
+
+    // How far off the ground it is this frame. The shadow stays where the feet
+    // would be and shrinks as it rises, which is the whole trick: without that
+    // a hop reads as the whole animal sliding upwards.
+    const lift = def.hop ? Math.round(hopOffset(pet.hop, def.hop)) : 0
+    const shrink = def.hop ? lift / def.hop : 0
     ctx.save()
-    ctx.globalAlpha = 0.3
+    ctx.globalAlpha = 0.3 - 0.12 * shrink
     ctx.fillStyle = '#0a1a3a'
-    ctx.fillRect(Math.round(pet.x) + 2, Math.round(pet.y) + 13, 12, 2)
+    ctx.fillRect(Math.round(pet.x) + 2 + shrink, Math.round(pet.y) + 13, 12 - shrink * 2, 2)
     ctx.restore()
 
-    // Quicker legs when it is running something down than when trotting.
-    const beat = Math.floor(this.frame / (pet.hunting ? 4 : 7)) % 2 === 0
+    // A hopper's two frames are on the ground and tucked up in the air, so the
+    // pose follows the arc rather than a timer. Everything else trots, quicker
+    // when it is running something down.
+    const beat = def.hop
+      ? lift < def.hop / 3
+      : Math.floor(this.frame / (pet.hunting ? 4 : 7)) % 2 === 0
     const sprite = beat ? def.frames[0] : def.frames[1]
+    const y = pet.y - lift
     if (pet.facing === 'left') {
       // Mirrored by flipping the context, so one drawing faces both ways.
       ctx.save()
-      ctx.translate(Math.round(pet.x) + 16, Math.round(pet.y))
+      ctx.translate(Math.round(pet.x) + 16, Math.round(y))
       ctx.scale(-1, 1)
       this.atlas.draw(ctx, sprite, 0, 0)
       ctx.restore()
     } else {
-      this.atlas.draw(ctx, sprite, pet.x, pet.y)
+      this.atlas.draw(ctx, sprite, pet.x, y)
     }
 
     // Fed: a couple of sparks over it, so "my animal is dangerous right now" is
@@ -1712,9 +1748,11 @@ export class World {
       const bob = Math.sin(this.frame / 6) * 1.5
       ctx.save()
       ctx.fillStyle = '#e8bb2c'
-      ctx.fillRect(Math.round(pet.x) + 6, Math.round(pet.y - 3 + bob), 2, 2)
-      ctx.fillRect(Math.round(pet.x) + 11, Math.round(pet.y - 5 - bob), 1, 1)
-      ctx.fillRect(Math.round(pet.x) + 2, Math.round(pet.y - 5 - bob), 1, 1)
+      // Measured from where the animal is, not where the ground is, so they
+      // stay over its head through a hop.
+      ctx.fillRect(Math.round(pet.x) + 6, Math.round(y - 3 + bob), 2, 2)
+      ctx.fillRect(Math.round(pet.x) + 11, Math.round(y - 5 - bob), 1, 1)
+      ctx.fillRect(Math.round(pet.x) + 2, Math.round(y - 5 - bob), 1, 1)
       ctx.restore()
     }
   }
@@ -2003,6 +2041,11 @@ export class World {
             x: Math.round(this.pet.x),
             y: Math.round(this.pet.y),
             hunting: this.pet.hunting,
+            moving: this.pet.moving,
+            // Where it is in its hop, and how far that puts it off the ground
+            // — zero for the four that trot.
+            hop: this.pet.hop,
+            lift: hopOffset(this.pet.hop, petByKind(this.save.world.pet)?.hop ?? 0),
           }
         : undefined,
       petFedScreens: this.save.world.petFedScreens,

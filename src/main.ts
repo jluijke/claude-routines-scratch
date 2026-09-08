@@ -26,7 +26,7 @@ import { showDiscovery } from './game/ui/discovery'
 import { mapLayout } from './game/render/map'
 import { showShop, type ShopKind } from './game/ui/shop'
 import { showPetShop } from './game/ui/petShop'
-import { drawGrammar, GRAMMAR_QUESTIONS } from './content/grammar'
+import { drawGrammar, GRAMMAR_QUESTIONS, GRAMMAR_RULES } from './content/grammar'
 import { showRulePreview } from './spelling/ui/rulePreview'
 import { Rng } from './core/rng'
 import { showHelp } from './game/ui/help'
@@ -457,7 +457,7 @@ function startFoodChallenge(): void {
   // The next sack teaches the next rule, and these questions are held back
   // from the next few draws. Remembered now rather than on completion, so
   // walking away from one does not mean seeing it again immediately.
-  state.world.grammarRule = (state.world.grammarRule + 1) % 6
+  state.world.grammarRule = (state.world.grammarRule + 1) % GRAMMAR_RULES.length
   state.world.grammarAsked = [
     ...questions.map((q) => q.id),
     ...state.world.grammarAsked,

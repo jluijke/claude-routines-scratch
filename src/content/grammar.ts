@@ -13,8 +13,14 @@
  * hundred different sets of four, before the "not the ones he saw last time"
  * filter narrows it further.
  *
- * These are Year 4 conventions, and they carry their own concept ids so that
- * nothing here can be mistaken for one of the forty spelling concepts.
+ * Pitched at nine and ten, which rules out the ones a child that age has had
+ * since Year 2 — where a capital goes, where a full stop goes. What is left is
+ * the machinery that is still genuinely being learned: how plurals are built,
+ * what happens to a verb in the past, how things are compared, and the
+ * apostrophe, which is the single most-missed mark in a Year 4 book.
+ *
+ * They carry their own concept ids so that nothing here can be mistaken for one
+ * of the forty spelling concepts.
  */
 import type { Question } from '../spelling/types'
 
@@ -55,144 +61,31 @@ function pick(
   }
 }
 
-const CAPITALS: GrammarRule = {
-  id: 'grammar-capitals',
-  title: 'Where a sentence starts and stops',
+const PLURALS: GrammarRule = {
+  id: 'grammar-plurals',
+  title: 'More than one',
   text:
-    'Every sentence begins with a capital letter and ends with a full stop, a ' +
-    'question mark or an exclamation mark. Names of people and places take a ' +
-    'capital wherever they appear in the sentence.',
-  examples: [
-    'The dog barked at the gate.',
-    'Where did you put my sword?',
-    'We walked all the way to Sydney.',
-  ],
-  reminder: 'A sentence opens with a capital letter, and a name always keeps one.',
+    'Most nouns just add -s. A noun ending in s, x, ch or sh adds -es, because ' +
+    'you can hear the extra syllable. A noun ending in a consonant and then y ' +
+    'changes the y to i and adds -es. Several ending in f swap it for -ves — and ' +
+    'a handful change shape altogether.',
+  examples: ['box → boxes', 'baby → babies', 'leaf → leaves', 'child → children'],
+  reminder: 'Hissing endings take -es. A consonant before y becomes -ies. A few change shape completely.',
   questions: [
-    pick('gr-cap-1', 'grammar-capitals', '___ dog followed me home.', 'The', ['The', 'the'], { capitals: true }),
-    pick('gr-cap-2', 'grammar-capitals', 'My friend ___ lives next door.', 'Sam', ['Sam', 'sam'], { capitals: true }),
-    pick('gr-cap-3', 'grammar-capitals', 'We are going to ___ in the holidays.', 'Perth', ['Perth', 'perth'], { capitals: true }),
-    pick('gr-cap-4', 'grammar-capitals', '"Where are my boots___"', '?', ['?', '.'], { punctuation: true, prompt: 'Which mark finishes this sentence?' }),
-    pick('gr-cap-5', 'grammar-capitals', '"I found the cave___"', '.', ['.', '?'], { punctuation: true, prompt: 'Which mark finishes this sentence?' }),
-    pick('gr-cap-6', 'grammar-capitals', '___ went down to the river.', 'They', ['They', 'they'], { capitals: true }),
-    pick('gr-cap-7', 'grammar-capitals', 'On ___ we have swimming.', 'Monday', ['Monday', 'monday'], { capitals: true }),
-    pick('gr-cap-8', 'grammar-capitals', 'The river runs past ___ farm.', 'Miller’s', ['Miller’s', 'miller’s'], { capitals: true }),
-    pick('gr-cap-9', 'grammar-capitals', '"Look out___"', '!', ['!', '.'], { punctuation: true, prompt: 'Which mark finishes this sentence?' }),
-    pick('gr-cap-10', 'grammar-capitals', '___ is the biggest bat I have seen.', 'That', ['That', 'that'], { capitals: true }),
-    pick('gr-cap-11', 'grammar-capitals', 'My brother ___ hates spiders.', 'Tom', ['Tom', 'tom'], { capitals: true }),
-    pick('gr-cap-12', 'grammar-capitals', '"Are you coming with us___"', '?', ['?', '.'], { punctuation: true, prompt: 'Which mark finishes this sentence?' }),
-    pick('gr-cap-13', 'grammar-capitals', '___ rain stopped before lunch.', 'The', ['The', 'the'], { capitals: true }),
-    pick('gr-cap-14', 'grammar-capitals', 'We climbed ___ Hill on Sunday.', 'Bald', ['Bald', 'bald'], { capitals: true }),
-  ],
-}
-
-const CONTRACTIONS: GrammarRule = {
-  id: 'grammar-contractions',
-  title: 'The apostrophe that stands for missing letters',
-  text:
-    'When two words are squashed into one, an apostrophe goes exactly where the ' +
-    'missing letters were. do not becomes don’t. I will becomes I’ll. There is ' +
-    'never an apostrophe in a plain plural.',
-  examples: ['do not → don’t', 'she is → she’s', 'we have → we’ve'],
-  reminder: 'The apostrophe stands in for the letters that were taken out.',
-  questions: [
-    pick('gr-con-1', 'grammar-contractions', 'I ___ know where it went.', 'don’t', ['don’t', 'dont']),
-    pick('gr-con-2', 'grammar-contractions', '___ going to be late.', 'We’re', ['We’re', 'Were'], { capitals: true }),
-    pick('gr-con-3', 'grammar-contractions', 'She ___ finished her lunch yet.', 'hasn’t', ['hasn’t', 'hasnt']),
-    pick('gr-con-4', 'grammar-contractions', '___ is short for "it is".', 'it’s', ['it’s', 'its']),
-    pick('gr-con-5', 'grammar-contractions', '___ is short for "cannot".', 'can’t', ['can’t', 'cant']),
-    pick('gr-con-6', 'grammar-contractions', 'They ___ seen the map before.', 'haven’t', ['haven’t', 'havent']),
-    pick('gr-con-7', 'grammar-contractions', '___ carry the lantern.', 'I’ll', ['I’ll', 'Ill'], { capitals: true }),
-    pick('gr-con-8', 'grammar-contractions', '___ is short for "you are".', 'you’re', ['you’re', 'your']),
-    pick('gr-con-9', 'grammar-contractions', 'The cave ___ as dark as we thought.', 'wasn’t', ['wasn’t', 'wasnt']),
-    pick('gr-con-10', 'grammar-contractions', 'I have three ___ at home.', 'cats', ['cats', 'cat’s'], { prompt: 'More than one cat — is an apostrophe needed?' }),
-    pick('gr-con-11', 'grammar-contractions', '___ is short for "did not".', 'didn’t', ['didn’t', 'didnt']),
-    pick('gr-con-12', 'grammar-contractions', 'He ___ be here until six.', 'won’t', ['won’t', 'wont']),
-    pick('gr-con-13', 'grammar-contractions', 'The shop sells ___ and apples.', 'pears', ['pears', 'pear’s'], { prompt: 'More than one pear — is an apostrophe needed?' }),
-    pick('gr-con-14', 'grammar-contractions', '___ is short for "they are".', 'they’re', ['they’re', 'their']),
-  ],
-}
-
-const POSSESSION: GrammarRule = {
-  id: 'grammar-possession',
-  title: 'The apostrophe that shows who owns it',
-  text:
-    'To show that something belongs to somebody, add an apostrophe and an s: ' +
-    'the dog’s bowl. If the owners are already a plural ending in s, the ' +
-    'apostrophe goes after that s: the dogs’ bowls.',
-  examples: ['the girl’s bike', 'my brother’s room', 'the farmers’ sheds'],
-  reminder: 'One owner takes ’s. Owners already ending in s just take the apostrophe.',
-  questions: [
-    pick('gr-pos-1', 'grammar-possession', 'That is my ___ sword.', 'brother’s', ['brother’s', 'brothers']),
-    pick('gr-pos-2', 'grammar-possession', 'The ___ tail was wagging.', 'dog’s', ['dog’s', 'dogs']),
-    pick('gr-pos-3', 'grammar-possession', 'All six ___ tails were wagging.', 'dogs’', ['dogs’', 'dog’s']),
-    pick('gr-pos-4', 'grammar-possession', 'I found the ___ hat by the river.', 'boy’s', ['boy’s', 'boys']),
-    pick('gr-pos-5', 'grammar-possession', 'Three ___ live on our street.', 'families', ['families', 'family’s']),
-    pick('gr-pos-6', 'grammar-possession', 'The ___ roof is leaking.', 'shed’s', ['shed’s', 'sheds']),
-    pick('gr-pos-7', 'grammar-possession', 'The ___ classroom is upstairs.', 'teacher’s', ['teacher’s', 'teachers']),
-    pick('gr-pos-8', 'grammar-possession', 'Both ___ shoes were muddy.', 'girls’', ['girls’', 'girl’s']),
-    pick('gr-pos-9', 'grammar-possession', 'We picked up all the ___ from the path.', 'stones', ['stones', 'stone’s']),
-    pick('gr-pos-10', 'grammar-possession', 'The ___ handle came off.', 'bucket’s', ['bucket’s', 'buckets']),
-    pick('gr-pos-11', 'grammar-possession', 'My ___ car is old.', 'father’s', ['father’s', 'fathers']),
-    pick('gr-pos-12', 'grammar-possession', 'The ___ nests are up in the gum tree.', 'birds’', ['birds’', 'bird’s']),
-    pick('gr-pos-13', 'grammar-possession', 'Those ___ belong to the school.', 'books', ['books', 'book’s']),
-    pick('gr-pos-14', 'grammar-possession', 'The ___ mane was full of burrs.', 'horse’s', ['horse’s', 'horses']),
-  ],
-}
-
-const COMMAS: GrammarRule = {
-  id: 'grammar-commas',
-  title: 'Commas in a list',
-  text:
-    'When you list three or more things, put a comma between them — but not ' +
-    'before the "and" at the end. A comma is a small pause, not a full stop.',
-  examples: [
-    'We packed bread, cheese and apples.',
-    'The cave was dark, cold and very quiet.',
-  ],
-  reminder: 'Commas separate the items; the last two are joined by "and" instead.',
-  questions: [
-    pick('gr-com-1', 'grammar-commas', 'We packed ___ for the walk.', 'bread, cheese and apples', ['bread, cheese and apples', 'bread cheese and apples'], { punctuation: true, prompt: 'Which one is punctuated correctly?' }),
-    pick('gr-com-2', 'grammar-commas', 'The flag is ___.', 'red, green and blue', ['red, green and blue', 'red, green, and, blue'], { punctuation: true, prompt: 'Which one is punctuated correctly?' }),
-    pick('gr-com-3', 'grammar-commas', 'We came home ___.', 'cold, wet and hungry', ['cold, wet and hungry', 'cold wet, and hungry'], { punctuation: true, prompt: 'Which one is punctuated correctly?' }),
-    pick('gr-com-4', 'grammar-commas', 'Before dark I fed ___.', 'the dog, the cat and the goat', ['the dog, the cat and the goat', 'the dog the cat and the goat'], { punctuation: true, prompt: 'Which one is punctuated correctly?' }),
-    pick('gr-com-5', 'grammar-commas', 'In the cave we saw ___.', 'bats, spiders and one snake', ['bats, spiders and one snake', 'bats spiders and one snake'], { punctuation: true, prompt: 'Which one is punctuated correctly?' }),
-    pick('gr-com-6', 'grammar-commas', 'The list "apples pears figs and plums" needs ___ commas.', 'three', ['three', 'four'], { prompt: 'How many commas does that list need?' }),
-    pick('gr-com-7', 'grammar-commas', 'The list "salt and pepper" needs ___ commas.', 'no', ['no', 'two'], { prompt: 'How many commas does that list need?' }),
-    pick('gr-com-8', 'grammar-commas', 'He carried ___ into the tunnel.', 'a rope, a lamp and a map', ['a rope, a lamp and a map', 'a rope a lamp and a map'], { punctuation: true, prompt: 'Which one is punctuated correctly?' }),
-    pick('gr-com-9', 'grammar-commas', 'My sister is ___.', 'quick, clever and kind', ['quick, clever and kind', 'quick clever and kind'], { punctuation: true, prompt: 'Which one is punctuated correctly?' }),
-    pick('gr-com-10', 'grammar-commas', 'The list "north south east and west" needs ___ commas.', 'three', ['three', 'two'], { prompt: 'How many commas does that list need?' }),
-    pick('gr-com-11', 'grammar-commas', 'For the mountain you want ___.', 'boots, a coat and gloves', ['boots, a coat and gloves', 'boots, a coat, and, gloves'], { punctuation: true, prompt: 'Which one is punctuated correctly?' }),
-    pick('gr-com-12', 'grammar-commas', 'When the guard came past ___.', 'we ran, we hid and we waited', ['we ran, we hid and we waited', 'we ran we hid and we waited'], { punctuation: true, prompt: 'Which one is punctuated correctly?' }),
-    pick('gr-com-13', 'grammar-commas', 'Outside the cave were ___.', 'a wombat, a goat and a rabbit', ['a wombat, a goat and a rabbit', 'a wombat a goat, and a rabbit'], { punctuation: true, prompt: 'Which one is punctuated correctly?' }),
-    pick('gr-com-14', 'grammar-commas', 'The list "eggs milk bread and jam" needs ___ commas.', 'three', ['three', 'four'], { prompt: 'How many commas does that list need?' }),
-  ],
-}
-
-const AGREEMENT: GrammarRule = {
-  id: 'grammar-agreement',
-  title: 'The verb has to match who is doing it',
-  text:
-    'One person or thing takes a verb ending in s: he runs, the dog barks. More ' +
-    'than one takes the plain verb: they run, the dogs bark. It sounds wrong ' +
-    'when they do not match, and that is the test.',
-  examples: ['She walks to school.', 'They walk to school.', 'The bird sings.'],
-  reminder: 'One of them takes the -s ending; more than one does not.',
-  questions: [
-    pick('gr-agr-1', 'grammar-agreement', 'The dog ___ at the postman.', 'barks', ['barks', 'bark']),
-    pick('gr-agr-2', 'grammar-agreement', 'The dogs ___ at the postman.', 'bark', ['bark', 'barks']),
-    pick('gr-agr-3', 'grammar-agreement', 'My sister ___ the piano.', 'plays', ['plays', 'play']),
-    pick('gr-agr-4', 'grammar-agreement', 'They ___ every Saturday.', 'swim', ['swim', 'swims']),
-    pick('gr-agr-5', 'grammar-agreement', 'The kettle ___ on the stove.', 'sits', ['sits', 'sit']),
-    pick('gr-agr-6', 'grammar-agreement', 'Those birds ___ very early.', 'sing', ['sing', 'sings']),
-    pick('gr-agr-7', 'grammar-agreement', 'He ___ the answer.', 'knows', ['knows', 'know']),
-    pick('gr-agr-8', 'grammar-agreement', 'We ___ the answer.', 'know', ['know', 'knows']),
-    pick('gr-agr-9', 'grammar-agreement', 'The kangaroo ___ over the fence.', 'jumps', ['jumps', 'jump']),
-    pick('gr-agr-10', 'grammar-agreement', 'My friends ___ in the next street.', 'live', ['live', 'lives']),
-    pick('gr-agr-11', 'grammar-agreement', 'That goat ___ everything.', 'eats', ['eats', 'eat']),
-    pick('gr-agr-12', 'grammar-agreement', 'The children ___ home at three.', 'come', ['come', 'comes']),
-    pick('gr-agr-13', 'grammar-agreement', 'It ___ every afternoon here.', 'rains', ['rains', 'rain']),
-    pick('gr-agr-14', 'grammar-agreement', 'The two rabbits ___ under the shed.', 'hide', ['hide', 'hides']),
+    pick('gr-plu-1', 'grammar-plurals', 'We carried four ___ up the hill.', 'boxes', ['boxes', 'boxs']),
+    pick('gr-plu-2', 'grammar-plurals', 'Three ___ were hiding under the shed.', 'mice', ['mice', 'mouses']),
+    pick('gr-plu-3', 'grammar-plurals', 'The wind took all the ___ off the tree.', 'leaves', ['leaves', 'leafs']),
+    pick('gr-plu-4', 'grammar-plurals', 'She told us two ___ before bed.', 'stories', ['stories', 'storys']),
+    pick('gr-plu-5', 'grammar-plurals', 'The farm keeps six ___.', 'donkeys', ['donkeys', 'donkies']),
+    pick('gr-plu-6', 'grammar-plurals', 'He brushes his ___ every night.', 'teeth', ['teeth', 'tooths']),
+    pick('gr-plu-7', 'grammar-plurals', 'Two ___ crossed the paddock at dusk.', 'foxes', ['foxes', 'foxs']),
+    pick('gr-plu-8', 'grammar-plurals', 'She cut the apple into ___.', 'halves', ['halves', 'halfs']),
+    pick('gr-plu-9', 'grammar-plurals', 'Three ___ came to mend the roof.', 'men', ['men', 'mans']),
+    pick('gr-plu-10', 'grammar-plurals', 'The garden is full of ___.', 'bushes', ['bushes', 'bushs']),
+    pick('gr-plu-11', 'grammar-plurals', 'My ___ ached after the long walk.', 'feet', ['feet', 'foots']),
+    pick('gr-plu-12', 'grammar-plurals', 'We picked a basket of ___.', 'cherries', ['cherries', 'cherrys']),
+    pick('gr-plu-13', 'grammar-plurals', 'The zoo keeps two ___.', 'wolves', ['wolves', 'wolfs']),
+    pick('gr-plu-14', 'grammar-plurals', 'Both of the ___ have stopped.', 'watches', ['watches', 'watchs']),
   ],
 }
 
@@ -200,36 +93,165 @@ const PAST_TENSE: GrammarRule = {
   id: 'grammar-past',
   title: 'Saying it already happened',
   text:
-    'Most verbs take -ed to talk about the past: walk becomes walked. A good ' +
-    'many of the commonest ones do not, and simply change: go becomes went, ' +
-    'run becomes ran, see becomes saw. Those have to be learned one at a time.',
-  examples: ['walk → walked', 'jump → jumped', 'go → went', 'run → ran'],
-  reminder: 'Most take -ed. The everyday ones — go, run, see, take — change instead.',
+    'Most verbs add -ed. A short verb ending in one vowel and one consonant ' +
+    'doubles that consonant first: stop becomes stopped. A verb ending in a ' +
+    'consonant and then y becomes -ied: carry becomes carried. And many of the ' +
+    'commonest verbs of all change shape instead — those you simply have to know.',
+  examples: ['stop → stopped', 'carry → carried', 'catch → caught', 'bring → brought'],
+  reminder: 'Double the consonant after a short vowel, swap y for -ied — or check whether it is one that changes shape.',
   questions: [
-    pick('gr-past-1', 'grammar-past', 'Yesterday we ___ to the beach.', 'went', ['went', 'goed']),
-    pick('gr-past-2', 'grammar-past', 'Last night I ___ a strange noise.', 'heard', ['heard', 'heared']),
-    pick('gr-past-3', 'grammar-past', 'She ___ all the way home.', 'walked', ['walked', 'walkd']),
-    pick('gr-past-4', 'grammar-past', 'He ___ faster than anyone.', 'ran', ['ran', 'runned']),
-    pick('gr-past-5', 'grammar-past', 'We ___ the whole cave yesterday.', 'explored', ['explored', 'exploreed']),
-    pick('gr-past-6', 'grammar-past', 'I ___ a bat in the doorway.', 'saw', ['saw', 'seed']),
-    pick('gr-past-7', 'grammar-past', 'They ___ the door behind them.', 'shut', ['shut', 'shutted']),
-    pick('gr-past-8', 'grammar-past', 'The goat ___ my hat.', 'took', ['took', 'taked']),
-    pick('gr-past-9', 'grammar-past', 'She ___ the whole book last week.', 'read', ['read', 'readed']),
-    pick('gr-past-10', 'grammar-past', 'We ___ for an hour in the rain.', 'waited', ['waited', 'waitted']),
-    pick('gr-past-11', 'grammar-past', 'He ___ me the way to the bridge.', 'showed', ['showed', 'shown']),
-    pick('gr-past-12', 'grammar-past', 'The rabbit ___ under the fence.', 'dug', ['dug', 'digged']),
-    pick('gr-past-13', 'grammar-past', 'I ___ my boots by the fire.', 'dried', ['dried', 'dryed']),
-    pick('gr-past-14', 'grammar-past', 'They ___ us a story after tea.', 'told', ['told', 'telled']),
+    pick('gr-past-1', 'grammar-past', 'The bus ___ at the corner.', 'stopped', ['stopped', 'stoped']),
+    pick('gr-past-2', 'grammar-past', 'She ___ the box all the way home.', 'carried', ['carried', 'carryed']),
+    pick('gr-past-3', 'grammar-past', 'He ___ the ball in one hand.', 'caught', ['caught', 'catched']),
+    pick('gr-past-4', 'grammar-past', 'They ___ us a story after tea.', 'told', ['told', 'telled']),
+    pick('gr-past-5', 'grammar-past', 'We ___ the whole afternoon in the cave.', 'spent', ['spent', 'spended']),
+    pick('gr-past-6', 'grammar-past', 'The teacher ___ us a new song.', 'taught', ['taught', 'teached']),
+    pick('gr-past-7', 'grammar-past', 'I ___ my bag on the step.', 'dropped', ['dropped', 'droped']),
+    pick('gr-past-8', 'grammar-past', 'She ___ down the hill after them.', 'hurried', ['hurried', 'hurryed']),
+    pick('gr-past-9', 'grammar-past', 'He ___ about it for a long time.', 'thought', ['thought', 'thinked']),
+    pick('gr-past-10', 'grammar-past', 'We ___ our lunch in the shade.', 'ate', ['ate', 'eated']),
+    pick('gr-past-11', 'grammar-past', 'They ___ across the river and back.', 'swam', ['swam', 'swimmed']),
+    pick('gr-past-12', 'grammar-past', 'I ___ my name at the top of the page.', 'wrote', ['wrote', 'writed']),
+    pick('gr-past-13', 'grammar-past', 'The bird ___ straight over the fence.', 'flew', ['flew', 'flied']),
+    pick('gr-past-14', 'grammar-past', 'We ___ the trip a week ago.', 'planned', ['planned', 'planed']),
+  ],
+}
+
+const DEGREES: GrammarRule = {
+  id: 'grammar-degrees',
+  title: 'Comparing one thing with another',
+  text:
+    'Short words add -er to compare two things and -est for the top of a whole ' +
+    'group: tall, taller, tallest. A short vowel doubles its consonant first ' +
+    '(big, bigger), and a consonant before y becomes -ier (happy, happier). ' +
+    'Longer words use more and most instead. Good and bad follow none of it.',
+  examples: [
+    'big → bigger → biggest',
+    'happy → happier → happiest',
+    'difficult → more difficult → most difficult',
+    'good → better → best',
+  ],
+  reminder: 'Short words take -er and -est. Long words take more and most. Two things take -er; a whole group takes -est.',
+  questions: [
+    pick('gr-deg-1', 'grammar-degrees', 'This rock is ___ than that one.', 'bigger', ['bigger', 'more big']),
+    pick('gr-deg-2', 'grammar-degrees', 'Today is the ___ day of the year.', 'hottest', ['hottest', 'hotest']),
+    pick('gr-deg-3', 'grammar-degrees', 'She is ___ about it than her sister.', 'happier', ['happier', 'happyer']),
+    pick('gr-deg-4', 'grammar-degrees', 'That was the ___ film I have ever seen.', 'most exciting', ['most exciting', 'excitingest']),
+    pick('gr-deg-5', 'grammar-degrees', 'My handwriting is ___ than it was last year.', 'better', ['better', 'gooder']),
+    pick('gr-deg-6', 'grammar-degrees', 'My cold is ___ today than it was yesterday.', 'worse', ['worse', 'worser']),
+    pick('gr-deg-7', 'grammar-degrees', 'He runs ___ than anyone in our class.', 'faster', ['faster', 'more fast']),
+    pick('gr-deg-8', 'grammar-degrees', 'That is the ___ pumpkin at the whole show.', 'heaviest', ['heaviest', 'heavyest']),
+    pick('gr-deg-9', 'grammar-degrees', 'This puzzle is ___ than the last one.', 'more difficult', ['more difficult', 'difficulter']),
+    pick('gr-deg-10', 'grammar-degrees', 'It was the ___ day of the whole trip.', 'wettest', ['wettest', 'wetest']),
+    pick('gr-deg-11', 'grammar-degrees', 'That was the ___ thing I have ever done.', 'most frightening', ['most frightening', 'frighteningest']),
+    pick('gr-deg-12', 'grammar-degrees', 'This bag is the ___ of the three.', 'lightest', ['lightest', 'most lightest']),
+    // The two that test -er against -est rather than the spelling: two things,
+    // or a whole group.
+    pick('gr-deg-13', 'grammar-degrees', 'Of the two roads, take the ___ one.', 'shorter', ['shorter', 'shortest']),
+    pick('gr-deg-14', 'grammar-degrees', 'She was the ___ runner in the entire school.', 'fastest', ['fastest', 'faster']),
+  ],
+}
+
+const APOSTROPHES: GrammarRule = {
+  id: 'grammar-apostrophes',
+  title: 'The two jobs of an apostrophe',
+  text:
+    'An apostrophe does one of two things. It stands in for missing letters — do ' +
+    'not becomes don’t, it is becomes it’s — or it shows that something belongs ' +
+    'to somebody: the dog’s bowl. It never, ever makes a plural. And the words ' +
+    'that already mean belonging — its, yours, hers, theirs — take none at all.',
+  examples: ['it’s = it is', 'its = belonging to it', 'the girl’s bike', 'three bikes'],
+  reminder: 'Missing letters, or belonging. If you can say "it is" instead, it takes the apostrophe.',
+  questions: [
+    pick('gr-apo-1', 'grammar-apostrophes', 'The dog wagged ___ tail.', 'its', ['its', 'it’s']),
+    pick('gr-apo-2', 'grammar-apostrophes', '___ going to rain before lunch.', 'It’s', ['It’s', 'Its']),
+    pick('gr-apo-3', 'grammar-apostrophes', 'That is my ___ bike.', 'brother’s', ['brother’s', 'brothers']),
+    pick('gr-apo-4', 'grammar-apostrophes', 'I have three ___ at home.', 'cats', ['cats', 'cat’s']),
+    pick('gr-apo-5', 'grammar-apostrophes', 'All six ___ tails were wagging.', 'dogs’', ['dogs’', 'dog’s']),
+    pick('gr-apo-6', 'grammar-apostrophes', '___ coat is still on the hook.', 'Your', ['Your', 'You’re']),
+    pick('gr-apo-7', 'grammar-apostrophes', '___ late again.', 'You’re', ['You’re', 'Your']),
+    pick('gr-apo-8', 'grammar-apostrophes', 'The children took ___ bags with them.', 'their', ['their', 'they’re']),
+    pick('gr-apo-9', 'grammar-apostrophes', '___ waiting by the gate.', 'They’re', ['They’re', 'Their']),
+    pick('gr-apo-10', 'grammar-apostrophes', 'Do you know ___ bike this is?', 'whose', ['whose', 'who’s']),
+    pick('gr-apo-11', 'grammar-apostrophes', '___ coming with us tomorrow?', 'Who’s', ['Who’s', 'Whose']),
+    pick('gr-apo-12', 'grammar-apostrophes', 'The shop sells ___ and apples.', 'pears', ['pears', 'pear’s']),
+    pick('gr-apo-13', 'grammar-apostrophes', 'The ___ roof has been leaking for weeks.', 'shed’s', ['shed’s', 'sheds']),
+    pick('gr-apo-14', 'grammar-apostrophes', 'That book is not mine, it is ___.', 'hers', ['hers', 'her’s']),
+  ],
+}
+
+const AGREEMENT: GrammarRule = {
+  id: 'grammar-agreement',
+  title: 'Matching the verb to whoever is doing it',
+  text:
+    'One person or thing takes the verb ending in s: the dog barks. More than one ' +
+    'takes the plain verb: the dogs bark. The catch is a phrase in the middle — ' +
+    'match the verb to whoever is really doing it, not to the nearest word. In ' +
+    '"the box of apples is heavy", it is the box that is heavy, not the apples.',
+  examples: [
+    'The dog barks.',
+    'The dogs bark.',
+    'The box of apples is heavy.',
+    'Everyone has finished.',
+  ],
+  reminder: 'Find who or what is really doing it — not the nearest word — and match the verb to that.',
+  questions: [
+    pick('gr-agr-1', 'grammar-agreement', 'The box of apples ___ too heavy to lift.', 'is', ['is', 'are']),
+    pick('gr-agr-2', 'grammar-agreement', 'The list of names ___ pinned to the door.', 'is', ['is', 'are']),
+    pick('gr-agr-3', 'grammar-agreement', 'Everyone ___ finished their lunch.', 'has', ['has', 'have']),
+    pick('gr-agr-4', 'grammar-agreement', 'There ___ three cats on the wall.', 'are', ['are', 'is']),
+    pick('gr-agr-5', 'grammar-agreement', 'Neither of the boys ___ ready yet.', 'is', ['is', 'are']),
+    pick('gr-agr-6', 'grammar-agreement', 'My friends ___ in the next street.', 'live', ['live', 'lives']),
+    pick('gr-agr-7', 'grammar-agreement', 'That goat ___ everything it finds.', 'eats', ['eats', 'eat']),
+    pick('gr-agr-8', 'grammar-agreement', 'The children ___ home at three.', 'come', ['come', 'comes']),
+    pick('gr-agr-9', 'grammar-agreement', 'A bunch of keys ___ on the kitchen table.', 'is', ['is', 'are']),
+    pick('gr-agr-10', 'grammar-agreement', 'One of the windows ___ broken.', 'is', ['is', 'are']),
+    pick('gr-agr-11', 'grammar-agreement', 'The two rabbits ___ under the shed.', 'hide', ['hide', 'hides']),
+    pick('gr-agr-12', 'grammar-agreement', 'Each of the players ___ a number.', 'has', ['has', 'have']),
+    pick('gr-agr-13', 'grammar-agreement', 'It ___ here nearly every afternoon.', 'rains', ['rains', 'rain']),
+    pick('gr-agr-14', 'grammar-agreement', 'The birds in the gum tree ___ very early.', 'sing', ['sing', 'sings']),
+  ],
+}
+
+const COMMAS: GrammarRule = {
+  id: 'grammar-commas',
+  title: 'Where a comma goes',
+  text:
+    'A comma separates the items in a list of three or more, and there is no ' +
+    'comma before the final "and". A comma also comes after a phrase that opens ' +
+    'a sentence and tells you when, where or how something happened.',
+  examples: [
+    'We packed bread, cheese and apples.',
+    'After lunch, we walked down to the river.',
+    'Slowly, the door creaked open.',
+  ],
+  reminder: 'Commas between the items in a list, and one after a phrase that opens the sentence.',
+  questions: [
+    pick('gr-com-1', 'grammar-commas', 'We packed ___ for the walk.', 'bread, cheese and apples', ['bread, cheese and apples', 'bread cheese and apples'], { punctuation: true, prompt: 'Which one is punctuated correctly?' }),
+    pick('gr-com-2', 'grammar-commas', 'We came home ___.', 'cold, wet and hungry', ['cold, wet and hungry', 'cold wet, and hungry'], { punctuation: true, prompt: 'Which one is punctuated correctly?' }),
+    pick('gr-com-3', 'grammar-commas', 'Before dark I fed ___.', 'the dog, the cat and the goat', ['the dog, the cat and the goat', 'the dog the cat and the goat'], { punctuation: true, prompt: 'Which one is punctuated correctly?' }),
+    pick('gr-com-4', 'grammar-commas', 'In the cave we saw ___.', 'bats, spiders and one snake', ['bats, spiders and one snake', 'bats spiders and one snake'], { punctuation: true, prompt: 'Which one is punctuated correctly?' }),
+    pick('gr-com-5', 'grammar-commas', 'He carried ___ into the tunnel.', 'a rope, a lamp and a map', ['a rope, a lamp and a map', 'a rope, a lamp, and, a map'], { punctuation: true, prompt: 'Which one is punctuated correctly?' }),
+    pick('gr-com-6', 'grammar-commas', 'For the mountain you want ___.', 'boots, a coat and gloves', ['boots, a coat and gloves', 'boots a coat and gloves'], { punctuation: true, prompt: 'Which one is punctuated correctly?' }),
+    pick('gr-com-7', 'grammar-commas', 'The list "apples pears figs and plums" needs ___ commas.', 'three', ['three', 'four'], { prompt: 'How many commas does that list need?' }),
+    pick('gr-com-8', 'grammar-commas', 'The list "salt and pepper" needs ___ commas.', 'no', ['no', 'two'], { prompt: 'How many commas does that list need?' }),
+    // The other half of the rule: a phrase that opens the sentence.
+    pick('gr-com-9', 'grammar-commas', '___ we walked down to the river.', 'After lunch,', ['After lunch,', 'After lunch'], { punctuation: true, prompt: 'Which opening is punctuated correctly?' }),
+    pick('gr-com-10', 'grammar-commas', '___ the door creaked open.', 'Slowly,', ['Slowly,', 'Slowly'], { punctuation: true, prompt: 'Which opening is punctuated correctly?' }),
+    pick('gr-com-11', 'grammar-commas', '___ we finally found the cave.', 'At the top of the hill,', ['At the top of the hill,', 'At the top of the hill'], { punctuation: true, prompt: 'Which opening is punctuated correctly?' }),
+    pick('gr-com-12', 'grammar-commas', '___ the dogs were still barking.', 'An hour later,', ['An hour later,', 'An hour later'], { punctuation: true, prompt: 'Which opening is punctuated correctly?' }),
+    pick('gr-com-13', 'grammar-commas', '___ nobody moved at all.', 'For a long moment,', ['For a long moment,', 'For a long moment'], { punctuation: true, prompt: 'Which opening is punctuated correctly?' }),
+    pick('gr-com-14', 'grammar-commas', '___ he carried the lantern himself.', 'All the way down,', ['All the way down,', 'All the way down'], { punctuation: true, prompt: 'Which opening is punctuated correctly?' }),
   ],
 }
 
 export const GRAMMAR_RULES: GrammarRule[] = [
-  CAPITALS,
-  CONTRACTIONS,
-  POSSESSION,
-  COMMAS,
-  AGREEMENT,
+  PLURALS,
   PAST_TENSE,
+  DEGREES,
+  APOSTROPHES,
+  AGREEMENT,
+  COMMAS,
 ]
 
 /** Questions asked per sack of food. Four, and no more. */

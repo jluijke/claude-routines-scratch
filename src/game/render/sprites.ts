@@ -911,6 +911,11 @@ const RABBIT_A = S([
   '................',
 ])
 
+/**
+ * Mid-hop: ears laid back, legs tucked under. Drawn in the same box as the
+ * frame above it — the height comes from the world lifting it off the ground,
+ * not from the art, so the shadow can stay behind on the grass.
+ */
 const RABBIT_B = S([
   '........kkk.kkk.',
   '........kwk.kwk.',
@@ -924,8 +929,8 @@ const RABBIT_B = S([
   '..kwwwwwwwwwwk..',
   '..kkwwwwwwwwkk..',
   '...kkkkkkkkkk...',
-  '...kw.kk.kw.k...',
-  '...kk.kk.kk.k...',
+  '....kwwkkwwk....',
+  '.....kkkkkk.....',
   '................',
   '................',
 ])
@@ -987,6 +992,7 @@ const KANGAROO_A = S([
   '................',
 ])
 
+/** Mid-bound: tail out straight behind, feet folded up under it. */
 const KANGAROO_B = S([
   '.........k..k...',
   '.........khkhk..',
@@ -995,14 +1001,14 @@ const KANGAROO_B = S([
   '.........khhhk..',
   '..........khk...',
   '.......kkhhhk...',
-  '.kk..khhhhhhk...',
-  '.khkkhssshhk....',
-  '..khhhssshk.....',
+  'kkk..khhhhhhk...',
+  'khhkkhssshhk....',
+  '.kkhhhssshk.....',
   '...khhhhhk......',
-  '....khhhk.......',
-  '...khhhk........',
-  '...kkhhkk.......',
-  '.....kkkk.......',
+  '....khhhkk......',
+  '....kkhhhk......',
+  '.....kkkkk......',
+  '................',
   '................',
 ])
 

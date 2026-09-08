@@ -84,6 +84,51 @@ const out = await world()
 check('it is at his heel above ground', Boolean(out.pet))
 check('and it is the one he chose', out.pet?.kind === 'kangaroo')
 
+// ------------------------------------------------------------------ the hop
+// A kangaroo that slides along the grass beside a dog that trots looks wrong,
+// so those two leave the ground. Measured rather than looked at: the sampler
+// walks him along and watches how far off the ground the animal is.
+async function liftsWhileWalking(kind) {
+  await page.evaluate((k) => { window.zsq.state.world.pet = k }, kind)
+  await goTo('village-north', 11, 8)
+  const seen = await page.evaluate(() => new Promise((resolve) => {
+    const lifts = []
+    let ticks = 0
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }))
+    const timer = setInterval(() => {
+      const s = window.zsq.world.debugState()
+      if (s.pet?.moving) lifts.push(s.pet.lift ?? 0)
+      // Bounded by ticks as well as by samples: an animal that never reports
+      // moving should fail this check, not hang it.
+      if (lifts.length >= 70 || ++ticks > 300) {
+        clearInterval(timer)
+        window.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowLeft' }))
+        resolve(lifts)
+      }
+    }, 16)
+  }))
+  await page.waitForTimeout(600)
+  const resting = (await world()).pet
+  // No samples at all is a failure, not an empty maximum of -Infinity.
+  if (seen.length === 0) return { max: -1, min: -1, resting: -1 }
+  return { max: Math.max(...seen), min: Math.min(...seen), resting: resting?.lift ?? 0 }
+}
+
+const rabbit = await liftsWhileWalking('rabbit')
+check('the rabbit leaves the ground', rabbit.max >= 2.5)
+check('and comes back down between hops', rabbit.min < 1)
+check('and stands on it when it stops', rabbit.resting === 0)
+
+const roo = await liftsWhileWalking('kangaroo')
+check('the kangaroo bounds higher than the rabbit hops', roo.max > rabbit.max)
+check('and it lands too', roo.min < 1.5)
+
+const dog = await liftsWhileWalking('dog')
+check('the ones that trot stay on the ground', dog.max === 0)
+
+await page.evaluate(() => { window.zsq.state.world.pet = 'kangaroo' })
+await goTo('village-north', 7, 6)
+
 await goTo('hollow-cave', 7, 8)
 check('it waits outside a cave rather than following him down', (await world()).pet === undefined)
 await goTo('village-square', 7, 6)

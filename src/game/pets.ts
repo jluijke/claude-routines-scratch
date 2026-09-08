@@ -16,8 +16,27 @@ export interface PetDef {
   name: string
   /** One line, in the keeper's voice, so choosing is a small pleasure. */
   blurb: string
-  /** Trotting and mid-stride. */
+  /** On the ground, and mid-stride — or mid-air, for the ones that hop. */
   frames: [SpriteName, SpriteName]
+  /**
+   * Pixels of lift, for an animal that hops rather than trots. A rabbit and a
+   * kangaroo do not walk, and drawing them sliding along the grass looked
+   * wrong beside a dog that does.
+   */
+  hop?: number
+  /** Hops a second while it is moving. */
+  hopRate?: number
+}
+
+/**
+ * How high a hopper is off the ground, given where it is in its hop.
+ *
+ * An arc: on the ground at the start of the cycle, highest in the middle, back
+ * down by the end. Never below the ground, whatever phase it is handed.
+ */
+export function hopOffset(phase: number, height: number): number {
+  const cycle = ((phase % 1) + 1) % 1
+  return Math.sin(cycle * Math.PI) * height
 }
 
 export const PETS: PetDef[] = [
@@ -38,6 +57,8 @@ export const PETS: PetDef[] = [
     name: 'Rabbit',
     blurb: 'Quick, nervous, and much braver after a good meal.',
     frames: ['rabbitA', 'rabbitB'],
+    hop: 3,
+    hopRate: 3.4,
   },
   {
     kind: 'wombat',
@@ -50,6 +71,10 @@ export const PETS: PetDef[] = [
     name: 'Kangaroo',
     blurb: 'Keeps up without trying. Kicks like a falling gate.',
     frames: ['kangarooA', 'kangarooB'],
+    // Longer, slower bounds than the rabbit's — it covers the same ground in
+    // fewer of them, which is most of what tells the two apart in motion.
+    hop: 5,
+    hopRate: 2.3,
   },
   {
     kind: 'goat',
