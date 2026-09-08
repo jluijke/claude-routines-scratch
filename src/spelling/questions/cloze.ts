@@ -2,6 +2,7 @@ import { SLOW_SENTENCE_RATE } from '../../core/audio/speech'
 import type { ClozeQuestion, Response } from '../types'
 import { answerInput, el, onEnter } from '../ui/dom'
 import type { QuestionView, RenderContext } from './index'
+import { choiceOrder } from './choices'
 
 /** There are ___ dogs in the park. Choices while teaching, typing later. */
 export function renderCloze(ctx: RenderContext): QuestionView {
@@ -21,7 +22,10 @@ export function renderCloze(ctx: RenderContext): QuestionView {
   const element = el('div', { class: 'q q-cloze' }, [sentence])
 
   if (selecting) {
-    const buttons = (question.choices ?? []).map((choice) =>
+    // Shuffled, not authored order: the answer is written first in nearly
+    // every question in the game, and a left-hand button that is always right
+    // is not a question.
+    const buttons = choiceOrder(question.choices ?? [], `${ctx.seed ?? ''}:${question.id}`).map((choice) =>
       el('button', { type: 'button', class: 'choice', 'data-choice': choice }, [choice]),
     )
     for (const node of buttons) {

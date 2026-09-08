@@ -13,6 +13,12 @@ export interface RenderContext {
   submit: () => void
   /** Tell the shell the answer changed, so it can clear stale feedback. */
   changed: () => void
+  /**
+   * Salt for anything the renderer shuffles — currently the choice buttons.
+   * One value for a whole run, so the layout holds still while the child works
+   * and differs the next time he meets the same question.
+   */
+  seed?: string
 }
 
 export interface QuestionView {

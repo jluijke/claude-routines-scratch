@@ -2,6 +2,7 @@ import type { MissingPatternQuestion, Response } from '../types'
 import { answerInput, el, onEnter } from '../ui/dom'
 import { patternSpanOf } from '../wordbank'
 import type { QuestionView, RenderContext } from './index'
+import { choiceOrder } from './choices'
 
 /**
  * sn__ — early exercises offer choices, later ones make the child type the
@@ -27,7 +28,10 @@ export function renderMissingPattern(ctx: RenderContext): QuestionView {
   const element = el('div', { class: 'q q-pattern' }, [frame])
 
   if (selecting) {
-    const buttons = (question.choices ?? []).map((choice) =>
+    // Shuffled, not authored order: the answer is written first in nearly
+    // every question in the game, and a left-hand button that is always right
+    // is not a question.
+    const buttons = choiceOrder(question.choices ?? [], `${ctx.seed ?? ''}:${question.id}`).map((choice) =>
       el('button', { type: 'button', class: 'choice', 'data-choice': choice }, [choice]),
     )
     for (const node of buttons) {

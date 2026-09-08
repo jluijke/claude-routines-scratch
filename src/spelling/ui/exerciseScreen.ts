@@ -54,6 +54,14 @@ export function mountExerciseScreen(
    */
   let locked = false
 
+  /**
+   * Salt for the choice-button shuffle, minted once per run of the screen. A
+   * question keeps its layout while he is looking at it — including when he
+   * gets it wrong and the buttons redraw — and lays out differently the next
+   * time he meets it, so there is no position to learn.
+   */
+  const runSeed = `${engine.exercise.id}-${Date.now()}-${Math.random()}`
+
   const title = el('h1', { class: 'exercise-title' }, [engine.exercise.title])
   const progressDots = el('div', { class: 'progress-dots' })
   const promptLine = el('p', { class: 'prompt' })
@@ -182,6 +190,7 @@ export function mountExerciseScreen(
       question,
       bank,
       speech,
+      seed: runSeed,
       submit: check,
       changed: () => {
         feedback.textContent = ''
