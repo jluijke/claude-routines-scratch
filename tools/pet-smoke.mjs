@@ -84,6 +84,35 @@ const out = await world()
 check('it is at his heel above ground', Boolean(out.pet))
 check('and it is the one he chose', out.pet?.kind === 'kangaroo')
 
+// -------------------------------------------------- it can always follow him
+// Walking into a screen at its edge used to drop the animal fourteen pixels to
+// the hero's left with no check at all, which put it inside the border trees
+// on nine of these twenty-four arrivals. Wedged in a wall it can never step
+// out, so the child simply walked off without it.
+{
+  const edges = [[1, 5, 'left'], [14, 5, 'right'], [7, 1, 'top'], [7, 9, 'bottom']]
+  const wedged = []
+  for (const screen of ['village-east', 'village-square', 'forest-1', 'forest-3', 'river-north', 'graveyard-1']) {
+    for (const [col, row, where] of edges) {
+      await goTo(screen, col, row)
+      const s = await world()
+      if (s.pet?.insideWall) wedged.push(`${screen} ${where}`)
+    }
+  }
+  check(`arriving anywhere leaves the animal somewhere it can stand (${wedged.join(', ')})`, wedged.length === 0)
+}
+
+// And whatever else wedges it — a barrier opening behind it, the hero going
+// somewhere it cannot get round — it comes back rather than being lost.
+await goTo('village-east', 7, 6)
+await page.evaluate(() => window.zsq.world.debugWedgePet(0, 5))
+await page.waitForTimeout(150)
+check('an animal shoved into a tree is stuck there to begin with', (await world()).pet?.insideWall === true)
+await page.waitForTimeout(2200)
+const freed = await world()
+check('but it works itself loose within a couple of seconds', freed.pet?.insideWall === false)
+check('and is back at his heel', Math.hypot(freed.pet.x + 6 - freed.x, freed.pet.y + 8 - freed.y) < 30)
+
 // ------------------------------------------------------------------ the hop
 // A kangaroo that slides along the grass beside a dog that trots looks wrong,
 // so those two leave the ground. Measured rather than looked at: the sampler
@@ -162,6 +191,10 @@ check('and nothing loses any health to it', calm.hp >= health(before))
 // "you found" sign over everything — so it is out of the way first.
 await page.evaluate(() => {
   window.zsq.state.world.screensSinceFood = 3
+  // The checks above walk two dozen screens, which is enough to have earned a
+  // sack already — and only one is ever out at a time, so an old one sitting
+  // on another screen would stop the next appearing.
+  window.zsq.state.world.foodTile = undefined
   window.zsq.state.world.takenChests.push('village-sword')
   window.zsq.state.inventory.woodenSword = 1
 })

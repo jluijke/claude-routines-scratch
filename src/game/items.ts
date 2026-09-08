@@ -154,7 +154,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     id: 'bow',
     name: 'Bow',
     category: 'tool',
-    price: 350,
+    price: 250,
     description: 'Strike from a distance — if you have arrows.',
     gate: 'shop-bow',
   },

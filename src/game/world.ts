@@ -163,6 +163,8 @@ interface Pet {
   stuck: number
   /** Frames left of sulking after a charge it could not finish. */
   giveUp: number
+  /** Frames it has spent trying to move and getting nowhere. */
+  wedged: number
   /** Where it is in its hop, 0 to 1, for the ones that hop rather than trot. */
   hop: number
   /** Whether it actually got anywhere this frame. A hop needs somewhere to go. */
@@ -196,6 +198,18 @@ const PET_CHARGE_SPEED = 72
 const PET_STUCK_FRAMES = 40
 /** And how long it sticks with the hero afterwards before trying again. */
 const PET_GIVE_UP_FRAMES = 70
+/**
+ * How long it may push at something without getting anywhere before it is put
+ * back at the hero's heel. A second and a half: long enough that squeezing past
+ * a tree is not interrupted, short enough that a child does not look round and
+ * find his friend gone.
+ */
+const PET_WEDGED_FRAMES = 90
+/** Where it is put down beside the hero, in order of preference. */
+const PET_SPOTS: [number, number][] = [
+  [-14, 6], [14, 6], [-14, -6], [14, -6],
+  [-16, 0], [16, 0], [0, 14], [0, -14],
+]
 
 /**
  * Overworld screens entered between one sack of animal food and the next.
@@ -1583,6 +1597,7 @@ export class World {
       lastGap: Infinity,
       stuck: 0,
       giveUp: 0,
+      wedged: 0,
       hop: 0,
       moving: false,
     }
@@ -1611,6 +1626,43 @@ export class World {
     }
   }
 
+  /**
+   * Puts the animal down beside the hero, somewhere it can actually stand.
+   *
+   * It used to be dropped fourteen pixels to his left with no check at all,
+   * which on nine of twenty-four screen arrivals — every one where he walks in
+   * at an edge — put it inside the border trees. Wedged in a wall, every
+   * direction it tries is blocked, so it simply stayed there and the child
+   * walked off without it.
+   */
+  private putPetBeside(
+    pet: Pet,
+    hero: { x: number; y: number },
+    blocked: (x: number, y: number) => boolean,
+  ): void {
+    pet.wedged = 0
+    for (const [dx, dy] of PET_SPOTS) {
+      if (!blocked(hero.x + dx + 6, hero.y + dy + 8)) {
+        pet.x = hero.x + dx
+        pet.y = hero.y + dy
+        return
+      }
+    }
+    // Nowhere beside him is clear — a doorway, or a gap one tile wide. Standing
+    // on him is silly but it is never stuck, and it sorts itself out in a step
+    // or two.
+    pet.x = hero.x - 6
+    pet.y = hero.y - 8
+  }
+
+  /** Shoves the animal into a given tile. For the checks only. */
+  debugWedgePet(col: number, row: number): void {
+    if (!this.pet) return
+    this.pet.x = col * TILE
+    this.pet.y = row * TILE
+    this.pet.wedged = 0
+  }
+
   /** Where it decides to go, and whether it bites anything on the way. */
   private stepPet(pet: Pet, step: number): void {
     const fed = this.save.world.petFedScreens > 0
@@ -1620,14 +1672,15 @@ export class World {
     // First tick on a new screen: fall in beside the hero, wherever he ended up.
     if (pet.pending) {
       pet.pending = false
-      pet.x = hero.x - 14
-      pet.y = hero.y + 6
+      this.putPetBeside(pet, hero, blocked)
     }
 
     pet.moving = false
+    let tried = false
     const move = (dx: number, dy: number, speed: number): void => {
       const length = Math.hypot(dx, dy)
       if (length === 0) return
+      tried = true
       const stepX = (dx / length) * speed * step
       const stepY = (dy / length) * speed * step
       const wasX = pet.x
@@ -1684,6 +1737,7 @@ export class World {
       } else {
         const at = quarry.centre()
         move(at.x - snout.x, at.y - snout.y, PET_CHARGE_SPEED)
+        this.unwedge(pet, tried, hero, blocked)
         if (closest <= PET_BITE_RANGE && pet.cooldown === 0) {
           pet.cooldown = PET_BITE_COOLDOWN
           sfx.play('bark')
@@ -1701,6 +1755,31 @@ export class World {
     const dx = hero.x - snout.x
     const dy = hero.y - snout.y
     if (Math.hypot(dx, dy) > PET_FOLLOW_GAP) move(dx, dy, PET_SPEED)
+    this.unwedge(pet, tried, hero, blocked)
+  }
+
+  /**
+   * The safety net: an animal that has been pushing at something for a second
+   * and a half and got nowhere is put back at the hero's heel.
+   *
+   * Placing it properly on arrival fixes the way it used to happen, but not
+   * every way it could: a barrier can open behind it, the hero can walk somewhere
+   * it cannot get round, and a wall it is standing in is a wall it can never
+   * step out of. Whatever the cause, the animal catching up is what a child
+   * expects, and it is never the wrong answer.
+   */
+  private unwedge(
+    pet: Pet,
+    tried: boolean,
+    hero: { x: number; y: number },
+    blocked: (x: number, y: number) => boolean,
+  ): void {
+    if (!tried || pet.moving) {
+      pet.wedged = 0
+      return
+    }
+    pet.wedged += 1
+    if (pet.wedged > PET_WEDGED_FRAMES) this.putPetBeside(pet, hero, blocked)
   }
 
   /**
@@ -2042,6 +2121,12 @@ export class World {
             y: Math.round(this.pet.y),
             hunting: this.pet.hunting,
             moving: this.pet.moving,
+            // Standing inside something solid, and how long it has been
+            // getting nowhere. Both only ever tell a story about a bug: this is
+            // what "the cat is in the trees and cannot follow any more" looks
+            // like from the outside.
+            insideWall: this.blockedHere()(this.pet.x + 6, this.pet.y + 8),
+            wedgedFrames: this.pet.wedged,
             // Where it is in its hop, and how far that puts it off the ground
             // — zero for the four that trot.
             hop: this.pet.hop,
