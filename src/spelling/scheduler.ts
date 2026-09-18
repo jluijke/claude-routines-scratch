@@ -31,6 +31,22 @@ import type { Rng } from '../core/rng'
  */
 export const MAX_QUESTIONS = 14
 
+/**
+ * The cut every sit gets at the end: a fifth fewer questions than the budget
+ * and the cap would have asked, for any exercise that would otherwise ask
+ * seven or more. Fourteen becomes eleven, ten becomes eight, seven becomes
+ * six. Shorter ones are already short and are left alone.
+ *
+ * Applied last, over the finished queue, so the shape of an exercise — its
+ * own lesson first, then recent review, then older — is decided the same way
+ * as before and only the tail is shortened: review goes first, and ordinary
+ * practice from the lesson after that. What carries the exercise — the
+ * opening activity, the transfer question, anything a pattern must be proved
+ * on — is never dropped.
+ */
+export const LENGTH_SCALE = 0.8
+export const SHORTEN_FROM = 7
+
 /** Share of the time budget given to review, once review starts (Exercise 6). */
 const REVIEW_SHARE = 0.4
 /** What is left for the current lesson — spec §12's 60%. */
@@ -62,6 +78,8 @@ export interface ScheduledQueue {
   breakdown: { current: number; recent: number; older: number }
   /** Activities the budget could not fit. The validator warns when non-zero. */
   trimmed: number
+  /** Questions the final fifth-off cut removed, so a check can scale the target. */
+  shortenedBy: number
 }
 
 /**
@@ -100,6 +118,24 @@ function trimToBudget(activities: Question[], budgetSeconds: number, maxCount: n
   if (result.length > maxCount) result = result.slice(0, maxCount)
 
   return { kept: result, trimmed: activities.length - result.length }
+}
+
+/** Takes the fifth off, from the end, sparing what the exercise cannot lose. */
+function shorten(questions: Question[]): Question[] {
+  if (questions.length < SHORTEN_FROM) return questions
+  const target = Math.round(questions.length * LENGTH_SCALE)
+  const protectedIndexes = new Set<number>([0])
+  questions.forEach((q, i) => {
+    if (!q.review && (q.masteryRequired || q.novel)) protectedIndexes.add(i)
+  })
+  const kept: (Question | undefined)[] = questions.slice()
+  let count = questions.length
+  for (let i = questions.length - 1; i >= 0 && count > target; i--) {
+    if (protectedIndexes.has(i)) continue
+    kept[i] = undefined
+    count -= 1
+  }
+  return kept.filter((q): q is Question => q !== undefined)
 }
 
 function markReview(q: Question, index: number): Question {
@@ -193,11 +229,13 @@ export function buildQueue(params: ScheduleParams): ScheduledQueue {
     // The early exercises are their own lesson and nothing else, but the cap
     // is the cap: Exercise 5 authored fifteen activities.
     const { kept, trimmed } = trimToBudget(current, budgetSeconds, MAX_QUESTIONS)
+    const questions = shorten(kept)
     return {
-      questions: kept,
-      estimatedSeconds: estimateTotalSeconds(kept),
-      breakdown: { current: kept.length, recent: 0, older: 0 },
+      questions,
+      estimatedSeconds: estimateTotalSeconds(questions),
+      breakdown: { current: questions.length, recent: 0, older: 0 },
       trimmed,
+      shortenedBy: kept.length - questions.length,
     }
   }
 
@@ -249,15 +287,18 @@ export function buildQueue(params: ScheduleParams): ScheduledQueue {
     recentQuestions.length,
   )
 
-  const questions = [...kept, ...recentQuestions, ...olderQuestions]
+  const full = [...kept, ...recentQuestions, ...olderQuestions]
+  const questions = shorten(full)
+  const ids = new Set(questions.map((q) => q.id))
   return {
     questions,
     estimatedSeconds: estimateTotalSeconds(questions),
     breakdown: {
-      current: kept.length,
-      recent: recentQuestions.length,
-      older: olderQuestions.length,
+      current: kept.filter((q) => ids.has(q.id)).length,
+      recent: recentQuestions.filter((q) => ids.has(q.id)).length,
+      older: olderQuestions.filter((q) => ids.has(q.id)).length,
     },
     trimmed,
+    shortenedBy: full.length - questions.length,
   }
 }

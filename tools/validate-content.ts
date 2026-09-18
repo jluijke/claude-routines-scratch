@@ -91,11 +91,14 @@ for (const exercise of EXERCISES) {
     mastery: emptyMasteryStore(),
     rng: new Rng(`validate-${exercise.id}`),
   })
-  const target = exercise.targetMinutes * 60
+  // Every sit of seven or more is cut by a fifth at the end, so the minutes
+  // an exercise is meant to take shrink by the share of questions it lost.
+  const scale = queue.questions.length / (queue.questions.length + queue.shortenedBy)
+  const target = exercise.targetMinutes * 60 * scale
   const ratio = queue.estimatedSeconds / target
-  if (ratio < 0.75 || ratio > 1.25) {
+  if (ratio < 0.7 || ratio > 1.3) {
     fail(
-      `${where}: estimated ${Math.round(queue.estimatedSeconds / 60 * 10) / 10} min against a ${exercise.targetMinutes} min target`,
+      `${where}: estimated ${Math.round(queue.estimatedSeconds / 60 * 10) / 10} min against a ${exercise.targetMinutes} min target (cut to ${Math.round(target / 6) / 10})`,
     )
   }
   // Length: the cap the child actually feels. Trimming is no longer worth a

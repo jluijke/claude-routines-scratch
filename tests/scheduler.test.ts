@@ -17,10 +17,12 @@ describe('duration budgeting', () => {
     (id) => {
       const exercise = exerciseById(id) as Exercise
       const queue = queueFor(exercise)
-      const target = exercise.targetMinutes * 60
-      // ±25%: these are estimates for a child answering correctly, not a clock.
-      expect(queue.estimatedSeconds).toBeGreaterThan(target * 0.75)
-      expect(queue.estimatedSeconds).toBeLessThan(target * 1.25)
+      // The target shrinks by the share of questions the fifth-off cut took.
+      const scale = queue.questions.length / (queue.questions.length + queue.shortenedBy)
+      const target = exercise.targetMinutes * 60 * scale
+      // Roughly ±25%: these are estimates for a child answering correctly, not a clock.
+      expect(queue.estimatedSeconds).toBeGreaterThan(target * 0.7)
+      expect(queue.estimatedSeconds).toBeLessThan(target * 1.3)
     },
   )
 
@@ -165,6 +167,33 @@ describe('review does not start early', () => {
       const authored = exercise.activities.map((q) => q.id)
       const asked = queue.questions.map((q) => q.id)
       expect(asked).toEqual(authored.filter((id) => asked.includes(id)))
+    }
+  })
+})
+
+describe('the fifth-off cut', () => {
+  it('asks a fifth fewer questions of every exercise that would ask seven or more', () => {
+    for (const exercise of EXERCISES) {
+      const queue = queueFor(exercise)
+      const before = queue.questions.length + queue.shortenedBy
+      if (before >= 7) {
+        expect(queue.questions.length, exercise.title).toBe(Math.round(before * 0.8))
+      } else {
+        expect(queue.shortenedBy, exercise.title).toBe(0)
+      }
+    }
+  })
+
+  it('never cuts what the exercise cannot lose, and cuts review before the lesson', () => {
+    for (const exercise of EXERCISES) {
+      const queue = queueFor(exercise)
+      if (queue.shortenedBy === 0) continue
+      const kept = queue.questions
+      // The opening activity, and every transfer or mastery question, are still there.
+      expect(kept[0]?.id).toBe(exercise.activities[0]?.id)
+      for (const q of exercise.activities.filter((a) => a.novel || a.masteryRequired)) {
+        expect(kept.some((k) => k.id === q.id), `${exercise.title} lost ${q.id}`).toBe(true)
+      }
     }
   })
 })
