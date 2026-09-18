@@ -321,11 +321,11 @@ function drawFutureTile(
     case 'B':
       return gantry(ctx, x, y, p)
     case 'T':
-      return onRock ? spire(ctx, x, y, col, row, p, line, screen) : hullPanel(ctx, x, y, col, row, p)
+      return onRock ? spire(ctx, x, y, col, row, p, line, screen) : hullPanel(ctx, x, y, col, row, p, screen, frame)
     case 'p':
-      return onRock ? hidingCrystals(ctx, x, y, p) : sealedPanel(ctx, x, y, col, row, p)
+      return onRock ? hidingCrystals(ctx, x, y, p) : sealedPanel(ctx, x, y, col, row, p, screen, frame)
     case 'R':
-      return onRock ? cliff(ctx, x, y, col, row, p, line, screen) : crate(ctx, x, y, col, row, p)
+      return onRock ? cliff(ctx, x, y, col, row, p, line, screen) : machinery(ctx, x, y, col, row, p, screen, frame)
     case '#':
       return onRock ? cliff(ctx, x, y, col, row, p, line, screen, '#') : block(ctx, x, y, col, row, p)
     case 'X':
@@ -360,7 +360,9 @@ function ground(
 
   if (theme === 'ship' || theme === 'airlock') {
     // Deck plating: a seam along two edges of every plate, and a rivet in
-    // the corner of some of them.
+    // the corner of some of them. Every so often a plate is something else —
+    // a floor grille, a hazard mark, a guide light — so a long deck reads as
+    // a deck and not as a grey field.
     ctx.fillStyle = p.groundSpeckle
     ctx.fillRect(x, y + TILE - 1, TILE, 1)
     ctx.fillRect(x + TILE - 1, y, 1, TILE)
@@ -368,6 +370,35 @@ function ground(
     if (theme === 'airlock') {
       ctx.fillRect(x + 7, y, 1, TILE)
       ctx.fillRect(x, y + 7, TILE, 1)
+      return
+    }
+    const v = (col * 7919 + row * 104729 + col * row * 31) % 17
+    if (v === 0) {
+      // A floor grille: three dark slats in a recessed frame.
+      ctx.fillStyle = '#2a3140'
+      ctx.fillRect(x + 4, y + 4, 8, 8)
+      ctx.fillStyle = '#56617a'
+      ctx.fillRect(x + 5, y + 5, 6, 1)
+      ctx.fillRect(x + 5, y + 8, 6, 1)
+      ctx.fillRect(x + 5, y + 11, 6, 1)
+    } else if (v === 1) {
+      // A hazard mark by the seam.
+      ctx.fillStyle = p.path
+      ctx.fillRect(x + 3, y + 12, 3, 2)
+      ctx.fillRect(x + 8, y + 12, 3, 2)
+    } else if (v === 2) {
+      // A guide light set into the plate, slow and blue.
+      ctx.fillStyle = '#1a2140'
+      ctx.fillRect(x + 6, y + 6, 4, 4)
+      ctx.fillStyle = Math.floor((col + row * 3) / 2) % 2 === 0 ? '#57d2c6' : '#3f74d6'
+      ctx.fillRect(x + 7, y + 7, 2, 2)
+    } else if (v === 3) {
+      // Four rivets, a heavier plate.
+      ctx.fillStyle = p.groundSpeckle
+      ctx.fillRect(x + 2, y + 2, 2, 2)
+      ctx.fillRect(x + 11, y + 2, 2, 2)
+      ctx.fillRect(x + 2, y + 11, 2, 2)
+      ctx.fillRect(x + 11, y + 11, 2, 2)
     }
     return
   }
@@ -663,8 +694,49 @@ function statue(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette)
 
 // --- pieces of the future -------------------------------------------------
 
-/** A hull panel: the wall of every deck. Pale plate, a dark seam, a light strip. */
-function hullPanel(ctx: CanvasRenderingContext2D, x: number, y: number, col: number, row: number, p: Palette): void {
+/** A stable number for a tile of a screen, so decoration is fixed per place. */
+function tileHash(screen: Screen, col: number, row: number): number {
+  let h = 2166136261
+  for (const ch of screen.id) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0
+  return (h + col * 7919 + row * 104729 + col * row * 977) >>> 0
+}
+
+/** What a hull panel has on it. Windows come in pairs; see `hullPanel`. */
+type HullDecor = 'plain' | 'window' | 'console' | 'vent' | 'light' | 'pipe' | 'rivets'
+
+function hullDecor(screen: Screen, col: number, row: number): HullDecor {
+  const edge = row === 0 || row === SCREEN_ROWS - 1 || col === 0 || col === SCREEN_COLS - 1
+  const v = tileHash(screen, col, row) % 12
+  if (!edge) return v < 3 ? 'vent' : v < 5 ? 'pipe' : v < 6 ? 'light' : 'plain'
+  if (v < 3) return 'window'
+  if (v < 5) return 'console'
+  if (v < 6) return 'vent'
+  if (v < 7) return 'light'
+  if (v < 9) return 'pipe'
+  if (v < 10) return 'rivets'
+  return 'plain'
+}
+
+const isHull = (screen: Screen, col: number, row: number): boolean =>
+  ((screen.rows[row] ?? '')[col] ?? '.') === 'T' || ((screen.rows[row] ?? '')[col] ?? '.') === 'p'
+
+/**
+ * A hull panel: the wall of every deck. Pale plate, a dark seam, a light
+ * strip — and on the outer hull, the things a ship has in its walls: viewport
+ * windows with stars behind them, console screens, vent grilles, warning
+ * lights, pipe runs. Which panel gets which is fixed per place, so a corridor
+ * always looks the way it looked last time.
+ */
+function hullPanel(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  col: number,
+  row: number,
+  p: Palette,
+  screen: Screen,
+  frame: number,
+): void {
   ctx.fillStyle = p.wallDark
   ctx.fillRect(x, y, TILE, TILE)
   ctx.fillStyle = p.wall
@@ -672,19 +744,170 @@ function hullPanel(ctx: CanvasRenderingContext2D, x: number, y: number, col: num
   ctx.fillStyle = p.wallLight
   ctx.fillRect(x + 1, y + 1, 14, 2)
   ctx.fillRect(x + 1, y + 1, 2, 14)
-  // Rivets at two corners, and a thin cyan running light along some panels.
-  ctx.fillStyle = p.wallDark
-  ctx.fillRect(x + 3, y + 4, 1, 1)
-  ctx.fillRect(x + 12, y + 12, 1, 1)
-  if ((col + row) % 3 === 0) {
-    ctx.fillStyle = p.trunk
-    ctx.fillRect(x + 5, y + 8, 6, 1)
+
+  // Windows are two panels wide along the top and bottom hull, two tall down
+  // the sides: the left (or upper) one decides, and its neighbour follows.
+  const horizontal = row === 0 || row === SCREEN_ROWS - 1
+  const leads = (c: number, r: number): boolean =>
+    isHull(screen, c, r) && hullDecor(screen, c, r) === 'window' && (horizontal ? c % 2 === 0 : r % 2 === 0)
+  const partner = horizontal ? [col + 1, row] : [col, row + 1]
+  const before = horizontal ? [col - 1, row] : [col, row - 1]
+  if (leads(col, row) && isHull(screen, partner[0] as number, partner[1] as number)) {
+    return viewport(ctx, x, y, col, row, screen, frame, horizontal ? 'left' : 'top')
+  }
+  if (leads(before[0] as number, before[1] as number)) {
+    return viewport(ctx, x, y, col, row, screen, frame, horizontal ? 'right' : 'bottom')
+  }
+
+  switch (hullDecor(screen, col, row)) {
+    case 'console': {
+      ctx.fillStyle = '#12131a'
+      ctx.fillRect(x + 3, y + 3, 10, 8)
+      ctx.fillStyle = '#3f74d6'
+      ctx.fillRect(x + 4, y + 4, 8, 6)
+      ctx.fillStyle = '#c8fff8'
+      ctx.fillRect(x + 5, y + 5, 4, 1)
+      ctx.fillRect(x + 5, y + 7, 6, 1)
+      if (Math.floor((frame + col * 9) / 22) % 2 === 0) ctx.fillRect(x + 5, y + 9, 2, 1)
+      ctx.fillStyle = p.wallDark
+      ctx.fillRect(x + 5, y + 12, 6, 1)
+      ctx.fillStyle = '#e2883a'
+      ctx.fillRect(x + 12, y + 12, 1, 1)
+      return
+    }
+    case 'vent': {
+      ctx.fillStyle = p.wallDark
+      ctx.fillRect(x + 3, y + 4, 10, 8)
+      ctx.fillStyle = p.wallLight
+      ctx.fillRect(x + 4, y + 5, 8, 1)
+      ctx.fillRect(x + 4, y + 8, 8, 1)
+      ctx.fillRect(x + 4, y + 11, 8, 1)
+      return
+    }
+    case 'light': {
+      const on = Math.floor((frame + col * 13 + row * 5) / 26) % 2 === 0
+      ctx.fillStyle = p.wallDark
+      ctx.fillRect(x + 5, y + 5, 6, 6)
+      ctx.fillStyle = on ? '#e2883a' : '#8a4a1a'
+      ctx.fillRect(x + 6, y + 6, 4, 4)
+      if (on) {
+        ctx.fillStyle = '#f2c94c'
+        ctx.fillRect(x + 7, y + 7, 2, 2)
+      }
+      return
+    }
+    case 'pipe': {
+      ctx.fillStyle = p.wallDark
+      if (horizontal || (row > 0 && row < SCREEN_ROWS - 1 && col > 0 && col < SCREEN_COLS - 1)) {
+        ctx.fillRect(x, y + 7, TILE, 4)
+        ctx.fillStyle = p.rockLight
+        ctx.fillRect(x, y + 8, TILE, 2)
+        ctx.fillStyle = p.wallDark
+        ctx.fillRect(x + 6, y + 6, 4, 6)
+      } else {
+        ctx.fillRect(x + 6, y, 4, TILE)
+        ctx.fillStyle = p.rockLight
+        ctx.fillRect(x + 7, y, 2, TILE)
+        ctx.fillStyle = p.wallDark
+        ctx.fillRect(x + 5, y + 6, 6, 4)
+      }
+      return
+    }
+    case 'rivets': {
+      ctx.fillStyle = p.wallDark
+      ctx.fillRect(x + 3, y + 4, 1, 1)
+      ctx.fillRect(x + 12, y + 4, 1, 1)
+      ctx.fillRect(x + 3, y + 12, 1, 1)
+      ctx.fillRect(x + 12, y + 12, 1, 1)
+      ctx.fillStyle = p.trunk
+      ctx.fillRect(x + 5, y + 8, 6, 1)
+      return
+    }
+    default: {
+      ctx.fillStyle = p.wallDark
+      ctx.fillRect(x + 3, y + 4, 1, 1)
+      ctx.fillRect(x + 12, y + 12, 1, 1)
+      if ((col + row) % 3 === 0) {
+        ctx.fillStyle = p.trunk
+        ctx.fillRect(x + 5, y + 8, 6, 1)
+      }
+    }
+  }
+}
+
+/**
+ * A viewport: a window set into the hull, blue-framed, with stars behind it
+ * and sometimes the curve of a planet. One half of a two-panel window.
+ */
+function viewport(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  col: number,
+  row: number,
+  screen: Screen,
+  frame: number,
+  half: 'left' | 'right' | 'top' | 'bottom',
+): void {
+  // The frame is open on the side the other half continues on.
+  const inset = { l: 2, r: 2, t: 2, b: 2 }
+  if (half === 'left') inset.r = 0
+  if (half === 'right') inset.l = 0
+  if (half === 'top') inset.b = 0
+  if (half === 'bottom') inset.t = 0
+  ctx.fillStyle = '#3f74d6'
+  ctx.fillRect(x + inset.l - (inset.l ? 1 : 0), y + inset.t - (inset.t ? 1 : 0), TILE - inset.l - inset.r + (inset.l ? 1 : 0) + (inset.r ? 1 : 0), TILE - inset.t - inset.b + (inset.t ? 1 : 0) + (inset.b ? 1 : 0))
+  ctx.fillStyle = '#06070f'
+  ctx.fillRect(x + inset.l, y + inset.t, TILE - inset.l - inset.r, TILE - inset.t - inset.b)
+  // Stars, a couple per pane, one of them slowly twinkling.
+  const seed = tileHash(screen, col, row)
+  const stars: [number, number][] = [
+    [(seed % 9) + 3, ((seed >> 3) % 9) + 3],
+    [((seed >> 5) % 9) + 3, ((seed >> 7) % 9) + 3],
+    [((seed >> 9) % 9) + 3, ((seed >> 11) % 9) + 3],
+  ]
+  stars.forEach(([sx, sy], i) => {
+    const dim = i === 0 && Math.floor((frame + seed) / 45) % 3 === 0
+    ctx.fillStyle = dim ? '#1a2140' : i === 2 ? '#8f98a8' : '#f6f3e7'
+    ctx.fillRect(x + sx, y + sy, 1, 1)
+  })
+  // A planet's edge in the corner of some windows: a blue arc, banded.
+  if ((seed >> 13) % 3 === 0) {
+    const cx = half === 'left' || half === 'top' ? x + 1 : x + 15
+    const cy = half === 'top' ? y + 1 : half === 'bottom' ? y + 15 : y + 14
+    for (let py = inset.t; py < TILE - inset.b; py++) {
+      for (let px = inset.l; px < TILE - inset.r; px++) {
+        const d = Math.hypot(x + px - cx, y + py - cy)
+        if (d > 9) continue
+        ctx.fillStyle = d > 8 ? '#6aa3f0' : (py + px) % 4 === 0 ? '#27488f' : '#3f74d6'
+        ctx.fillRect(x + px, y + py, 1, 1)
+      }
+    }
   }
 }
 
 /** A sealed panel with something behind it: a hull panel, a screw, and a glint. */
-function sealedPanel(ctx: CanvasRenderingContext2D, x: number, y: number, col: number, row: number, p: Palette): void {
-  hullPanel(ctx, x, y, col, row, p)
+function sealedPanel(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  col: number,
+  row: number,
+  p: Palette,
+  screen: Screen,
+  frame: number,
+): void {
+  void screen
+  void frame
+  void col
+  void row
+  ctx.fillStyle = p.wallDark
+  ctx.fillRect(x, y, TILE, TILE)
+  ctx.fillStyle = p.wall
+  ctx.fillRect(x + 1, y + 1, 14, 14)
+  ctx.fillStyle = p.wallLight
+  ctx.fillRect(x + 1, y + 1, 14, 2)
+  ctx.fillRect(x + 1, y + 1, 2, 14)
   ctx.fillStyle = p.wallDark
   ctx.fillRect(x + 6, y + 5, 4, 4)
   ctx.fillStyle = p.wallLight
@@ -696,10 +919,100 @@ function sealedPanel(ctx: CanvasRenderingContext2D, x: number, y: number, col: n
   ctx.fillRect(x + 6, y + 13, 4, 1)
 }
 
-/** A crate or a machine: a solid block with a cyan light on its face. */
-function crate(ctx: CanvasRenderingContext2D, x: number, y: number, col: number, row: number, p: Palette): void {
+/**
+ * The solid blocks of a deck: crates, and the machinery a ship is full of.
+ * A block two tiles tall is one machine — the lower tile follows the upper
+ * one — so a console has its screen up top and its keyboard below, and a
+ * tank is one glass tube rather than two.
+ */
+function machinery(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  col: number,
+  row: number,
+  p: Palette,
+  screen: Screen,
+  frame: number,
+): void {
+  const at = (c: number, r: number): string => (screen.rows[r] ?? '')[c] ?? '.'
+  const above = at(col, row - 1) === 'R'
+  const below = at(col, row + 1) === 'R'
+  const top = above ? row - 1 : row
+  const kind = tileHash(screen, col, top) % 10
+  const lower = above
+  const stack = above || below
+
   ctx.fillStyle = p.rockDark
   ctx.fillRect(x, y, TILE, TILE)
+
+  if (stack && kind >= 4 && kind < 6) {
+    // A console: a lit screen over a bank of keys.
+    ctx.fillStyle = p.rock
+    ctx.fillRect(x + 1, y + (lower ? 0 : 1), 14, lower ? 14 : 15)
+    if (!lower) {
+      ctx.fillStyle = '#12131a'
+      ctx.fillRect(x + 2, y + 3, 12, 11)
+      ctx.fillStyle = '#3f74d6'
+      ctx.fillRect(x + 3, y + 4, 10, 9)
+      ctx.fillStyle = '#c8fff8'
+      ctx.fillRect(x + 4, y + 5, 5, 1)
+      ctx.fillRect(x + 4, y + 7, 7, 1)
+      ctx.fillRect(x + 4, y + 9, 3, 1)
+      if (Math.floor((frame + col * 7) / 20) % 2 === 0) ctx.fillRect(x + 4, y + 11, 4, 1)
+      ctx.fillStyle = '#e2883a'
+      ctx.fillRect(x + 11, y + 11, 1, 1)
+    } else {
+      ctx.fillStyle = p.rockLight
+      ctx.fillRect(x + 2, y + 2, 12, 4)
+      ctx.fillStyle = p.rockDark
+      for (let i = 0; i < 5; i++) ctx.fillRect(x + 3 + i * 2, y + 3, 1, 2)
+      ctx.fillRect(x + 4, y + 9, 8, 1)
+      ctx.fillStyle = '#57d2c6'
+      ctx.fillRect(x + 3, y + 12, 2, 1)
+      ctx.fillStyle = '#e2883a'
+      ctx.fillRect(x + 11, y + 12, 2, 1)
+    }
+    return
+  }
+
+  if (stack && kind >= 6 && kind < 8) {
+    // A tank: a glass tube of something green, capped top and bottom.
+    ctx.fillStyle = p.rock
+    ctx.fillRect(x + 1, y, 14, TILE)
+    const glow = Math.floor((frame + col * 11) / 30) % 2 === 0
+    ctx.fillStyle = glow ? '#7fbb4c' : '#6aa63e'
+    ctx.fillRect(x + 4, y + (lower ? 0 : 4), 8, lower ? 11 : 12)
+    ctx.fillStyle = '#c8ff8a'
+    ctx.fillRect(x + 5, y + (lower ? 0 : 5), 1, lower ? 10 : 11)
+    ctx.fillStyle = '#4d7a2c'
+    ctx.fillRect(x + 10, y + (lower ? 0 : 5), 2, lower ? 10 : 11)
+    ctx.fillStyle = p.rockLight
+    if (!lower) ctx.fillRect(x + 3, y + 1, 10, 3)
+    else ctx.fillRect(x + 3, y + 11, 10, 3)
+    ctx.fillStyle = p.rockDark
+    if (!lower) ctx.fillRect(x + 3, y + 3, 10, 1)
+    else ctx.fillRect(x + 3, y + 11, 10, 1)
+    return
+  }
+
+  if (stack && kind >= 8) {
+    // An engine housing: vents, and an orange light that breathes.
+    ctx.fillStyle = p.rock
+    ctx.fillRect(x + 1, y + 1, 14, 14)
+    ctx.fillStyle = p.rockLight
+    ctx.fillRect(x + 1, y + 1, 14, 1)
+    ctx.fillStyle = p.rockDark
+    for (let i = 0; i < 4; i++) ctx.fillRect(x + 3, y + 3 + i * 3, 10, 1)
+    if (!lower) {
+      const on = Math.floor((frame + col * 5) / 24) % 2 === 0
+      ctx.fillStyle = on ? '#e2883a' : '#8a4a1a'
+      ctx.fillRect(x + 11, y + 11, 3, 3)
+    }
+    return
+  }
+
+  // A crate: a solid block with a light on its face.
   ctx.fillStyle = p.rock
   ctx.fillRect(x + 1, y + 1, 14, 14)
   ctx.fillStyle = p.rockLight
@@ -707,7 +1020,7 @@ function crate(ctx: CanvasRenderingContext2D, x: number, y: number, col: number,
   ctx.fillRect(x + 1, y + 1, 2, 14)
   ctx.fillStyle = p.rockDark
   ctx.fillRect(x + 4, y + 7, 8, 1)
-  if ((col * 3 + row) % 2 === 0) {
+  if (kind % 2 === 0) {
     ctx.fillStyle = '#57d2c6'
     ctx.fillRect(x + 11, y + 4, 2, 1)
   } else {
@@ -829,6 +1142,20 @@ function space(
 ): void {
   ctx.fillStyle = '#06070f'
   ctx.fillRect(x, y, TILE, TILE)
+  // A planet, somewhere out there: one per screen, big and banded, hanging
+  // in whichever corner of the void the screen's own number puts it.
+  const planet = planetOf(screen)
+  if (planet && Math.hypot(x + 8 - planet.x, y + 8 - planet.y) < planet.r + 12) {
+    for (let py = 0; py < TILE; py++) {
+      for (let px = 0; px < TILE; px++) {
+        const d = Math.hypot(x + px - planet.x, y + py - planet.y)
+        if (d > planet.r) continue
+        const band = Math.floor((y + py - planet.y + planet.r) / 6) % 3
+        ctx.fillStyle = d > planet.r - 1.5 ? '#6aa3f0' : band === 0 ? '#27488f' : band === 1 ? '#3f74d6' : '#345fb8'
+        ctx.fillRect(x + px, y + py, 1, 1)
+      }
+    }
+  }
   // Three stars a tile, at fixed spots, one of them blinking.
   const seed = col * 31 + row * 17
   const stars: [number, number][] = [
@@ -848,6 +1175,20 @@ function space(
   if (!isSpace(col, row + 1)) ctx.fillRect(x, y + TILE - 2, TILE, 2)
   if (!isSpace(col - 1, row)) ctx.fillRect(x, y, 2, TILE)
   if (!isSpace(col + 1, row)) ctx.fillRect(x + TILE - 2, y, 2, TILE)
+}
+
+/** Where a screen's planet hangs, in pixels, or nowhere for a screen with no void. */
+function planetOf(screen: Screen): { x: number; y: number; r: number } | undefined {
+  if (!screen.rows.some((line) => line.includes('~'))) return undefined
+  const seed = tileHash(screen, 3, 7)
+  const corners: [number, number][] = [
+    [-10, -6],
+    [SCREEN_COLS * TILE + 10, -6],
+    [-10, SCREEN_ROWS * TILE + 6],
+    [SCREEN_COLS * TILE + 10, SCREEN_ROWS * TILE + 6],
+  ]
+  const corner = corners[seed % 4] as [number, number]
+  return { x: corner[0], y: corner[1], r: 52 + (seed % 5) * 6 }
 }
 
 /** A metal gantry over the void. */
@@ -872,9 +1213,14 @@ function hatch(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette, 
   ctx.fillStyle = '#000000'
   ctx.fillRect(x + 4, y + 5, 8, 11)
   ctx.fillRect(x + 3, y + 7, 10, 7)
-  // The light over the door: green, blinking slowly.
+  // The light over the door: green, blinking slowly, and a warning strip
+  // down each side of the frame.
   ctx.fillStyle = Math.floor(frame / 30) % 2 === 0 ? '#7fbb4c' : '#4d7a2c'
   ctx.fillRect(x + 7, y + 1, 2, 1)
+  const warn = Math.floor(frame / 18) % 2 === 0
+  ctx.fillStyle = warn ? '#d5433f' : '#8f2320'
+  ctx.fillRect(x + 1, y + 6, 1, 6)
+  ctx.fillRect(x + 14, y + 6, 1, 6)
 }
 
 /** A lift hatch in the floor: the stairs down. */
