@@ -834,16 +834,16 @@ const GATE_LIST: Gate[] = [
   // --- rock one: the Grey Rock --------------------------------------------
   {
     id: 'rock-1-door-1',
-    kind: 'door',
-    message: 'A hatch cut into the rock, with a keypad of letters beside it.',
-    openMessage: 'The keypad lights up green and the hatch slides aside.',
+    kind: 'seal',
+    message: 'A force field hums across the gantry to the next rock. Letters scroll along its edge.',
+    openMessage: 'The letters settle into a word you can read, and the field drops.',
     reward: { rupees: 45 },
   },
   {
     id: 'rock-1-door-2',
-    kind: 'door',
-    message: 'A second hatch, its keypad scratched and worn.',
-    openMessage: 'The worn keypad still works. The hatch opens.',
+    kind: 'seal',
+    message: 'A second field across the causeway, its letters scratched and worn.',
+    openMessage: 'The worn letters still read true. The field goes out.',
     reward: { rupees: 55, hearts: 3 },
   },
   {
@@ -871,16 +871,16 @@ const GATE_LIST: Gate[] = [
   // --- rock two: the Red Rock ---------------------------------------------
   {
     id: 'rock-2-door-1',
-    kind: 'door',
-    message: 'A hatch in the red rock, warm to the touch. Its keypad is a ring of letters.',
-    openMessage: 'The ring turns full circle and the hatch swings in.',
+    kind: 'seal',
+    message: 'A force field across the gantry, warm to the touch. Its lock is a ring of letters that has to be read right around.',
+    openMessage: 'The ring turns full circle and the field drops.',
     reward: { rupees: 55 },
   },
   {
     id: 'rock-2-door-2',
-    kind: 'door',
-    message: 'Seven codes cover this hatch and only one of them is real writing.',
-    openMessage: 'You pick out the true one. The six false codes go dark.',
+    kind: 'seal',
+    message: 'Seven codes cover the causeway field and only one of them is real writing.',
+    openMessage: 'You pick out the true one. The six false codes go dark, and the field with them.',
     reward: { rupees: 65, hearts: 4 },
   },
   {
@@ -916,16 +916,16 @@ const GATE_LIST: Gate[] = [
   // --- rock three: the Ice Rock -------------------------------------------
   {
     id: 'rock-3-door-1',
-    kind: 'door',
-    message: 'A hatch furred with frost. The keypad only wakes for a careful hand.',
-    openMessage: 'The frost cracks off the keypad, and the hatch opens.',
+    kind: 'seal',
+    message: 'The gantry is iced over and a field hums behind the ice. The lock only wakes for a careful hand.',
+    openMessage: 'The frost cracks off the lock, and the field goes out.',
     reward: { rupees: 60 },
   },
   {
     id: 'rock-3-door-2',
-    kind: 'door',
-    message: 'The way is iced to the ceiling. A heater stands beside it with a word painted on the switch.',
-    openMessage: 'The heater shudders, and the ice drops away.',
+    kind: 'seal',
+    message: 'The causeway is iced to the rail. A heater stands beside it with a word painted on the switch.',
+    openMessage: 'The heater shudders, the ice drops away, and the field with it.',
     reward: { rupees: 70 },
   },
   {
@@ -953,16 +953,16 @@ const GATE_LIST: Gate[] = [
   // --- rock four: the Black Rock ------------------------------------------
   {
     id: 'rock-4-door-1',
-    kind: 'door',
-    message: 'The black hatch has no keypad at all, only a line of writing where one should be.',
-    openMessage: 'The writing fades and the hatch opens inward.',
+    kind: 'seal',
+    message: 'The field across the black gantry has no keypad at all, only a line of writing where one should be.',
+    openMessage: 'The writing fades and the field drops.',
     reward: { rupees: 70 },
   },
   {
     id: 'rock-4-door-2',
-    kind: 'door',
-    message: 'The last hatch is barred by a wheel of black stone, its rim worn almost smooth.',
-    openMessage: 'The wheel turns for the first time in a very long while.',
+    kind: 'seal',
+    message: 'The last causeway is barred by a wheel of black stone, its rim worn almost smooth.',
+    openMessage: 'The wheel turns for the first time in a very long while, and the field goes out.',
     reward: { rupees: 80, hearts: 5 },
   },
   {
