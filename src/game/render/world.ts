@@ -317,11 +317,12 @@ function drawFutureTile(
     case ',':
       return onRock ? crystals(ctx, x, y, p) : cables(ctx, x, y, col, row, p)
     case '~':
-      return space(ctx, x, y, col, row, frame, screen, theme)
+      // On a rock a hole is an edge too: the asteroid stops, and space shows.
+      return onRock ? asteroidEdge(ctx, x, y, col, row, p, screen, frame) : space(ctx, x, y, col, row, frame, screen, theme)
     case 'B':
       return gantry(ctx, x, y, p)
     case 'T':
-      return onRock ? spire(ctx, x, y, col, row, p, line, screen) : hullPanel(ctx, x, y, col, row, p, screen, frame)
+      return onRock ? asteroidEdge(ctx, x, y, col, row, p, screen, frame) : hullPanel(ctx, x, y, col, row, p, screen, frame)
     case 'p':
       return onRock ? hidingCrystals(ctx, x, y, p) : sealedPanel(ctx, x, y, col, row, p, screen, frame)
     case 'R':
@@ -407,15 +408,36 @@ function ground(
     return
   }
   if (theme === 'rock') {
-    // Dust, with the odd small crater.
+    // Dust, with craters and scattered stones — the surface of an asteroid.
     ctx.fillStyle = p.groundSpeckle
-    if ((col * 7 + row * 13) % 5 === 0) ctx.fillRect(x + 3, y + 4, 4, 3)
-    if ((col * 3 + row * 5) % 7 === 0) ctx.fillRect(x + 9, y + 10, 3, 2)
-    if ((col * 11 + row * 2) % 9 === 0) {
+    if ((col * 7 + row * 13) % 5 === 0) ctx.fillRect(x + 3, y + 4, 2, 2)
+    if ((col * 3 + row * 5) % 7 === 0) ctx.fillRect(x + 10, y + 11, 2, 1)
+    const v = (col * 7919 + row * 104729 + col * row * 31) % 13
+    if (v === 0) {
+      // A crater: a dark bowl with a lit far rim.
+      ctx.fillStyle = p.rockDark
+      ctx.fillRect(x + 3, y + 5, 10, 7)
+      ctx.fillRect(x + 4, y + 4, 8, 9)
+      ctx.fillStyle = '#3a3c45'
+      ctx.fillRect(x + 5, y + 7, 6, 4)
+      ctx.fillStyle = p.rockLight
+      ctx.fillRect(x + 4, y + 12, 8, 1)
+      ctx.fillRect(x + 3, y + 11, 1, 1)
+      ctx.fillRect(x + 12, y + 11, 1, 1)
+    } else if (v === 1 || v === 2) {
+      // A small stone.
       ctx.fillStyle = p.rockDark
       ctx.fillRect(x + 6, y + 8, 5, 4)
+      ctx.fillStyle = p.rock
+      ctx.fillRect(x + 7, y + 8, 3, 2)
       ctx.fillStyle = p.rockLight
-      ctx.fillRect(x + 7, y + 9, 3, 1)
+      ctx.fillRect(x + 7, y + 8, 2, 1)
+    } else if (v === 3) {
+      // A little dip.
+      ctx.fillStyle = p.groundSpeckle
+      ctx.fillRect(x + 6, y + 6, 5, 3)
+      ctx.fillStyle = p.rockDark
+      ctx.fillRect(x + 7, y + 7, 3, 1)
     }
     return
   }
@@ -1075,39 +1097,76 @@ function cables(ctx: CanvasRenderingContext2D, x: number, y: number, col: number
   ctx.fillRect(x + ((col + row) % 2 ? 4 : 10), y + 8, 2, 2)
 }
 
-/** A rock spire: the border of every rock, dark and pointed. */
-function spire(
+/**
+ * The edge of the asteroid.
+ *
+ * The border of a rock is not a wall but the place the ground stops: black
+ * space with stars and distant planets, and along every side that touches
+ * the surface, a ragged lip of rock — the lit top edge where the surface
+ * ends, and a shaded cliff face where the drop is towards the viewer.
+ */
+function asteroidEdge(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   col: number,
   row: number,
   p: Palette,
-  line: string,
   screen: Screen,
+  frame: number,
 ): void {
-  const above = ((screen.rows[row - 1] ?? '')[col] ?? '.') === 'T'
-  const left = (line[col - 1] ?? '.') === 'T'
-  ctx.fillStyle = p.wall
-  ctx.fillRect(x, y, TILE, TILE)
-  ctx.fillStyle = p.wallLight
-  if (!above) {
-    // A jagged top edge, so a row of these reads as a ridge, not a wall.
-    ctx.fillRect(x, y + 2, 4, 2)
-    ctx.fillRect(x + 4, y, 3, 2)
-    ctx.fillRect(x + 7, y + 3, 4, 1)
-    ctx.fillRect(x + 11, y + 1, 5, 2)
-    ctx.fillStyle = p.ground
-    ctx.fillRect(x, y, 4, 2)
-    ctx.fillRect(x + 7, y, 4, 3)
-    ctx.fillRect(x + 11, y, 5, 1)
+  space(ctx, x, y, col, row, frame, screen, 'rock')
+  const at = (c: number, r: number): string => (screen.rows[r] ?? '')[c] ?? 'T'
+  const ground = (c: number, r: number): boolean => at(c, r) !== 'T' && at(c, r) !== '~'
+  const seed = tileHash(screen, col, row)
+  const jag = (i: number): number => (seed >> (i % 13)) % 3
+
+  // Ground above: this tile is the drop below the surface, so the cliff face.
+  if (ground(col, row - 1)) {
+    for (let px = 0; px < TILE; px++) {
+      const depth = 5 + jag(px)
+      ctx.fillStyle = p.wall
+      ctx.fillRect(x + px, y, 1, depth)
+      ctx.fillStyle = p.wallDark
+      ctx.fillRect(x + px, y + depth - 1, 1, 1)
+      if (px % 3 === (seed % 3)) ctx.fillRect(x + px, y + 1, 1, depth - 2)
+    }
     ctx.fillStyle = p.wallLight
+    ctx.fillRect(x, y, TILE, 1)
   }
-  if (!left) ctx.fillRect(x, y + 4, 2, 12)
-  ctx.fillStyle = p.wallDark
-  ctx.fillRect(x + 6, y + 9, 2, 5)
-  ctx.fillRect(x + 11, y + 6, 1, 4)
-  ctx.fillRect(x + 3, y + 12, 2, 2)
+  // Ground below: the lit top edge of the surface.
+  if (ground(col, row + 1)) {
+    for (let px = 0; px < TILE; px++) {
+      const depth = 3 + jag(px + 4)
+      ctx.fillStyle = p.ground
+      ctx.fillRect(x + px, y + TILE - depth, 1, depth)
+      ctx.fillStyle = p.rockLight
+      ctx.fillRect(x + px, y + TILE - depth, 1, 1)
+    }
+  }
+  // Ground to the left or right: the side of the asteroid.
+  if (ground(col - 1, row)) {
+    for (let py = 0; py < TILE; py++) {
+      const depth = 3 + jag(py + 7)
+      ctx.fillStyle = p.wall
+      ctx.fillRect(x, y + py, depth, 1)
+      ctx.fillStyle = p.wallLight
+      ctx.fillRect(x, y + py, 1, 1)
+      ctx.fillStyle = p.wallDark
+      ctx.fillRect(x + depth - 1, y + py, 1, 1)
+    }
+  }
+  if (ground(col + 1, row)) {
+    for (let py = 0; py < TILE; py++) {
+      const depth = 3 + jag(py + 9)
+      ctx.fillStyle = p.wall
+      ctx.fillRect(x + TILE - depth, y + py, depth, 1)
+      ctx.fillStyle = p.wallLight
+      ctx.fillRect(x + TILE - 1, y + py, 1, 1)
+      ctx.fillStyle = p.wallDark
+      ctx.fillRect(x + TILE - depth, y + py, 1, 1)
+    }
+  }
 }
 
 /** A crystal cluster on a rock: the scrub, and it comes off with a tool. */
@@ -1163,14 +1222,15 @@ function space(
   }
   // A planet, somewhere out there: one per screen, big and banded, hanging
   // in whichever corner of the void the screen's own number puts it.
-  const planet = planetOf(screen)
-  if (planet && Math.hypot(x + 8 - planet.x, y + 8 - planet.y) < planet.r + 12) {
+  for (const planet of planetsOf(screen)) {
+    if (Math.hypot(x + 8 - planet.x, y + 8 - planet.y) >= planet.r + 12) continue
     for (let py = 0; py < TILE; py++) {
       for (let px = 0; px < TILE; px++) {
         const d = Math.hypot(x + px - planet.x, y + py - planet.y)
         if (d > planet.r) continue
         const band = Math.floor((y + py - planet.y + planet.r) / 6) % 3
-        ctx.fillStyle = d > planet.r - 1.5 ? '#6aa3f0' : band === 0 ? '#27488f' : band === 1 ? '#3f74d6' : '#345fb8'
+        ctx.fillStyle =
+          d > planet.r - 1.5 ? planet.rim : band === 0 ? planet.dark : band === 1 ? planet.mid : planet.light
         ctx.fillRect(x + px, y + py, 1, 1)
       }
     }
@@ -1187,7 +1247,9 @@ function space(
     ctx.fillStyle = blink ? '#1a2140' : i === 2 ? '#8f98a8' : '#f6f3e7'
     ctx.fillRect(x + sx, y + sy, 1, 1)
   })
-  // Where the floor stops, a rim, so the drop reads as a drop.
+  // Where the floor stops, a rim, so the drop reads as a drop. Not on a
+  // rock: there the asteroid's own edge is drawn over this, ragged.
+  if (theme === 'rock') return
   const isSpace = (c: number, r: number): boolean => ((screen.rows[r] ?? '')[c] ?? '~') === '~'
   ctx.fillStyle = '#2a3140'
   if (!isSpace(col, row - 1)) ctx.fillRect(x, y, TILE, 2)
@@ -1196,9 +1258,22 @@ function space(
   if (!isSpace(col + 1, row)) ctx.fillRect(x + TILE - 2, y, 2, TILE)
 }
 
-/** Where a screen's planet hangs, in pixels, or nowhere for a screen with no void. */
-function planetOf(screen: Screen): { x: number; y: number; r: number } | undefined {
-  if (!screen.rows.some((line) => line.includes('~'))) return undefined
+interface Planet {
+  x: number
+  y: number
+  r: number
+  rim: string
+  dark: string
+  mid: string
+  light: string
+}
+
+/**
+ * The planets a screen's sky hangs: one big and near in a corner, one small
+ * and far in the opposite one. Nowhere for a screen with no sky in it.
+ */
+function planetsOf(screen: Screen): Planet[] {
+  if (screen.setting !== 'rock' && !screen.rows.some((line) => line.includes('~'))) return []
   const seed = tileHash(screen, 3, 7)
   const corners: [number, number][] = [
     [-10, -6],
@@ -1206,8 +1281,18 @@ function planetOf(screen: Screen): { x: number; y: number; r: number } | undefin
     [-10, SCREEN_ROWS * TILE + 6],
     [SCREEN_COLS * TILE + 10, SCREEN_ROWS * TILE + 6],
   ]
-  const corner = corners[seed % 4] as [number, number]
-  return { x: corner[0], y: corner[1], r: 52 + (seed % 5) * 6 }
+  const near = corners[seed % 4] as [number, number]
+  const far = corners[3 - (seed % 4)] as [number, number]
+  const blue = { rim: '#6aa3f0', dark: '#27488f', mid: '#3f74d6', light: '#345fb8' }
+  const violet = { rim: '#b48be8', dark: '#4a2a7a', mid: '#7a4fb8', light: '#5c3a99' }
+  const rust = { rim: '#f0a070', dark: '#6a2a1a', mid: '#a04a2a', light: '#8a3a22' }
+  const nearLook = (seed >> 4) % 2 === 0 ? blue : violet
+  const farLook = (seed >> 6) % 2 === 0 ? rust : blue
+  return [
+    { x: near[0], y: near[1], r: 52 + (seed % 5) * 6, ...nearLook },
+    // The far one sits a little in from its corner, so the whole disc shows.
+    { x: far[0] + (far[0] < 0 ? 28 : -28), y: far[1] + (far[1] < 0 ? 22 : -22), r: 9 + ((seed >> 8) % 3) * 2, ...farLook },
+  ]
 }
 
 /**
