@@ -48,6 +48,8 @@ export interface Prop {
   terminal?: ShopKind
   /** A suit locker in an airlock. Solid; walking into it puts the suit on. */
   locker?: boolean
+  /** Furniture he cannot walk through — a canister, a crate. Does nothing else. */
+  solid?: boolean
 }
 
 export type ShopKind = 'village' | 'secret' | 'smith' | 'castaway' | 'pets'

@@ -33,31 +33,35 @@ function airlock(
     name,
     region: 'Airlocks',
     ...AIRLOCK,
+    // A tall chamber: the window onto the rock at the top, with the outer
+    // hatch under it, and the way back to the ship at the bottom.
     rows: [
-      '################',
-      '################',
-      '################',
-      '####........####',
-      '####........####',
-      'C...........####',
-      '####........####',
-      '####........####',
-      '#######..#######',
+      '#####~~~~~~#####',
+      '#####~~~~~~#####',
+      '#######C########',
+      '#####......#####',
+      '#####......#####',
+      '#####......#####',
+      '#####......#####',
+      '#####......#####',
+      '#####......#####',
       '#######..#######',
       '#######..#######',
     ],
     exits: {},
     portals: [
       { col: 7, row: 10, to: ship.to, spawnCol: ship.spawnCol, spawnRow: ship.spawnRow },
-      { col: 0, row: 5, to: rock.to, spawnCol: rock.spawnCol, spawnRow: rock.spawnRow, needsSuit: true },
+      { col: 7, row: 2, to: rock.to, spawnCol: rock.spawnCol, spawnRow: rock.spawnRow, needsSuit: true },
     ],
     props: [
-      { sprite: 'locker', col: 9, row: 3, locker: true },
+      // The suit stands ready by the wall; walking into it puts it on.
+      { sprite: 'spacesuit', col: 9, row: 4, locker: true },
+      { sprite: 'canister', col: 5, row: 7, solid: true },
       {
         sprite: 'droid',
         col: 6,
-        row: 7,
-        talk: 'Suit up before the outer door. Walk into the locker to put it on. Out there, there is no air.',
+        row: 5,
+        talk: 'Suit up before the outer door. Walk into the suit to put it on. Out there, there is no air.',
       },
     ],
   }
@@ -217,7 +221,7 @@ export const AUTHORED_FUTURE: Screen[] = [
       { gateId: 'ship-lab-seal', col: 13, row: 4, guards: 'right', opens: [{ col: 13, row: 4 }] },
     ],
     // Airlock one is off this deck, in the wall by the far crates.
-    portals: [{ col: 11, row: 9, to: 'airlock-1', spawnCol: 7, spawnRow: 7 }],
+    portals: [{ col: 11, row: 9, to: 'airlock-1', spawnCol: 7, spawnRow: 8 }],
     props: [
       {
         sprite: 'droid',
@@ -358,7 +362,7 @@ export const AUTHORED_FUTURE: Screen[] = [
     ],
     // Airlock two, behind the loose cabling at the bottom: the screwdriver
     // finds it, the way the candle finds the forest grotto.
-    portals: [{ col: 6, row: 7, to: 'airlock-2', spawnCol: 7, spawnRow: 7 }],
+    portals: [{ col: 6, row: 7, to: 'airlock-2', spawnCol: 7, spawnRow: 8 }],
     spawns: [
       { kind: 'chaser', col: 11, row: 4 },
       { kind: 'shooter', col: 4, row: 4 },
@@ -483,7 +487,7 @@ export const AUTHORED_FUTURE: Screen[] = [
       { gateId: 'ship-reactor-seal', col: 13, row: 5, guards: 'right', opens: [{ col: 13, row: 5 }] },
     ],
     // Airlock three, off the coolant deck.
-    portals: [{ col: 3, row: 9, to: 'airlock-3', spawnCol: 7, spawnRow: 7 }],
+    portals: [{ col: 3, row: 9, to: 'airlock-3', spawnCol: 7, spawnRow: 8 }],
     spawns: [
       { kind: 'flyer', col: 4, row: 5 },
       { kind: 'flyer', col: 11, row: 5 },
@@ -511,7 +515,7 @@ export const AUTHORED_FUTURE: Screen[] = [
     // The reactor keeper guards the way down into the fourth rock: the shrine
     // steps, made of steel.
     gates: [{ gateId: 'ship-reactor-keeper', col: 7, row: 4, opens: [{ col: 7, row: 4 }, { col: 8, row: 4 }] }],
-    portals: [{ col: 7, row: 4, to: 'airlock-4', spawnCol: 7, spawnRow: 7 }],
+    portals: [{ col: 7, row: 4, to: 'airlock-4', spawnCol: 7, spawnRow: 8 }],
     props: [
       {
         sprite: 'droid',
@@ -916,7 +920,7 @@ export const AUTHORED_FUTURE: Screen[] = [
     exits: {},
     gates: [{ gateId: 'rock-1-door-1', col: 3, row: 5 }],
     portals: [
-      { col: 14, row: 5, to: 'airlock-1', spawnCol: 2, spawnRow: 5 },
+      { col: 14, row: 5, to: 'airlock-1', spawnCol: 7, spawnRow: 3 },
       { col: 3, row: 5, to: 'rock-1-crater', spawnCol: 13, spawnRow: 5, guardedBy: 'rock-1-door-1' },
     ],
     spawns: [
@@ -1029,7 +1033,7 @@ export const AUTHORED_FUTURE: Screen[] = [
     exits: {},
     gates: [{ gateId: 'rock-2-door-1', col: 3, row: 5 }],
     portals: [
-      { col: 14, row: 5, to: 'airlock-2', spawnCol: 2, spawnRow: 5 },
+      { col: 14, row: 5, to: 'airlock-2', spawnCol: 7, spawnRow: 3 },
       { col: 3, row: 5, to: 'rock-2-crater', spawnCol: 13, spawnRow: 5, guardedBy: 'rock-2-door-1' },
       // A cracked boulder, and a cache behind it. The Ember Vault's alcove.
       { col: 6, row: 8, to: 'rock-2-cache', spawnCol: 7, spawnRow: 8 },
@@ -1168,7 +1172,7 @@ export const AUTHORED_FUTURE: Screen[] = [
     exits: {},
     gates: [{ gateId: 'rock-3-door-1', col: 3, row: 5 }],
     portals: [
-      { col: 14, row: 5, to: 'airlock-3', spawnCol: 2, spawnRow: 5 },
+      { col: 14, row: 5, to: 'airlock-3', spawnCol: 7, spawnRow: 3 },
       { col: 3, row: 5, to: 'rock-3-crater', spawnCol: 13, spawnRow: 5, guardedBy: 'rock-3-door-1' },
     ],
     spawns: [
@@ -1281,7 +1285,7 @@ export const AUTHORED_FUTURE: Screen[] = [
     exits: {},
     gates: [{ gateId: 'rock-4-door-1', col: 3, row: 5 }],
     portals: [
-      { col: 14, row: 5, to: 'airlock-4', spawnCol: 2, spawnRow: 5 },
+      { col: 14, row: 5, to: 'airlock-4', spawnCol: 7, spawnRow: 3 },
       { col: 3, row: 5, to: 'rock-4-crater', spawnCol: 13, spawnRow: 5, guardedBy: 'rock-4-door-1' },
     ],
     spawns: [

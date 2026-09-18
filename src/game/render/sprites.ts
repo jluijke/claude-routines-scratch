@@ -1477,6 +1477,46 @@ const LOCKER = S([
   '..kkkkkkkkkkkk..',
 ])
 
+/** A space suit standing ready in an airlock: white, black visor, a red patch. */
+const SPACESUIT = S([
+  '......kkkk......',
+  '.....kwwwwk.....',
+  '....kwkkkkwk....',
+  '....kwkzzkwk....',
+  '....kwkzzkwk....',
+  '....kwwkkwwk....',
+  '...kkwwwwwwkk...',
+  '..kwkwwrwwwkwk..',
+  '..kwkwwwwwwkwk..',
+  '..kwkwwwwwwkwk..',
+  '..kkkwwwwwwkkk..',
+  '....kwwkkwwk....',
+  '....kwwk.kwwk...',
+  '....kwwk.kwwk...',
+  '....kkkk.kkkk...',
+  '................',
+])
+
+/** A canister: a grey drum with a yellow band. Furniture. */
+const CANISTER = S([
+  '................',
+  '....kkkkkkkk....',
+  '...kMMmmmmMMk...',
+  '...kMMMMMMMMk...',
+  '...kMmmmmmmMk...',
+  '...kMmmmmmmMk...',
+  '...kMmmmmmmMk...',
+  '...kMmmmmmmMk...',
+  '...kyyyyyyyyk...',
+  '...kMmmmmmmMk...',
+  '...kMmmmmmmMk...',
+  '...kMmmmmmmMk...',
+  '...kMMMMMMMMk...',
+  '....kkkkkkkk....',
+  '................',
+  '................',
+])
+
 /** A helper droid: the one who talks, where a villager or a scribe would. */
 const DROID = S([
   '.......kk.......',
@@ -1947,6 +1987,8 @@ export const SPRITES = {
   cyborgGoatB: cyborg(GOAT_B),
   terminal: TERMINAL,
   locker: LOCKER,
+  spacesuit: SPACESUIT,
+  canister: CANISTER,
   droid: DROID,
   rocket: ROCKET,
   field: FIELD,

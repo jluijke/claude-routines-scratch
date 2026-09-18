@@ -146,11 +146,11 @@ const ROCK: Palette = {
 
 /** The airlock: a grid floor and padded, darker walls. Somewhere to hold your breath. */
 const AIRLOCK: Palette = {
-  ground: '#2e3440',
-  groundSpeckle: '#3a4252',
-  wall: '#4e5563',
-  wallLight: '#737c8c',
-  wallDark: '#252a33',
+  ground: '#7d838f',
+  groundSpeckle: '#6b717d',
+  wall: '#565d6b',
+  wallLight: '#7d8798',
+  wallDark: '#2a2f3a',
   rock: '#5a6b8a',
   rockLight: '#8093b6',
   rockDark: '#36415a',
@@ -317,7 +317,7 @@ function drawFutureTile(
     case ',':
       return onRock ? crystals(ctx, x, y, p) : cables(ctx, x, y, col, row, p)
     case '~':
-      return space(ctx, x, y, col, row, frame, screen)
+      return space(ctx, x, y, col, row, frame, screen, theme)
     case 'B':
       return gantry(ctx, x, y, p)
     case 'T':
@@ -327,7 +327,11 @@ function drawFutureTile(
     case 'R':
       return onRock ? cliff(ctx, x, y, col, row, p, line, screen) : machinery(ctx, x, y, col, row, p, screen, frame)
     case '#':
-      return onRock ? cliff(ctx, x, y, col, row, p, line, screen, '#') : block(ctx, x, y, col, row, p)
+      return onRock
+        ? cliff(ctx, x, y, col, row, p, line, screen, '#')
+        : theme === 'airlock'
+          ? airlockWall(ctx, x, y, col, row, p, screen, frame)
+          : block(ctx, x, y, col, row, p)
     case 'X':
       return crackedWall(ctx, x, y, p)
     case '*':
@@ -368,8 +372,8 @@ function ground(
     ctx.fillRect(x + TILE - 1, y, 1, TILE)
     if ((col * 5 + row * 3) % 4 === 0) ctx.fillRect(x + 2, y + 2, 2, 2)
     if (theme === 'airlock') {
-      ctx.fillRect(x + 7, y, 1, TILE)
-      ctx.fillRect(x, y + 7, TILE, 1)
+      // Big plates: a seam every tile and a rivet in one corner, nothing else.
+      ctx.fillRect(x + 2, y + 2, 1, 1)
       return
     }
     const v = (col * 7919 + row * 104729 + col * row * 31) % 17
@@ -1139,9 +1143,24 @@ function space(
   row: number,
   frame: number,
   screen: Screen,
+  theme: Theme = 'ship',
 ): void {
   ctx.fillStyle = '#06070f'
   ctx.fillRect(x, y, TILE, TILE)
+  // An airlock's window looks out onto the rock itself: grey ground rising
+  // along the bottom of the pane, with the stars above it.
+  const airlockSill = theme === 'airlock' && ((screen.rows[row + 1] ?? '')[col] ?? '~') !== '~'
+  if (airlockSill) {
+    const seed = tileHash(screen, col, row)
+    const rise = 5 + (seed % 4)
+    ctx.fillStyle = '#7a7c86'
+    ctx.fillRect(x, y + TILE - rise, TILE, rise)
+    ctx.fillStyle = '#a3a5ae'
+    ctx.fillRect(x, y + TILE - rise, TILE, 1)
+    ctx.fillStyle = '#5c5e66'
+    ctx.fillRect(x + (seed % 7) + 2, y + TILE - 3, 2, 1)
+    ctx.fillRect(x + ((seed >> 3) % 9) + 1, y + TILE - rise + 2, 1, 1)
+  }
   // A planet, somewhere out there: one per screen, big and banded, hanging
   // in whichever corner of the void the screen's own number puts it.
   const planet = planetOf(screen)
@@ -1189,6 +1208,103 @@ function planetOf(screen: Screen): { x: number; y: number; r: number } | undefin
   ]
   const corner = corners[seed % 4] as [number, number]
   return { x: corner[0], y: corner[1], r: 52 + (seed % 5) * 6 }
+}
+
+/**
+ * An airlock wall: thick bevelled plate, and on the faces that look into the
+ * chamber the things the chamber has — yellow light strips, red readout
+ * panels, vent grilles. Deliberately heavier than the hull of the decks.
+ */
+function airlockWall(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  col: number,
+  row: number,
+  p: Palette,
+  screen: Screen,
+  frame: number,
+): void {
+  const at = (c: number, r: number): string => (screen.rows[r] ?? '')[c] ?? '#'
+  const open = (c: number, r: number): boolean => at(c, r) === '.' || at(c, r) === 'C'
+  const facesRight = open(col + 1, row)
+  const facesLeft = open(col - 1, row)
+  const facesDown = open(col, row + 1)
+  const facesUp = open(col, row - 1)
+  const faces = facesRight || facesLeft || facesDown || facesUp
+
+  ctx.fillStyle = p.wallDark
+  ctx.fillRect(x, y, TILE, TILE)
+  ctx.fillStyle = p.wall
+  ctx.fillRect(x + 1, y + 1, 14, 14)
+  ctx.fillStyle = p.wallLight
+  ctx.fillRect(x + 1, y + 1, 14, 1)
+  ctx.fillRect(x + 1, y + 1, 1, 14)
+  // A bevel where the wall meets the chamber.
+  ctx.fillStyle = p.wallLight
+  if (facesRight) ctx.fillRect(x + 13, y, 2, TILE)
+  if (facesLeft) ctx.fillRect(x + 1, y, 2, TILE)
+  if (facesDown) ctx.fillRect(x, y + 13, TILE, 2)
+  if (facesUp) ctx.fillRect(x, y + 1, TILE, 2)
+  if (!faces) {
+    // Deep in the wall: a seam and a rivet, so the mass is not flat.
+    ctx.fillStyle = p.wallDark
+    ctx.fillRect(x + 3, y + 12, 1, 1)
+    if ((col + row) % 2 === 0) ctx.fillRect(x + 8, y + 1, 1, 14)
+    return
+  }
+
+  const v = tileHash(screen, col, row) % 5
+  if (v === 0 || v === 1) {
+    // A yellow light strip, glowing.
+    const bright = Math.floor((frame + row * 7) / 40) % 5 !== 0
+    if (facesRight || facesLeft) {
+      const lx = facesRight ? x + 9 : x + 4
+      ctx.fillStyle = '#8a4a1a'
+      ctx.fillRect(lx - 1, y + 2, 5, 12)
+      ctx.fillStyle = bright ? '#f2c94c' : '#e2883a'
+      ctx.fillRect(lx, y + 3, 3, 10)
+      ctx.fillStyle = '#fff4c2'
+      ctx.fillRect(lx + 1, y + 4, 1, 8)
+    } else {
+      const ly = facesDown ? y + 9 : y + 4
+      ctx.fillStyle = '#8a4a1a'
+      ctx.fillRect(x + 2, ly - 1, 12, 5)
+      ctx.fillStyle = bright ? '#f2c94c' : '#e2883a'
+      ctx.fillRect(x + 3, ly, 10, 3)
+      ctx.fillStyle = '#fff4c2'
+      ctx.fillRect(x + 4, ly + 1, 8, 1)
+    }
+    return
+  }
+  if (v === 2) {
+    // A red readout: a dark panel with a few digits lit.
+    ctx.fillStyle = '#12131a'
+    ctx.fillRect(x + 3, y + 3, 10, 10)
+    ctx.fillStyle = '#d5433f'
+    const blink = Math.floor((frame + col * 5) / 30) % 2 === 0
+    ctx.fillRect(x + 4, y + 5, 2, 2)
+    ctx.fillRect(x + 8, y + 5, 3, 2)
+    if (blink) ctx.fillRect(x + 4, y + 9, 3, 2)
+    ctx.fillRect(x + 9, y + 9, 2, 2)
+    ctx.fillStyle = '#8f2320'
+    ctx.fillRect(x + 6, y + 5, 1, 2)
+    return
+  }
+  if (v === 3) {
+    // A vent grille.
+    ctx.fillStyle = p.wallDark
+    ctx.fillRect(x + 3, y + 4, 10, 9)
+    ctx.fillStyle = p.wallLight
+    ctx.fillRect(x + 4, y + 5, 8, 1)
+    ctx.fillRect(x + 4, y + 8, 8, 1)
+    ctx.fillRect(x + 4, y + 11, 8, 1)
+    return
+  }
+  // Plain, riveted.
+  ctx.fillStyle = p.wallDark
+  ctx.fillRect(x + 4, y + 4, 1, 1)
+  ctx.fillRect(x + 11, y + 11, 1, 1)
 }
 
 /** A metal gantry over the void. */

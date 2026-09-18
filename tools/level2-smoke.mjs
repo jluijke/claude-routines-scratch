@@ -163,12 +163,12 @@ if (food) {
 }
 
 // ---------------------------------------------------------------- airlock
-await goTo('airlock-1', 4, 5)
+await goTo('airlock-1', 7, 5)
 w = await world()
 check('the airlock is empty of robots', w.enemies === 0)
 check('and he is not wearing the suit', w.suitOn === false)
-// Straight out of the outer door without the suit.
-await hold('ArrowLeft', 1600)
+// Straight out of the outer door, at the top under the window, without the suit.
+await hold('ArrowUp', 1600)
 await page.waitForSelector('.gate-prompt', { timeout: 4000 }).catch(() => {})
 const deathText = (await page.textContent('.gate-prompt').catch(() => '')) ?? ''
 check('walking out without the suit kills him at once', /forgot to put on your space suit/i.test(deathText))
@@ -183,8 +183,8 @@ await goTo('airlock-1', 9, 5)
 await hold('ArrowUp', 500)
 w = await world()
 check('walking into the locker puts the suit on', w.suitOn === true && /space suit/i.test(w.message ?? ''))
-await goTo('airlock-1', 3, 5)
-await hold('ArrowLeft', 1400)
+await goTo('airlock-1', 7, 4)
+await hold('ArrowUp', 1400)
 await page.waitForTimeout(300)
 w = await world()
 check('and the outer door lets him through', w.screen === 'rock-1-landing')
@@ -198,7 +198,7 @@ const heroSprite = await page.evaluate(() => {
 check('he is drawn in the suit', heroSprite === true)
 
 // Back through the airlock to the ship takes it off.
-await goTo('airlock-1', 7, 7)
+await goTo('airlock-1', 7, 8)
 await goTo('ship-corridor-2', 7, 5)
 w = await world()
 check('back inside, the suit comes off', w.suitOn === false)

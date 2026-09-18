@@ -578,7 +578,7 @@ export class World {
     this.mapOpen = false
     this.bumping = undefined
     this.solidProps = new Set(
-      (next.props ?? []).filter((p) => p.terminal || p.locker).map((p) => `${p.col},${p.row}`),
+      (next.props ?? []).filter((p) => p.terminal || p.locker || p.solid).map((p) => `${p.col},${p.row}`),
     )
     // Back inside the ship, the suit comes off by itself. Out on a rock or in
     // an airlock it stays on: nobody takes a helmet off in a vacuum.
@@ -1546,6 +1546,8 @@ export class World {
     drawBarriers(ctx, this.atlas, this.screen, opened, this.frame)
 
     for (const prop of this.screen.props ?? []) {
+      // The suit stands by the wall until he is wearing it.
+      if (prop.locker && this.save.world.suitOn) continue
       this.atlas.draw(ctx, prop.sprite, prop.col * TILE, prop.row * TILE)
     }
 
