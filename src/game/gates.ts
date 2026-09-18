@@ -584,6 +584,408 @@ const GATE_LIST: Gate[] = [
     reward: { rupees: 90 },
     optional: true,
   },
+
+  // =========================================================================
+  // Level 2: the sky-ship. The same kinds of barrier, in the future's words:
+  // force fields for seals, keypad hatches for doors, gantries for bridges,
+  // droids for gatekeepers, locked crates for chests, and a computer that
+  // wants proof before it sells.
+  // =========================================================================
+
+  // --- the ship's computers ------------------------------------------------
+  {
+    id: 'ship-candle',
+    kind: 'shop',
+    message:
+      'The computer pauses over the Laser Screwdriver. "A screwdriver in the wrong hands takes a ship apart. Two words first, and it is yours to buy."',
+    openMessage: '"ACCEPTED. Mind how you carry it."',
+    reward: { rupees: 70 },
+    challenge: 'intro',
+  },
+  {
+    id: 'ship-rocket',
+    kind: 'shop',
+    message: 'The computer flags the Rocketship. "HAZARDOUS ITEM. Show me a careful mind first."',
+    openMessage: '"Careful and clever. It is yours to buy."',
+    reward: { rupees: 30 },
+  },
+  {
+    id: 'ship-blaster',
+    kind: 'shop',
+    message: '"A blaster needs a steady hand and a steady head. Prove the second and it is yours."',
+    openMessage: '"Steady enough. Blaster unlocked."',
+    reward: { rupees: 30 },
+  },
+  {
+    id: 'ship-photon-shield',
+    kind: 'shop',
+    message: '"The Photon Shield answers only to a sharp mind."',
+    openMessage: 'The shield hums quietly. It will answer to you now.',
+    reward: { rupees: 40 },
+  },
+  {
+    id: 'ship-red-nanosuit',
+    kind: 'shop',
+    message: '"Reactor plating is precious. Earn the right to wear it."',
+    openMessage: '"Earned. Wear it well."',
+    reward: { rupees: 40 },
+  },
+  {
+    id: 'forge-green',
+    kind: 'smith',
+    message: 'The forge console blinks. "A green blade needs a name spelled true into its crystal. Can you manage that?"',
+    openMessage: 'The name burns into the crystal. The Green Lightsaber is ready.',
+    reward: { rupees: 50 },
+  },
+  {
+    id: 'forge-arc',
+    kind: 'smith',
+    message: '"The Arc Staff is the last thing this forge will ever print. Show me you deserve it."',
+    openMessage: 'The Arc Staff comes out of the forge with its orb already lit.',
+    reward: { rupees: 80, heartContainer: true },
+  },
+  {
+    id: 'ship-circuit-ring',
+    kind: 'shop',
+    message: 'The hidden terminal highlights the Circuit Ring. "This one has a price beyond rupees."',
+    openMessage: '"Then it is yours to buy."',
+    reward: { rupees: 60 },
+  },
+  {
+    id: 'ship-smugglers',
+    kind: 'shop',
+    message: 'The smugglers\' terminal shows a locked screen. "Prove it, and I will deal."',
+    openMessage: '"Good enough. Have a look at the shelf."',
+    reward: { rupees: 50 },
+  },
+
+  // --- the bridge and the decks -------------------------------------------
+  {
+    id: 'ship-obs-seal',
+    kind: 'seal',
+    message: 'A force field hums across the corridor to the observatory. Letters scroll along its edge.',
+    openMessage: 'The letters settle into a word you can read, and the field drops.',
+    reward: { rupees: 40, unlock: 'ship-obs-chest' },
+  },
+  {
+    id: 'ship-obs-chest',
+    kind: 'chest',
+    message: 'A crate locked with a spelling code.',
+    openMessage: 'The code takes. Inside is a purse of rupees.',
+    reward: { rupees: 60 },
+    optional: true,
+  },
+  {
+    id: 'ship-lab-seal',
+    kind: 'seal',
+    message: 'A force field seals the way to the laboratories. It wants a word.',
+    openMessage: 'The field flickers out.',
+    reward: { rupees: 45 },
+  },
+  {
+    id: 'ship-mess-guard',
+    kind: 'npc',
+    message: 'A kitchen droid rolls into your way. "NOBODY PASSES THE MESS WITHOUT SHOWING ME THEY CAN SPELL."',
+    openMessage: '"WELL DONE. THE MESS IS YOURS."',
+    reward: { rupees: 45, hearts: 3 },
+  },
+
+  // --- the cargo bays ------------------------------------------------------
+  {
+    id: 'ship-cargo-seal',
+    kind: 'seal',
+    message: 'A force field blocks the way to Cargo Bay Two.',
+    openMessage: 'The field drops with a sigh.',
+    reward: { rupees: 40 },
+  },
+  {
+    id: 'ship-hangar-seal',
+    kind: 'seal',
+    message: 'The hangar hatch is sealed by a field of blue light. Letters drift in it.',
+    openMessage: 'The blue light parts. The hangar is open.',
+    reward: { rupees: 50 },
+  },
+  {
+    id: 'ship-vault-chest',
+    kind: 'chest',
+    message: "The vault's strongbox, still locked after a thousand years.",
+    openMessage: 'The strongbox opens on a life core.',
+    reward: { rupees: 40, heartContainer: true },
+  },
+  {
+    id: 'ship-cargo-guard',
+    kind: 'npc',
+    message: 'A loader droid bars the way. "ONE QUESTION, TRAVELLER."',
+    openMessage: '"GO ON THROUGH, THEN."',
+    reward: { rupees: 40, hearts: 2 },
+  },
+  {
+    id: 'ship-cargo-chest',
+    kind: 'chest',
+    message: 'A crate wedged between two containers, locked with a code.',
+    openMessage: 'The lid springs open.',
+    reward: { rupees: 70 },
+    optional: true,
+  },
+  {
+    id: 'ship-launch-passage',
+    kind: 'seal',
+    message:
+      'A line of force posts runs across the hangar floor. The bay doors beyond them are open on the black, and something stands on the far side of it.',
+    openMessage: 'The force posts power down, one after another.',
+    reward: { rupees: 60 },
+    challenge: 'half',
+  },
+  {
+    id: 'outpost-toll',
+    kind: 'npc',
+    message:
+      'A voice comes up from the dark below. "Lovely outpost, isn\'t it? Long way home, though. Did you give any thought to how you were getting back?" Something down there laughs. "Come down. Answer me one thing and we will talk."',
+    openMessage: '"Down you come, then. Mind the step."',
+    // The rupees are the fare home, so nobody can be stranded here.
+    reward: { rupees: 300, unlock: 'ship-rocket' },
+    challenge: 'half',
+  },
+
+  // --- engineering ---------------------------------------------------------
+  {
+    id: 'ship-engine-seal',
+    kind: 'seal',
+    message: 'A force field seals the way down to the coolant deck.',
+    openMessage: 'The field drops.',
+    reward: { rupees: 55 },
+  },
+  {
+    id: 'ship-reactor-seal',
+    kind: 'seal',
+    message: 'The reactor door is sealed with a field brighter than the rest.',
+    openMessage: 'The bright field goes out. The reactor is open.',
+    reward: { rupees: 55 },
+  },
+  {
+    id: 'ship-reactor-keeper',
+    kind: 'npc',
+    message: 'The keeper droid stands over the reactor hatch. "ANSWER, AND GO DOWN."',
+    openMessage: '"DOWN YOU GO."',
+    reward: { rupees: 45, heartContainer: true },
+  },
+  {
+    id: 'ship-lower-chest',
+    kind: 'chest',
+    message: 'A crate half-buried in cabling.',
+    openMessage: 'It opens with a hiss of cold air.',
+    reward: { rupees: 75 },
+    optional: true,
+  },
+  {
+    id: 'ship-lower-guard',
+    kind: 'npc',
+    message: 'A patrol droid blocks the lower deck. "STATE THE WORD."',
+    openMessage: '"WORD ACCEPTED."',
+    reward: { rupees: 55 },
+  },
+
+  // --- the labs ------------------------------------------------------------
+  {
+    id: 'ship-lab-seal-2',
+    kind: 'seal',
+    message: 'Deeper in, a second force field, thicker than the first.',
+    openMessage: 'The field thins and vanishes.',
+    reward: { rupees: 50 },
+  },
+  {
+    id: 'ship-lab-chest',
+    kind: 'chest',
+    message: 'A sample crate, locked.',
+    openMessage: 'The lock clicks open.',
+    reward: { rupees: 65 },
+    optional: true,
+  },
+  {
+    id: 'ship-lab-seal-3',
+    kind: 'seal',
+    message: 'The specimen room is sealed off. The lock scrolls a word with a letter missing.',
+    openMessage: 'The missing letter drops into place, and the door slides open.',
+    reward: { rupees: 60, hearts: 4 },
+  },
+  {
+    id: 'ship-lab-guard',
+    kind: 'npc',
+    message: 'A lab droid turns its lenses on you. "SPELL IT, OR GO BACK."',
+    openMessage: '"CORRECT. PROCEED."',
+    reward: { rupees: 55, hearts: 3 },
+  },
+  {
+    id: 'ship-specimen-chest',
+    kind: 'chest',
+    message: 'A specimen crate at the far end of the labs.',
+    openMessage: 'The specimen crate opens on a life core.',
+    reward: { rupees: 90, heartContainer: true },
+  },
+  {
+    id: 'ship-maintenance-chest',
+    kind: 'chest',
+    message: 'A crate under the cabling, locked with a code.',
+    openMessage: 'The code takes.',
+    reward: { rupees: 70 },
+    optional: true,
+  },
+
+  // --- rock one: the Grey Rock --------------------------------------------
+  {
+    id: 'rock-1-door-1',
+    kind: 'door',
+    message: 'A hatch cut into the rock, with a keypad of letters beside it.',
+    openMessage: 'The keypad lights up green and the hatch slides aside.',
+    reward: { rupees: 45 },
+  },
+  {
+    id: 'rock-1-door-2',
+    kind: 'door',
+    message: 'A second hatch, its keypad scratched and worn.',
+    openMessage: 'The worn keypad still works. The hatch opens.',
+    reward: { rupees: 55, hearts: 3 },
+  },
+  {
+    id: 'rock-1-hatch',
+    kind: 'door',
+    message: 'A hatch into the rock itself. A word is stencilled on it.',
+    openMessage: 'The stencil glows, and the hatch lifts.',
+    reward: { rupees: 50 },
+  },
+  {
+    id: 'rock-1-vein-door',
+    kind: 'bridge',
+    message: 'The floor of the vein has fallen away. A gantry lies folded against the wall.',
+    openMessage: 'Piece by piece, the gantry unfolds across the gap.',
+    reward: { rupees: 50 },
+  },
+  {
+    id: 'rock-1-chest',
+    kind: 'chest',
+    message: "The Grey Rock's strongbox, still sealed.",
+    openMessage: 'The strongbox opens on a life core.',
+    reward: { rupees: 40, heartContainer: true },
+  },
+
+  // --- rock two: the Red Rock ---------------------------------------------
+  {
+    id: 'rock-2-door-1',
+    kind: 'door',
+    message: 'A hatch in the red rock, warm to the touch. Its keypad is a ring of letters.',
+    openMessage: 'The ring turns full circle and the hatch swings in.',
+    reward: { rupees: 55 },
+  },
+  {
+    id: 'rock-2-door-2',
+    kind: 'door',
+    message: 'Seven codes cover this hatch and only one of them is real writing.',
+    openMessage: 'You pick out the true one. The six false codes go dark.',
+    reward: { rupees: 65, hearts: 4 },
+  },
+  {
+    id: 'rock-2-hatch',
+    kind: 'door',
+    message: 'A hatch into the crater floor. The lock wants a word spelled true.',
+    openMessage: 'The lock takes it, and the hatch lifts.',
+    reward: { rupees: 60 },
+  },
+  {
+    id: 'rock-2-vein-door',
+    kind: 'door',
+    message: 'A blast door, sealed. Someone has chipped one word out of the sign on it.',
+    openMessage: 'The missing word settles back into the sign, and the door opens.',
+    reward: { rupees: 65 },
+  },
+  {
+    id: 'rock-2-chest',
+    kind: 'chest',
+    message: "The Red Rock's strongbox.",
+    openMessage: 'The strongbox opens.',
+    reward: { rupees: 90, heartContainer: true },
+  },
+  {
+    id: 'rock-2-cache-chest',
+    kind: 'chest',
+    message: 'A crate hidden behind the cracked boulder, locked.',
+    openMessage: 'The lock gives way.',
+    reward: { rupees: 90 },
+    optional: true,
+  },
+
+  // --- rock three: the Ice Rock -------------------------------------------
+  {
+    id: 'rock-3-door-1',
+    kind: 'door',
+    message: 'A hatch furred with frost. The keypad only wakes for a careful hand.',
+    openMessage: 'The frost cracks off the keypad, and the hatch opens.',
+    reward: { rupees: 60 },
+  },
+  {
+    id: 'rock-3-door-2',
+    kind: 'door',
+    message: 'The way is iced to the ceiling. A heater stands beside it with a word painted on the switch.',
+    openMessage: 'The heater shudders, and the ice drops away.',
+    reward: { rupees: 70 },
+  },
+  {
+    id: 'rock-3-hatch',
+    kind: 'door',
+    message: 'A hatch under the ice. Letters are cut into it.',
+    openMessage: 'The letters glow through the ice, and it lifts.',
+    reward: { rupees: 65 },
+  },
+  {
+    id: 'rock-3-vein-door',
+    kind: 'bridge',
+    message: 'A collapsed walkway. The fallen sections each carry a letter, and they only fit together one way.',
+    openMessage: 'The sections rise and lock into a walkway.',
+    reward: { rupees: 70, hearts: 4 },
+  },
+  {
+    id: 'rock-3-chest',
+    kind: 'chest',
+    message: "The Ice Rock's strongbox, frozen shut.",
+    openMessage: 'The ice cracks and the strongbox opens.',
+    reward: { rupees: 85, heartContainer: true },
+  },
+
+  // --- rock four: the Black Rock ------------------------------------------
+  {
+    id: 'rock-4-door-1',
+    kind: 'door',
+    message: 'The black hatch has no keypad at all, only a line of writing where one should be.',
+    openMessage: 'The writing fades and the hatch opens inward.',
+    reward: { rupees: 70 },
+  },
+  {
+    id: 'rock-4-door-2',
+    kind: 'door',
+    message: 'The last hatch is barred by a wheel of black stone, its rim worn almost smooth.',
+    openMessage: 'The wheel turns for the first time in a very long while.',
+    reward: { rupees: 80, hearts: 5 },
+  },
+  {
+    id: 'rock-4-hatch',
+    kind: 'door',
+    message: 'A cage of iron letters covers the hatch, rearranging itself as you watch.',
+    openMessage: 'The letters stop moving, agree on an order, and unlock.',
+    reward: { rupees: 75 },
+  },
+  {
+    id: 'rock-4-vein-door',
+    kind: 'door',
+    message: 'The vein is blocked by a blast door with the neatest writing you have ever seen. It expects the same back.',
+    openMessage: 'The neat writing comes apart, letter by letter.',
+    reward: { rupees: 75, hearts: 4 },
+  },
+  {
+    id: 'rock-4-chest',
+    kind: 'chest',
+    message: 'A strongbox at the heart of the Black Rock, waiting.',
+    openMessage: 'The strongbox opens on a life core.',
+    reward: { rupees: 95, heartContainer: true },
+  },
 ]
 
 

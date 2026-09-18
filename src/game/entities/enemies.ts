@@ -47,6 +47,24 @@ export function isBossKind(kind: EnemyKind): boolean {
   return ARCHETYPES[kind].boss === true
 }
 
+/**
+ * How an enemy looks. The land's monsters and the ship's robots are the same
+ * archetypes underneath — same health, same speed, same habits — so a child
+ * who learned to handle a shooter has learned to handle a drone.
+ */
+export type EnemyLook = 'monster' | 'robot'
+
+const ROBOT_SPRITES: Record<EnemyKind, [SpriteName, SpriteName]> = {
+  shooter: ['droneA', 'droneB'],
+  chaser: ['crusherA', 'crusherB'],
+  flyer: ['discA', 'discB'],
+  caster: ['glitchA', 'glitchB'],
+  boss1: ['mechA', 'mechA'],
+  boss2: ['mechA', 'mechA'],
+  boss3: ['mechA', 'mechA'],
+  boss4: ['mechA', 'mechA'],
+}
+
 const ARCHETYPES: Record<EnemyKind, Archetype> = {
   shooter: {
     hp: 2, speed: 26, damage: 1, size: 14,
@@ -93,6 +111,7 @@ export class Enemy {
   hp: number
   readonly kind: EnemyKind
   readonly def: Archetype
+  readonly look: EnemyLook
   hurtTimer = 0
   private cooldown: number
   private dirX = 0
@@ -115,8 +134,9 @@ export class Enemy {
   private baitX = 0
   private baitY = 0
 
-  constructor(kind: EnemyKind, col: number, row: number, seed: number) {
+  constructor(kind: EnemyKind, col: number, row: number, seed: number, look: EnemyLook = 'monster') {
     this.kind = kind
+    this.look = look
     this.def = ARCHETYPES[kind]
     this.x = col * TILE + (TILE - this.def.size) / 2
     this.y = row * TILE + (TILE - this.def.size) / 2
@@ -134,7 +154,9 @@ export class Enemy {
   }
 
   get sprite(): SpriteName {
-    return Math.floor(this.phase / 14) % 2 === 0 ? this.def.spriteA : this.def.spriteB
+    const first = Math.floor(this.phase / 14) % 2 === 0
+    if (this.look === 'robot') return ROBOT_SPRITES[this.kind][first ? 0 : 1]
+    return first ? this.def.spriteA : this.def.spriteB
   }
 
   /** True while blinking out or in — the sprite flickers and cannot be hit. */

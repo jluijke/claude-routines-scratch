@@ -23,6 +23,9 @@ import { SCREENS } from './game/world/screens'
 import { showGatePrompt, showNotice } from './game/ui/prompt'
 import { showBossVictory } from './game/ui/victory'
 import { showDiscovery } from './game/ui/discovery'
+import { FUTURE_SAVED, showStory, TO_THE_FUTURE } from './game/ui/story'
+import { switchLevel } from './game/levels'
+import { flavourFor } from './game/flavour'
 import { mapLayout } from './game/render/map'
 import { showShop, type ShopKind } from './game/ui/shop'
 import { showPetShop } from './game/ui/petShop'
@@ -31,7 +34,8 @@ import { showRulePreview } from './spelling/ui/rulePreview'
 import { Rng } from './core/rng'
 import { showHelp } from './game/ui/help'
 import { gateById, type Gate } from './game/gates'
-import { ITEMS } from './game/items'
+import { ITEMS, itemName } from './game/items'
+import type { Level } from './core/save'
 import type { Exercise } from './spelling/types'
 import { mountParentDashboard } from './parent/dashboard'
 import { creditSeconds, describe as describePacing } from './game/pacing'
@@ -130,7 +134,8 @@ function showTitle(): void {
           'every bridge and every good sword in the shop opens only for someone who can spell.',
       ]),
       el('p', { class: 'q-hint-line' }, [
-        `${completed} of ${TOTAL_EXERCISES} exercises complete · ${masteredCount(state.spelling.mastery, CONCEPTS.keys())} patterns mastered · ${state.player.rupees} rupees`,
+        `${completed} of ${TOTAL_EXERCISES} exercises complete · ${masteredCount(state.spelling.mastery, CONCEPTS.keys())} patterns mastered · ${state.player.rupees} rupees` +
+          (state.level === 2 ? ' · Level 2: the sky-ship' : ''),
       ]),
       el('div', { class: 'controls' }, [start]),
       el('p', { class: 'q-hint-line controls-help' }, [
@@ -189,6 +194,7 @@ function enterWorld(): void {
       persist()
       showDiscovery(root, {
         ...found,
+        level: state.level,
         onContinue: () => {
           world?.clearDiscovery()
           world?.setPaused(false)
@@ -202,8 +208,20 @@ function enterWorld(): void {
       persist()
       showBossVictory(root, {
         ...win,
+        world: state.level,
         onContinue: () => {
           world?.clearVictory()
+          const allDone = win.defeated >= win.total
+          // The last guardian of the land is where the story turns: the
+          // machine wakes, and the next quest is a thousand years away.
+          if (allDone && state.level === 1) {
+            showStory(root, { ...TO_THE_FUTURE, onContinue: () => enterLevel(2) })
+            return
+          }
+          if (allDone && state.level === 2) {
+            showStory(root, { ...FUTURE_SAVED, onContinue: () => world?.setPaused(false) })
+            return
+          }
           world?.setPaused(false)
         },
       })
@@ -211,6 +229,30 @@ function enterWorld(): void {
   })
   world.start()
   fitStage()
+}
+
+/**
+ * Moves him to the other world and starts it. The world is torn down first,
+ * because it writes his position back on the way out and that position
+ * belongs to the level he is leaving.
+ */
+function enterLevel(level: Level): void {
+  if (state.level === level) {
+    enterWorld()
+    return
+  }
+  teardownWorld()
+  activeEngine = undefined
+  gateInProgress = undefined
+  switchLevel(state, level)
+  persistSave(state)
+  enterWorld()
+  world?.showMessage(
+    level === 2
+      ? 'A thousand years on. Cold metal under your boots, and a red light blinking.'
+      : 'Home. The grass is exactly where you left it, and so is your sword.',
+    320,
+  )
 }
 
 /** Scales the canvas by a whole number so the pixels stay crisp. */
@@ -405,25 +447,28 @@ function startReviewChallenge(gate: Gate): void {
 /**
  * The barrier a sack of food puts up. Not in `gates.ts` with the others: those
  * are places in the world, and each is opened once and remembered. This one
- * turns up wherever the sack does, and again the next time.
+ * turns up wherever the sack does, and again the next time — and on the ship
+ * it is a battery pack, in the ship's words.
  */
-const FOOD_GATE: Gate = {
-  id: 'animal-food',
-  kind: 'food',
-  message:
-    'A sack of animal food, sitting in the open. Your friend has already ' +
-    'noticed it. There is a note tied to the string.',
-  openMessage: 'The sack is yours.',
-  reward: {},
-  optional: true,
-  challenge: 'grammar',
+function foodGate(): Gate {
+  const words = flavourFor(state.level)
+  return {
+    id: 'animal-food',
+    kind: 'food',
+    message: words.foodGateMessage,
+    openMessage: words.foodGateOpen,
+    reward: {},
+    optional: true,
+    challenge: 'grammar',
+  }
 }
 
 /** He stepped onto a sack. Ask first — he may be down to his last heart. */
 function offerFood(): void {
   world?.setPaused(true)
   showGatePrompt(root, {
-    gate: FOOD_GATE,
+    gate: foodGate(),
+    kindLabel: flavourFor(state.level).foodGateKind,
     isReview: true,
     onAccept: () => startFoodChallenge(),
     onDecline: () => {
@@ -468,7 +513,7 @@ function startFoodChallenge(): void {
     id: 0,
     title: rule.title,
     level: 1,
-    levelName: 'Animal food',
+    levelName: state.level === 2 ? 'Battery pack' : 'Animal food',
     targetMinutes: 2,
     // No concepts to prove: the engine would otherwise keep going until each
     // was answered unaided, and four questions is four questions.
@@ -601,7 +646,7 @@ function grantReward(gate: Gate): void {
   const lines: string[] = [gate.openMessage]
   if (reward.rupees) lines.push(`+${reward.rupees} rupees.`)
   if (reward.heartContainer) lines.push('Your maximum life has grown by one heart.')
-  if (reward.item) lines.push(`You received the ${ITEMS[reward.item].name}.`)
+  if (reward.item) lines.push(`You received the ${itemName(reward.item, state.level)}.`)
   world?.showMessage(lines.join(' '))
 }
 
@@ -626,6 +671,7 @@ function openShop(kind: ShopKind): void {
   if (kind === 'pets') {
     openShopPanel = showPetShop(root, {
       chosen: state.world.pet,
+      level: state.level,
       onChoose: (pet) => {
         state.world.pet = pet
         persist()
@@ -640,6 +686,7 @@ function openShop(kind: ShopKind): void {
   }
   openShopPanel = showShop(root, {
     kind,
+    level: state.level,
     save: state,
     onGateRequest: (gate) => {
       openShopPanel = undefined
@@ -682,7 +729,7 @@ function startNewQuest(): void {
 
 function handleDefeat(): void {
   world?.setPaused(true)
-  showNotice(root, 'You have run out of hearts. A villager carries you back to the square.', () => {
+  showNotice(root, world?.deathMessage() ?? flavourFor(state.level).defeated, () => {
     world?.respawn()
     world?.setPaused(false)
     persist()
@@ -748,9 +795,11 @@ function openParentDashboard(): void {
       for (const id of items) {
         state.inventory[id] = (state.inventory[id] ?? 0) + (ITEMS[id].stackable ? 10 : 1)
         // A shopkeeper's barrier is about proving yourself before buying; the
-        // point of this panel is to skip exactly that.
-        const gate = ITEMS[id].gate
-        if (gate && !state.world.openedGates.includes(gate)) state.world.openedGates.push(gate)
+        // point of this panel is to skip exactly that. Both worlds' proofs,
+        // so the kit works whichever one he is standing in.
+        for (const gate of [ITEMS[id].gate, ITEMS[id].future.gate]) {
+          if (gate && !state.world.openedGates.includes(gate)) state.world.openedGates.push(gate)
+        }
       }
       if (items.length > 1) state.player.rupees = Math.max(state.player.rupees, 999)
       world?.refreshFromSave()
@@ -761,6 +810,10 @@ function openParentDashboard(): void {
       const dropped = world?.dropFood() ?? false
       if (dropped) persist()
       return dropped
+    },
+    onEnterLevel: (level) => {
+      closeDashboard()
+      enterLevel(level)
     },
     onClose: () => {
       world?.setPaused(false)
@@ -806,6 +859,7 @@ Object.assign(window as unknown as Record<string, unknown>, {
       if (exercise) startExercise(exercise)
     },
     enterWorld,
+    enterLevel,
     showTitle,
     goTo: (screenId: string, col = 7, row = 5) => world?.teleport(screenId, col, row),
     /** Where each square on the map sits, for the end-to-end checks. */

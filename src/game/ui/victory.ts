@@ -17,16 +17,19 @@ export interface VictoryOptions {
   /** How many guardians are down now, and out of how many. */
   defeated: number
   total: number
+  /** Which world this happened in. The last guardian of each means something different. */
+  world: 1 | 2
   onContinue: () => void
 }
 
 export function showBossVictory(root: HTMLElement, options: VictoryOptions): () => void {
-  const { level, dungeonName, defeated, total } = options
+  const { level, dungeonName, defeated, total, world } = options
   const allDone = defeated >= total
   const left = total - defeated
+  const guardian = world === 2 ? 'mech' : 'dungeon boss'
 
   const onward = button(
-    allDone ? 'On to the next world →' : 'Onward →',
+    allDone ? (world === 2 ? 'Finish the quest →' : 'On to the next world →') : 'Onward →',
     () => {
       close()
       options.onContinue()
@@ -53,15 +56,19 @@ export function showBossVictory(root: HTMLElement, options: VictoryOptions): () 
   )
 
   const panel = el('div', { class: 'overlay overlay-victory' }, [
-    el('section', { class: 'panel-game victory-panel' }, [
-      el('p', { class: 'victory-banner' }, ['Victory']),
-      el('h2', { class: 'victory-title' }, [`Quest Level ${level} Completed`]),
+    el('section', { class: `panel-game victory-panel${allDone ? ' final' : ''}` }, [
+      el('p', { class: 'victory-banner' }, [allDone ? (world === 2 ? 'The future is saved' : 'Level 1 complete') : 'Victory']),
+      el('h2', { class: 'victory-title' }, [
+        world === 2 ? `Rock ${level} Cleared` : `Quest Level ${level} Completed`,
+      ]),
       el('p', { class: 'victory-room' }, [`${dungeonName} cleared`]),
       crests,
       el('p', { class: 'victory-progress' }, [
         allDone
-          ? `You have defeated all ${total} dungeon bosses. The way to the next world is open!`
-          : `You defeated the dungeon boss. Defeat all ${total} to reach the next world — ` +
+          ? world === 2
+            ? `You have defeated all ${total} mechs. The ship is yours, and the future is safe!`
+            : `You have defeated all ${total} dungeon bosses. The way to the next world is open!`
+          : `You defeated the ${guardian}. Defeat all ${total} to ${world === 2 ? 'free the ship' : 'reach the next world'} — ` +
             `${left} to go!`,
       ]),
       el('div', { class: 'gate-actions' }, [onward]),

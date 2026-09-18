@@ -1148,6 +1148,644 @@ const TUNIC = S([
   '................',
 ])
 
+// --- the future -----------------------------------------------------------
+//
+// Level 2 is the same game in a sky-ship a thousand years on, and everything
+// he meets there is drawn in the same sixteen-pixel language as the land:
+// same outlines, same palette, same proportions. The robots stand where the
+// monsters stood; the animals are half chrome; the hero keeps his face.
+
+/** Turret drone: the shooter, hovering on a ring of light. */
+const DRONE_A = S([
+  '................',
+  '......kkkk......',
+  '.....kmmmmk.....',
+  '....kmmrrmmk....',
+  '...kmmmrrmmmk...',
+  '..kMmmmmmmmMk...',
+  '..kMMMMMMMMMk...',
+  '...kkkkkkkkk....',
+  '....kcccccck....',
+  '.....kkkkkk.....',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+])
+
+const DRONE_B = S([
+  '................',
+  '................',
+  '......kkkk......',
+  '.....kmmmmk.....',
+  '....kmmrrmmk....',
+  '...kmmmrrmmmk...',
+  '..kMmmmmmmmMk...',
+  '..kMMMMMMMMMk...',
+  '...kkkkkkkkk....',
+  '.....kcccck.....',
+  '......kkkk......',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+])
+
+/** Crusher: the chaser, a boxy heavy with hazard stripes and a piston arm. */
+const CRUSHER_A = S([
+  '................',
+  '....kkkkkkkk....',
+  '...kMMMMMMMMk...',
+  '...kMrrMMrrMk...',
+  '...kMMMMMMMMk...',
+  '..kkMMMMMMMMkk..',
+  '.kMkoMoMoMoMkMk.',
+  '.kMkMoMoMoMokMk.',
+  '.kMkMMMMMMMMkMk.',
+  '.kkkMMMMMMMMkkk.',
+  '...kMMMkkMMMk...',
+  '...kMMMk.kMMk...',
+  '...kkkk..kkkk...',
+  '................',
+  '................',
+  '................',
+])
+
+const CRUSHER_B = S([
+  '................',
+  '....kkkkkkkk....',
+  '...kMMMMMMMMk...',
+  '...kMrrMMrrMk...',
+  '...kMMMMMMMMk...',
+  '..kkMMMMMMMMkk..',
+  '.kMkMoMoMoMokMk.',
+  '.kMkoMoMoMoMkMk.',
+  '.kMkMMMMMMMMkMk.',
+  '.kkkMMMMMMMMkkk.',
+  '...kMMkMMkMMk...',
+  '....kMk..kMk....',
+  '....kkk..kkk....',
+  '................',
+  '................',
+  '................',
+])
+
+/** Hover disc: the flyer, a saucer that drifts over anything. */
+const DISC_A = S([
+  '................',
+  '................',
+  '......kkkk......',
+  '.....kcccck.....',
+  '..kkkkmmmmkkkk..',
+  '.kmmmmmmmmmmmmk.',
+  'kmmmmmmrrmmmmmmk',
+  '.kMMMMMMMMMMMMk.',
+  '..kkkkkkkkkkkk..',
+  '....kc....ck....',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+])
+
+const DISC_B = S([
+  '................',
+  '................',
+  '................',
+  '......kkkk......',
+  '.....kcccck.....',
+  '..kkkkmmmmkkkk..',
+  '.kmmmmmmmmmmmmk.',
+  'kmmmmmmrrmmmmmmk',
+  '.kMMMMMMMMMMMMk.',
+  '..kkkkkkkkkkkk..',
+  '.....kc..ck.....',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+])
+
+/** Glitch unit: the caster, a floating core that blinks about and throws lightning. */
+const GLITCH_A = S([
+  '................',
+  '......kkkk......',
+  '.....kBBBBk.....',
+  '....kBbbbbBk....',
+  '....kBbccbBk....',
+  '...kBbbccbbBk...',
+  '...kBbcwwcbBk...',
+  '...kBbcwwcbBk...',
+  '...kBbbccbbBk...',
+  '....kBbccbBk....',
+  '....kBbbbbBk....',
+  '.....kBBBBk.....',
+  '......kkkk......',
+  '.......c.c......',
+  '................',
+  '................',
+])
+
+const GLITCH_B = S([
+  '................',
+  '......kkkk......',
+  '.....kBBBBk.....',
+  '....kBbbbbBk....',
+  '..c.kBbccbBk.c..',
+  '...kBbbccbbBk...',
+  '...kBbcwwcbBk...',
+  '...kBbcwwcbBk...',
+  '...kBbbccbbBk...',
+  '....kBbccbBk....',
+  '....kBbbbbBk....',
+  '.....kBBBBk.....',
+  '......kkkk......',
+  '................',
+  '................',
+  '................',
+])
+
+/** The mech: a walking guardian of the rocks, twice the size of anything else. */
+const MECH_A = defineSprite(32, 32, [
+  '................................',
+  '...kk......................kk...',
+  '..kmmk....kkkkkkkkkkkk....kmmk..',
+  '..kmmmk..kMMMMMMMMMMMMk..kmmmk..',
+  '...kmmmkkMMMMMMMMMMMMMMkkmmmk...',
+  '....kmmmMMMMrrrrrrrrMMMMmmmk....',
+  '.....kMMMMMMrkkkkkkrMMMMMMk.....',
+  '.....kMMMMMMrkccccKrMMMMMMk.....',
+  '.....kMMMMMMrkccccKrMMMMMMk.....',
+  '.....kMMMMMMrkkkkkkrMMMMMMk.....',
+  '.....kMMMMMMrrrrrrrrMMMMMMk.....',
+  '.....kMMkkkkkkkkkkkkkkkkMMk.....',
+  '......kMkoMoMoMoMoMoMokMk.......',
+  '......kMkMoMoMoMoMoMoMkMk.......',
+  '.......kkkkkkkkkkkkkkkkk........',
+  '......kMMMMMMMMMMMMMMMMMk.......',
+  '.....kMMMMMMMMMMMMMMMMMMMk......',
+  '....kMMMMMMMMMMMMMMMMMMMMMk.....',
+  '...kMMMMMMMMMMMMMMMMMMMMMMMk....',
+  '...kMMMMkkMMMMMMMMMMMMkkMMMMk...',
+  '...kMMMk..kMMMMMMMMMMk..kMMMk...',
+  '...kMMk....kMMMMMMMMk....kMMk...',
+  '...kMk......kMMMMMMk......kMk...',
+  '...kk.......kMMMMMMk.......kk...',
+  '............kMMMMMMk............',
+  '...........kMMMMMMMMk...........',
+  '..........kMMMMkkMMMMk..........',
+  '.........kMMMMk..kMMMMk.........',
+  '.........kMMMk....kMMMk.........',
+  '.........kkkk......kkkk.........',
+  '................................',
+  '................................',
+])
+
+/**
+ * Half animal, half machine.
+ *
+ * The animals all face right, head first, so everything from the middle of
+ * the sprite rightward — the head, the shoulders, the front legs — is plated
+ * over in chrome and given a red lens for an eye. The back half stays fur.
+ * One rule, six cyborgs, and the silhouette that told the six apart is intact.
+ */
+export function cyborg(sprite: Sprite): Sprite {
+  const fur = new Set(['n', 'o', 'w', 'd', 'h', 'x', 's', 'y'])
+  const whites = sprite.rows.join('').split('').filter((ch) => ch === 'w').length
+  const furs = sprite.rows.join('').split('').filter((ch) => fur.has(ch)).length
+  const whiteAnimal = whites > furs / 2
+  return {
+    width: sprite.width,
+    height: sprite.height,
+    rows: sprite.rows.map((row, y) =>
+      row
+        .split('')
+        .map((ch, x) => {
+          if (x < sprite.width / 2) return ch
+          // The eye: a white pixel on an animal that is not itself white
+          // becomes a red lens. The rabbit's black eye on white stays black.
+          if (ch === 'w' && y < 9 && !whiteAnimal) return 'r'
+          if (fur.has(ch)) return (x + y) % 5 === 0 ? 'M' : 'm'
+          return ch
+        })
+        .join(''),
+    ),
+  }
+}
+
+/**
+ * The space suit: the hero as he is, in white with a visor. Applied after the
+ * shield tier has been coloured in, so the suit does not repaint his shield.
+ */
+function suited(sprite: Sprite): Sprite {
+  return mapColours(sprite, { g: 'w', G: 'M', h: 'c', s: 'c' })
+}
+
+/** The Arc Staff: a dark rod with an orb of light at the tip. */
+const STAFF_RIGHT = defineSprite(16, 8, [
+  '............kk..',
+  '...........kcck.',
+  '.kMkkkkkkkkkcwck',
+  'kMMkMMMMMMMkcwck',
+  'kMMkMMMMMMMkcwck',
+  '.kMkkkkkkkkkcck.',
+  '............kk..',
+  '................',
+])
+
+const STAFF_DOWN = defineSprite(8, 16, [
+  '..kMMk..',
+  '.kMMMMk.',
+  '..kMMk..',
+  '..kMMk..',
+  '..kMMk..',
+  '..kMMk..',
+  '..kMMk..',
+  '..kMMk..',
+  '..kMMk..',
+  '..kMMk..',
+  '.kkkkkk.',
+  '.kccccck',
+  'kccwwcck',
+  'kccwwcck',
+  '.kcccck.',
+  '..kkkk..',
+])
+
+const STAFF_ICON = S([
+  '............kkk.',
+  '...........kcwck',
+  '..........kcwwck',
+  '.........kMkcck.',
+  '........kMMkkk..',
+  '.......kMMk.....',
+  '......kMMk......',
+  '.....kMMk.......',
+  '....kMMk........',
+  '...kMMk.........',
+  '..kMMk..........',
+  '.kMMk...........',
+  'kMMk............',
+  'kMk.............',
+  'kk..............',
+  '................',
+])
+
+/** A ship computer: a screen on a stand, always lit. */
+const TERMINAL = S([
+  '..kkkkkkkkkkkk..',
+  '.kMMMMMMMMMMMMk.',
+  '.kMkkkkkkkkkkMk.',
+  '.kMkccccccccckMk',
+  '.kMkcwwwcccckMk.',
+  '.kMkcccccwwckMk.',
+  '.kMkcwwwwccckMk.',
+  '.kMkccccccccckMk',
+  '.kMkkkkkkkkkkMk.',
+  '.kMMMMMMMMMMMMk.',
+  '..kkkkkMMkkkkk..',
+  '......kMMk......',
+  '......kMMk......',
+  '....kkkMMkkk....',
+  '...kMMMMMMMMk...',
+  '...kkkkkkkkkk...',
+])
+
+/** The suit locker in an airlock: a tall cabinet with the suit hanging in it. */
+const LOCKER = S([
+  '..kkkkkkkkkkkk..',
+  '.kMMMMMMMMMMMMk.',
+  '.kMkkkkkkkkkkMk.',
+  '.kMkzzzzzzzzkMk.',
+  '.kMkzzzkkzzzkMk.',
+  '.kMkzzkcckzzkMk.',
+  '.kMkzkwwwwkzkMk.',
+  '.kMkzkwwwwkzkMk.',
+  '.kMkkwwwwwwkkMk.',
+  '.kMkzkwwwwkzkMk.',
+  '.kMkzkwwwwkzkMk.',
+  '.kMkzzkwwkzzkMk.',
+  '.kMkzzzkkzzzkMk.',
+  '.kMkkkkkkkkkkMk.',
+  '.kMMMMMMMMMMMMk.',
+  '..kkkkkkkkkkkk..',
+])
+
+/** A helper droid: the one who talks, where a villager or a scribe would. */
+const DROID = S([
+  '.......kk.......',
+  '......kcck......',
+  '.....kkkkkk.....',
+  '....kwwwwwwk....',
+  '...kwwwwwwwwk...',
+  '...kwkccccckwk..',
+  '...kwkcwccckwk..',
+  '...kwkccccckwk..',
+  '...kwwkkkkkwwk..',
+  '....kwwwwwwk....',
+  '...kkMMMMMMkk...',
+  '..kMkMMMMMMkMk..',
+  '..kkkMMMMMMkkk..',
+  '....kkkkkkkk....',
+  '.....kc..ck.....',
+  '................',
+])
+
+/** The rocket, nose up, as it sits on the launch pad and in the pack. */
+const ROCKET = S([
+  '.......kk.......',
+  '......kwwk......',
+  '.....kwwwwk.....',
+  '.....kwwwwk.....',
+  '....kwwccwwk....',
+  '....kwwccwwk....',
+  '....kwwwwwwk....',
+  '....kwwwwwwk....',
+  '...kkwwwwwwkk...',
+  '..krkwwwwwwkrk..',
+  '.krrkwwwwwwkrrk.',
+  '.krrkkkkkkkkrrk.',
+  '.kkkkoyyyyokkkk.',
+  '.....koyyok.....',
+  '......kook......',
+  '.......kk.......',
+])
+
+/** A force field: the sealed barrier of the future, hatched light. */
+const FIELD = S([
+  '.kkkkkkkkkkkkkk.',
+  'kcccccccccccccck',
+  'kcwcccwcccwcccck',
+  'kccwcccwcccwccck',
+  'kcccwcccwcccwcck',
+  'kccccwcccwcccwck',
+  'kcwcccwcccwcccck',
+  'kccwcccwcccwccck',
+  'kcccwcccwcccwcck',
+  'kccccwcccwcccwck',
+  'kcwcccwcccwcccck',
+  'kccwcccwcccwccck',
+  'kcccwcccwcccwcck',
+  'kccccwcccwcccwck',
+  'kcccccccccccccck',
+  '.kkkkkkkkkkkkkk.',
+])
+
+/** A battery pack: the animal food of the future. */
+const BATTERY = S([
+  '................',
+  '.....kkkkkk.....',
+  '.....kMMMMk.....',
+  '..kkkkkkkkkkkk..',
+  '..kyyyyyyyyyyk..',
+  '..kyyyyywyyyyk..',
+  '..kyyyywwyyyyk..',
+  '..kyyywwwwwyyk..',
+  '..kyyyyywwyyyk..',
+  '..kyyyyywyyyyk..',
+  '..kyyyyyyyyyyk..',
+  '..kYYYYYYYYYYk..',
+  '..kYYYYYYYYYYk..',
+  '..kkkkkkkkkkkk..',
+  '................',
+  '................',
+])
+
+/** Cloaking serum: a slim vial of something that is barely there. */
+const SERUM = S([
+  '................',
+  '.....kkkk.......',
+  '.....kMMk.......',
+  '.....kMMk.......',
+  '....kkcckk......',
+  '....kcccck......',
+  '...kccccccck....',
+  '...kcwcccccck...',
+  '..kccwcccccck...',
+  '..kcccwcccccck..',
+  '..kccccwcccck...',
+  '..kcccccwwcck...',
+  '..kcccccccck....',
+  '...kkkkkkkk.....',
+  '................',
+  '................',
+])
+
+/** The ship schematic: a blueprint, white lines on blue. */
+const SCHEMATIC = S([
+  '................',
+  '..kkkkkkkkkkkk..',
+  '.kbbbbbbbbbbbbk.',
+  '.kbwwwwwwwwwwbk.',
+  '.kbwbbbbbbbbwbk.',
+  '.kbwbwwwwwwbwbk.',
+  '.kbwbwbbbbwbwbk.',
+  '.kbwbwbwwbwbwbk.',
+  '.kbwbwbbbbwbwbk.',
+  '.kbwbwwwrwwbwbk.',
+  '.kbwbbbbbbbbwbk.',
+  '.kbwwwwwwwwwwbk.',
+  '.kbbbbbbbbbbbbk.',
+  '..kkkkkkkkkkkk..',
+  '................',
+  '................',
+])
+
+/** The laser screwdriver: red grip, steel shaft, a spark at the tip. */
+const SCREWDRIVER = S([
+  '................',
+  '.......k........',
+  '......kck.......',
+  '.....kcwck......',
+  '......kck.......',
+  '......kmk.......',
+  '......kmk.......',
+  '......kmk.......',
+  '.....kkmkk......',
+  '.....krrrk......',
+  '.....krrrk......',
+  '.....krRrk......',
+  '.....krrrk......',
+  '.....kRRRk......',
+  '.....kkkkk......',
+  '................',
+])
+
+/** The blaster: a pistol with a glowing muzzle. */
+const BLASTER = S([
+  '................',
+  '................',
+  '..kkkkkkkkkkk...',
+  '.kMMMMMMMMMMMkk.',
+  '.kMmmmmmmmmMMcck',
+  '.kMMMMMMMMMMMkk.',
+  '..kkkkkkMMMk....',
+  '.......kMMk.....',
+  '.......kMMk.....',
+  '......kMMMk.....',
+  '......kMMk......',
+  '......kMMk......',
+  '......kkkk......',
+  '................',
+  '................',
+  '................',
+])
+
+/** A power cell: what the blaster fires. */
+const CELL = S([
+  '................',
+  '......kkkk......',
+  '.....kMMMMk.....',
+  '.....kcccck.....',
+  '.....kcwwck.....',
+  '.....kcwwck.....',
+  '.....kcccck.....',
+  '.....kcwwck.....',
+  '.....kcwwck.....',
+  '.....kcccck.....',
+  '.....kcwwck.....',
+  '.....kcccck.....',
+  '.....kMMMMk.....',
+  '......kkkk......',
+  '................',
+  '................',
+])
+
+/** Scrap metal: a heap of it, rusted at the edges. Robots love it. */
+const SCRAP = S([
+  '................',
+  '................',
+  '......kkk.......',
+  '.....kmmmk..kk..',
+  '..kkkkmMmkkkMMk.',
+  '.kMMMkmmmkMMMMk.',
+  '.kMoMMkkkMoMMMk.',
+  '.kMMMMMMMMMMMMk.',
+  '..kMoMMMMMMoMk..',
+  '..kMMMMMMMMMMk..',
+  '...kkkkkkkkkk...',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+])
+
+const CHARGE = S8([
+  '...kk...',
+  '..kbbk..',
+  '.kbbbbk.',
+  'kbbcbbkk',
+  'kbbbbbk.',
+  'kBbbbBk.',
+  '.kBBBk..',
+  '..kkk...',
+])
+
+const CHARGE_LIT = S8([
+  '...kc...',
+  '..kckk..',
+  '.kwwwwk.',
+  'kwwwwwkk',
+  'kwwwwwk.',
+  'kBbbbBk.',
+  '.kBBBk..',
+  '..kkk...',
+])
+
+/**
+ * Lightsabers.
+ *
+ * A short metal hilt and a blade of pure light: a white core with a coloured
+ * glow down each side, and no outline on the blade, because light has no
+ * edge. Drawn once with 'C' for the glow, then coloured per tier — a dim
+ * yellow training saber, then blue, then green. The staff is its own thing.
+ */
+const SABER_RIGHT = defineSprite(16, 8, [
+  '................',
+  '................',
+  '.kkkk.CCCCCCCCC.',
+  'kMmMMkCwwwwwwwwC',
+  'kMmMMkCwwwwwwwwC',
+  '.kkkk.CCCCCCCCC.',
+  '................',
+  '................',
+])
+
+const SABER_DOWN = defineSprite(8, 16, [
+  '.kkkkkk.',
+  '.kMmMMk.',
+  '.kMmMMk.',
+  '.kkkkkk.',
+  '..CwwC..',
+  '..CwwC..',
+  '..CwwC..',
+  '..CwwC..',
+  '..CwwC..',
+  '..CwwC..',
+  '..CwwC..',
+  '..CwwC..',
+  '..CwwC..',
+  '..CwwC..',
+  '..CwwC..',
+  '...CC...',
+])
+
+const SABER_ICON = S([
+  '.............CC.',
+  '............CwwC',
+  '...........CwwC.',
+  '..........CwwC..',
+  '.........CwwC...',
+  '........CwwC....',
+  '.......CwwC.....',
+  '......CwwC......',
+  '.....CwwC.......',
+  '....kkwC........',
+  '...kMMkC........',
+  '..kMmMk.........',
+  '.kMmMk..........',
+  'kMMMk...........',
+  'kkkk............',
+  '................',
+])
+
+/** The glow of each tier's blade. Gold is the staff; magic is only ever a shield. */
+const SABER_GLOW: Record<Tier, string> = {
+  wooden: 'y',
+  metal: 'b',
+  bronze: 'e',
+  golden: 'c',
+  magical: 'p',
+}
+
+function saber(sprite: Sprite, tier: Tier): Sprite {
+  return mapColours(sprite, { C: SABER_GLOW[tier] })
+}
+
+/**
+ * The future's shields, coloured like the sabers rather than like metal: the
+ * deflector plate is dull steel, and the better ones glow.
+ */
+const FUTURE_SHIELD_COLOURS: Record<Tier, { body: string; edge: string; grip: string }> = {
+  wooden: { body: 'M', edge: 'm', grip: 'k' },
+  metal: { body: 'b', edge: 'c', grip: 'w' },
+  bronze: { body: 'e', edge: 'w', grip: 'y' },
+  golden: { body: 'c', edge: 'w', grip: 'M' },
+  magical: { body: 'c', edge: 'w', grip: 'p' },
+}
+
+function recolourFutureShield(sprite: Sprite, tier: Tier): Sprite {
+  const { body, edge, grip } = FUTURE_SHIELD_COLOURS[tier]
+  return mapColours(sprite, { m: body, M: body, w: edge, y: grip })
+}
+
 const SWORD_BASE = {
   Right: SWORD_RIGHT,
   Left: mirror(SWORD_RIGHT),
@@ -1177,21 +1815,63 @@ type HeroVariants = {
 }
 type ShieldVariants = { [T in Tier as `shield${Cap<T>}`]: Sprite }
 type IconVariants = { [T in Tier as `swordIcon${Cap<T>}`]: Sprite }
+/** The same hero in his space suit, one per shield tier and frame. */
+type SuitVariants = {
+  [T in Tier as `heroSuit${Cap<T>}${keyof typeof HERO_BASE & string}`]: Sprite
+}
+/** The future's weapons: the same swings and icons in the colours of light. */
+type FutureSwordVariants = {
+  [T in Tier as `swordFuture${Cap<T>}${keyof typeof SWORD_BASE & string}`]: Sprite
+}
+type FutureShieldVariants = { [T in Tier as `shieldFuture${Cap<T>}`]: Sprite }
+type FutureIconVariants = { [T in Tier as `swordIconFuture${Cap<T>}`]: Sprite }
 
-function buildVariants(): SwordVariants & HeroVariants & ShieldVariants & IconVariants {
+type Variants = SwordVariants &
+  HeroVariants &
+  ShieldVariants &
+  IconVariants &
+  SuitVariants &
+  FutureSwordVariants &
+  FutureShieldVariants &
+  FutureIconVariants
+
+const SABER_BASE = {
+  Right: SABER_RIGHT,
+  Left: mirror(SABER_RIGHT),
+  Down: SABER_DOWN,
+  Up: flipVertical(SABER_DOWN),
+} as const
+
+const STAFF_BASE = {
+  Right: STAFF_RIGHT,
+  Left: mirror(STAFF_RIGHT),
+  Down: STAFF_DOWN,
+  Up: flipVertical(STAFF_DOWN),
+} as const
+
+function buildVariants(): Variants {
   const out: Record<string, Sprite> = {}
   for (const tier of TIERS) {
     const name = tier[0]!.toUpperCase() + tier.slice(1)
     for (const [facing, sprite] of Object.entries(SWORD_BASE)) {
       out[`sword${name}${facing}`] = recolour(sprite, tier)
+      // The golden tier's future is the Arc Staff, which is its own drawing.
+      out[`swordFuture${name}${facing}`] =
+        tier === 'golden'
+          ? STAFF_BASE[facing as keyof typeof STAFF_BASE]
+          : saber(SABER_BASE[facing as keyof typeof SABER_BASE], tier)
     }
     for (const [frame, sprite] of Object.entries(HERO_BASE)) {
-      out[`hero${name}${frame}`] = recolour(sprite, tier)
+      const coloured = recolour(sprite, tier)
+      out[`hero${name}${frame}`] = coloured
+      out[`heroSuit${name}${frame}`] = suited(coloured)
     }
     out[`shield${name}`] = recolour(SHIELD, tier)
+    out[`shieldFuture${name}`] = recolourFutureShield(SHIELD, tier)
     out[`swordIcon${name}`] = recolour(SWORD_ICON, tier)
+    out[`swordIconFuture${name}`] = tier === 'golden' ? STAFF_ICON : saber(SABER_ICON, tier)
   }
-  return out as SwordVariants & HeroVariants & ShieldVariants & IconVariants
+  return out as Variants
 }
 
 export const SPRITES = {
@@ -1242,6 +1922,49 @@ export const SPRITES = {
   ring: RING,
   tunicBlue: mapColours(TUNIC, { g: 'b', G: 'B' }),
   tunicRed: mapColours(TUNIC, { g: 'r', G: 'R' }),
+
+  // --- the future ---------------------------------------------------------
+  droneA: DRONE_A,
+  droneB: DRONE_B,
+  crusherA: CRUSHER_A,
+  crusherB: CRUSHER_B,
+  discA: DISC_A,
+  discB: DISC_B,
+  glitchA: GLITCH_A,
+  glitchB: GLITCH_B,
+  mechA: MECH_A,
+  cyborgDogA: cyborg(DOG_A),
+  cyborgDogB: cyborg(DOG_B),
+  cyborgCatA: cyborg(CAT_A),
+  cyborgCatB: cyborg(CAT_B),
+  cyborgRabbitA: cyborg(RABBIT_A),
+  cyborgRabbitB: cyborg(RABBIT_B),
+  cyborgWombatA: cyborg(WOMBAT_A),
+  cyborgWombatB: cyborg(WOMBAT_B),
+  cyborgKangarooA: cyborg(KANGAROO_A),
+  cyborgKangarooB: cyborg(KANGAROO_B),
+  cyborgGoatA: cyborg(GOAT_A),
+  cyborgGoatB: cyborg(GOAT_B),
+  terminal: TERMINAL,
+  locker: LOCKER,
+  droid: DROID,
+  rocket: ROCKET,
+  field: FIELD,
+  battery: BATTERY,
+  serum: SERUM,
+  schematic: SCHEMATIC,
+  screwdriver: SCREWDRIVER,
+  blaster: BLASTER,
+  cell: CELL,
+  scrap: SCRAP,
+  charge: CHARGE,
+  chargeLit: CHARGE_LIT,
+  circuitRing: mapColours(RING, { y: 'm', Y: 'M', b: 'c', B: 'c' }),
+  nanoBlue: mapColours(TUNIC, { g: 'b', G: 'B', d: 'M', y: 'c' }),
+  nanoRed: mapColours(TUNIC, { g: 'r', G: 'R', d: 'M', y: 'c' }),
+  // The staff as it is drawn beside the hero, so the atlas has it by name.
+  staffRight: STAFF_RIGHT,
+  staffDown: STAFF_DOWN,
 } as const
 
 export type SpriteName = keyof typeof SPRITES

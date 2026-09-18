@@ -15,7 +15,9 @@
 import { SCREEN_COLS, SCREEN_ROWS, SCREEN_H, SCREEN_W, TILES, type TileChar } from '../world/tiles'
 import { overworldLayout } from '../world/analysis'
 import { screenById, SCREENS, type Screen } from '../world/screens'
-import { PALETTES, themeFor, type Palette } from './world'
+import { isFutureTheme, PALETTES, themeFor, type Palette, type Theme } from './world'
+import { START_SCREENS } from '../levels'
+import type { Level } from '../../core/save'
 
 /**
  * Two pixels per tile, so a screen he has walked is drawn as the shape it
@@ -29,9 +31,15 @@ const GAP = 2
 
 /** The mountain track, which cannot sit on the main grid — see below. */
 const MOUNTAIN = 'Mountain'
-/** The island, and the shore he flies from — see buildCells. */
-const ISLAND = 'lagoon-island'
-const FLIGHT_SHORE = 'lagoon-shore'
+/**
+ * The place he flies to, and the shore he flies from, in each world — see
+ * buildCells. The island lies west of the Long Water; the outpost lies east of
+ * the hangar, out past the bay doors.
+ */
+const FLIGHTS: Record<Level, { shore: string; island: string; dx: number }> = {
+  1: { shore: 'lagoon-shore', island: 'lagoon-island', dx: -1 },
+  2: { shore: 'ship-hangar', island: 'outpost-deck', dx: 1 },
+}
 
 interface Cell {
   id: string
@@ -47,22 +55,26 @@ interface Cell {
  * already there. Drawing it detached is both the honest picture and how it
  * actually plays.
  */
-function buildCells(): { main: Cell[]; mountain: Cell[] } {
-  const { cells } = overworldLayout()
+function buildCells(level: Level): { main: Cell[]; mountain: Cell[] } {
+  const { cells } = overworldLayout(START_SCREENS[level])
   const main: Cell[] = [...cells].map(([id, at]) => ({ id, x: at.x, y: at.y }))
 
   // The island is the one exception to "doors have no place on the grid". It is
   // out in open water rather than through a door in a wall, everyone can see
   // where it is from the shore, and it is the one place in the game he can
   // strand himself — so it belongs on the map, drawn where it really lies:
-  // west of the Long Water he flies from.
-  const shore = cells.get(FLIGHT_SHORE)
-  if (shore) main.push({ id: ISLAND, x: shore.x - 1, y: shore.y })
+  // west of the Long Water he flies from. The outpost is the same, the other
+  // way round.
+  const flight = FLIGHTS[level]
+  const shore = cells.get(flight.shore)
+  if (shore) main.push({ id: flight.island, x: shore.x + flight.dx, y: shore.y })
 
   // Follow the track upward from its foot, so the order comes from the map
-  // rather than from a list that could fall out of step with it.
+  // rather than from a list that could fall out of step with it. Only the
+  // land has one.
   const mountain: Cell[] = []
-  let id: string | undefined = SCREENS.find((s) => s.region === MOUNTAIN && s.exits.down)?.id
+  let id: string | undefined =
+    level === 1 ? SCREENS.find((s) => s.region === MOUNTAIN && s.exits.down)?.id : undefined
   let step = 0
   while (id && !mountain.some((c) => c.id === id)) {
     mountain.push({ id, x: 0, y: -step })
@@ -73,23 +85,29 @@ function buildCells(): { main: Cell[]; mountain: Cell[] } {
   return { main, mountain }
 }
 
-const CELLS = buildCells()
+const ALL_CELLS: Record<Level, { main: Cell[]; mountain: Cell[] }> = {
+  1: buildCells(1),
+  2: buildCells(2),
+}
 
 /** Where every square on the map sits. Read by the end-to-end checks. */
-export function mapLayout(): readonly Cell[] {
-  return [...CELLS.main, ...CELLS.mountain]
+export function mapLayout(level: Level = 1): readonly Cell[] {
+  return [...ALL_CELLS[level].main, ...ALL_CELLS[level].mountain]
 }
 
 export interface MapView {
   /** Where he is standing now. */
   here: string
   visited: readonly string[]
+  /** Which world's map to draw. The schematic shows the ship, not the land. */
+  level: Level
 }
 
 export function drawWorldMap(ctx: CanvasRenderingContext2D, view: MapView, frame: number): void {
   ctx.fillStyle = '#0d1017'
   ctx.fillRect(0, 0, SCREEN_W, SCREEN_H)
 
+  const CELLS = ALL_CELLS[view.level]
   const seen = new Set(view.visited)
   seen.add(view.here)
 
@@ -99,7 +117,8 @@ export function drawWorldMap(ctx: CanvasRenderingContext2D, view: MapView, frame
   const minY = Math.min(...all.map((c) => c.y))
   const maxY = Math.max(...all.map((c) => c.y))
 
-  const columns = maxX - minX + 1 + 1 // one spare column for the mountain track
+  // One spare column for the mountain track, where there is one.
+  const columns = maxX - minX + 1 + (CELLS.mountain.length > 0 ? 1 : 0)
   const rows = maxY - minY + 1
 
   // The gap closes up rather than letting the board run off the screen. Adding
@@ -125,8 +144,10 @@ export function drawWorldMap(ctx: CanvasRenderingContext2D, view: MapView, frame
   // grid beside it is empty, so nothing on it can read as being next to
   // anything it is not.
   const trackX = originX + (maxX - minX + 1) * (CELL_W + gap)
-  ctx.fillStyle = '#232a34'
-  ctx.fillRect(trackX - 1, originY, 1, boardH)
+  if (CELLS.mountain.length > 0) {
+    ctx.fillStyle = '#232a34'
+    ctx.fillRect(trackX - 1, originY, 1, boardH)
+  }
   // Built from the foot upward, so it is drawn back to front: the summit
   // belongs at the top of the column, the way he climbs it.
   for (const [index, cell] of CELLS.mountain.entries()) {
@@ -134,7 +155,7 @@ export function drawWorldMap(ctx: CanvasRenderingContext2D, view: MapView, frame
     drawCell(ctx, cell, { x: trackX, y: originY + row * (CELL_H + gap) }, seen, view, frame)
   }
 
-  const title = screenById(view.here)?.name?.toUpperCase() ?? 'THE LAND'
+  const title = screenById(view.here)?.name?.toUpperCase() ?? (view.level === 2 ? 'THE SHIP' : 'THE LAND')
   ctx.fillStyle = '#e6b422'
   ctx.font = '7px monospace'
   ctx.textBaseline = 'top'
@@ -152,11 +173,12 @@ export function drawWorldMap(ctx: CanvasRenderingContext2D, view: MapView, frame
  * end up a different colour from the place it describes.
  */
 function drawTerrain(ctx: CanvasRenderingContext2D, screen: Screen, at: { x: number; y: number }): void {
-  const palette = PALETTES[themeFor(screen)]
+  const theme = themeFor(screen)
+  const palette = PALETTES[theme]
   for (let row = 0; row < SCREEN_ROWS; row++) {
     const line = screen.rows[row] ?? ''
     for (let col = 0; col < SCREEN_COLS; col++) {
-      ctx.fillStyle = colourOf((line[col] ?? '.') as TileChar, palette)
+      ctx.fillStyle = colourOf((line[col] ?? '.') as TileChar, palette, theme)
       ctx.fillRect(at.x + col * PX, at.y + row * PX, PX, PX)
     }
   }
@@ -167,12 +189,13 @@ function drawTerrain(ctx: CanvasRenderingContext2D, screen: Screen, at: { x: num
  * tiles carry, so each one is reduced to the single colour it reads as from a
  * distance — which is exactly what a map is.
  */
-function colourOf(char: TileChar, p: Palette): string {
+function colourOf(char: TileChar, p: Palette, theme: Theme): string {
   switch (char) {
     case '~':
       return p.water
+    // The border: trees in the land, hull or rock spires on the ship.
     case 'T':
-      return p.leafDark
+      return isFutureTheme(theme) ? p.wall : p.leafDark
     case ',':
       return p.leaf
     case 'R':

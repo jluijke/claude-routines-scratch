@@ -12,7 +12,14 @@ import type { Atlas } from './atlas'
 import type { Screen } from '../world/screens'
 import { gateById } from '../gates'
 
-export type Theme = 'overworld' | 'dungeon' | 'cave'
+export type Theme = 'overworld' | 'dungeon' | 'cave' | 'ship' | 'rock' | 'airlock'
+
+/** The three looks of Level 2. Same tiles underneath, drawn as steel and stone. */
+const FUTURE_THEMES: readonly Theme[] = ['ship', 'rock', 'airlock']
+
+export function isFutureTheme(theme: Theme): boolean {
+  return FUTURE_THEMES.includes(theme)
+}
 
 export interface Palette {
   ground: string
@@ -93,16 +100,85 @@ const CAVE: Palette = {
   trunk: '#43341f',
 }
 
+/**
+ * The sky-ship: blue-grey deck plating, pale hull panels, crates with a cyan
+ * light on them, hazard-yellow walkways, and the black of space where the
+ * land would have water.
+ */
+const SHIP: Palette = {
+  ground: '#3b4452',
+  groundSpeckle: '#46505f',
+  wall: '#6b7686',
+  wallLight: '#94a0b2',
+  wallDark: '#3a414d',
+  rock: '#5a6b8a',
+  rockLight: '#8093b6',
+  rockDark: '#36415a',
+  water: '#06070f',
+  waterLight: '#1a2140',
+  path: '#c9a32c',
+  pathEdge: '#2b2b2b',
+  leaf: '#e2883a',
+  leafLight: '#f2c94c',
+  leafDark: '#8a4a1a',
+  trunk: '#57d2c6',
+}
+
+/** A rock in space: grey dust, dark spires, pale boulders, crystal for scrub. */
+const ROCK: Palette = {
+  ground: '#5c5e66',
+  groundSpeckle: '#4f5159',
+  wall: '#3a3c45',
+  wallLight: '#5a5d68',
+  wallDark: '#1f2027',
+  rock: '#7a7c86',
+  rockLight: '#a3a5ae',
+  rockDark: '#464851',
+  water: '#06070f',
+  waterLight: '#1a2140',
+  path: '#8a8c96',
+  pathEdge: '#6a6c76',
+  leaf: '#57d2c6',
+  leafLight: '#c8fff8',
+  leafDark: '#2a7a72',
+  trunk: '#2a2f3d',
+}
+
+/** The airlock: a grid floor and padded, darker walls. Somewhere to hold your breath. */
+const AIRLOCK: Palette = {
+  ground: '#2e3440',
+  groundSpeckle: '#3a4252',
+  wall: '#4e5563',
+  wallLight: '#737c8c',
+  wallDark: '#252a33',
+  rock: '#5a6b8a',
+  rockLight: '#8093b6',
+  rockDark: '#36415a',
+  water: '#06070f',
+  waterLight: '#1a2140',
+  path: '#c9a32c',
+  pathEdge: '#2b2b2b',
+  leaf: '#e2883a',
+  leafLight: '#f2c94c',
+  leafDark: '#8a4a1a',
+  trunk: '#57d2c6',
+}
+
 export const PALETTES: Record<Theme, Palette> = {
   overworld: OVERWORLD,
   dungeon: DUNGEON,
   cave: CAVE,
+  ship: SHIP,
+  rock: ROCK,
+  airlock: AIRLOCK,
 }
 
 const DUNGEON_REGIONS = ['Sunken Hall', 'Hollow Keep', 'Ember Vault', 'Sunless Spire']
 
 /** Which look a screen wears. Derived so no screen has to say it twice. */
 export function themeFor(screen: Screen): Theme {
+  // Level 2 says what it is made of; nothing about it is inferred from names.
+  if (screen.setting) return screen.setting
   if (DUNGEON_REGIONS.includes(screen.region)) return 'dungeon'
   // Anywhere the sun does not reach is underground, whatever it is called.
   // Matching on the id alone once gave a cave a grass floor.
@@ -172,7 +248,9 @@ function drawTile(
   screen: Screen,
 ): void {
   // Everything sits on ground, so a tile with holes in it reads correctly.
-  ground(ctx, x, y, col, row, p)
+  ground(ctx, x, y, col, row, p, theme)
+
+  if (isFutureTheme(theme)) return drawFutureTile(ctx, char, x, y, col, row, p, theme, frame, line, screen)
 
   switch (char) {
     case '.':
@@ -209,6 +287,63 @@ function drawTile(
   }
 }
 
+/**
+ * The same letters, a thousand years on.
+ *
+ * Nothing about collision or the map checks knows the difference: a 'T' is
+ * still the solid border, a ',' is still something a tool clears. Only what is
+ * painted changes — and it is painted in the same sixteen-pixel, outlined,
+ * flat-colour way as the land, so the two worlds read as one game.
+ */
+function drawFutureTile(
+  ctx: CanvasRenderingContext2D,
+  char: TileChar,
+  x: number,
+  y: number,
+  col: number,
+  row: number,
+  p: Palette,
+  theme: Theme,
+  frame: number,
+  line: string,
+  screen: Screen,
+): void {
+  const onRock = theme === 'rock'
+  switch (char) {
+    case '.':
+      return
+    case 'S':
+      return onRock ? path(ctx, x, y, col, row, p) : walkway(ctx, x, y, col, row, p, screen)
+    case ',':
+      return onRock ? crystals(ctx, x, y, p) : cables(ctx, x, y, col, row, p)
+    case '~':
+      return space(ctx, x, y, col, row, frame, screen)
+    case 'B':
+      return gantry(ctx, x, y, p)
+    case 'T':
+      return onRock ? spire(ctx, x, y, col, row, p, line, screen) : hullPanel(ctx, x, y, col, row, p)
+    case 'p':
+      return onRock ? hidingCrystals(ctx, x, y, p) : sealedPanel(ctx, x, y, col, row, p)
+    case 'R':
+      return onRock ? cliff(ctx, x, y, col, row, p, line, screen) : crate(ctx, x, y, col, row, p)
+    case '#':
+      return onRock ? cliff(ctx, x, y, col, row, p, line, screen, '#') : block(ctx, x, y, col, row, p)
+    case 'X':
+      return crackedWall(ctx, x, y, p)
+    case '*':
+      return pillar(ctx, x, y, p, frame)
+    case '^':
+      return liftHatch(ctx, x, y, p, frame)
+    case 'D':
+    case 'C':
+      return hatch(ctx, x, y, p, frame)
+    case 'H':
+      return hatch(ctx, x, y, p, frame)
+    case '=':
+      return
+  }
+}
+
 // --- pieces ---------------------------------------------------------------
 
 function ground(
@@ -218,9 +353,37 @@ function ground(
   col: number,
   row: number,
   p: Palette,
+  theme: Theme = 'overworld',
 ): void {
   ctx.fillStyle = p.ground
   ctx.fillRect(x, y, TILE, TILE)
+
+  if (theme === 'ship' || theme === 'airlock') {
+    // Deck plating: a seam along two edges of every plate, and a rivet in
+    // the corner of some of them.
+    ctx.fillStyle = p.groundSpeckle
+    ctx.fillRect(x, y + TILE - 1, TILE, 1)
+    ctx.fillRect(x + TILE - 1, y, 1, TILE)
+    if ((col * 5 + row * 3) % 4 === 0) ctx.fillRect(x + 2, y + 2, 2, 2)
+    if (theme === 'airlock') {
+      ctx.fillRect(x + 7, y, 1, TILE)
+      ctx.fillRect(x, y + 7, TILE, 1)
+    }
+    return
+  }
+  if (theme === 'rock') {
+    // Dust, with the odd small crater.
+    ctx.fillStyle = p.groundSpeckle
+    if ((col * 7 + row * 13) % 5 === 0) ctx.fillRect(x + 3, y + 4, 4, 3)
+    if ((col * 3 + row * 5) % 7 === 0) ctx.fillRect(x + 9, y + 10, 3, 2)
+    if ((col * 11 + row * 2) % 9 === 0) {
+      ctx.fillStyle = p.rockDark
+      ctx.fillRect(x + 6, y + 8, 5, 4)
+      ctx.fillStyle = p.rockLight
+      ctx.fillRect(x + 7, y + 9, 3, 1)
+    }
+    return
+  }
   // A sparse, fixed speckle so open ground is not a flat slab.
   ctx.fillStyle = p.groundSpeckle
   if ((col * 7 + row * 13) % 5 === 0) ctx.fillRect(x + 4, y + 5, 2, 2)
@@ -333,11 +496,12 @@ function cliff(
   p: Palette,
   line: string,
   screen: Screen,
+  mass: string = 'R',
 ): void {
-  const above = ((screen.rows[row - 1] ?? '')[col] ?? '.') === 'R'
-  const below = ((screen.rows[row + 1] ?? '')[col] ?? '.') === 'R'
-  const left = (line[col - 1] ?? '.') === 'R'
-  const right = (line[col + 1] ?? '.') === 'R'
+  const above = ((screen.rows[row - 1] ?? '')[col] ?? '.') === mass
+  const below = ((screen.rows[row + 1] ?? '')[col] ?? '.') === mass
+  const left = (line[col - 1] ?? '.') === mass
+  const right = (line[col + 1] ?? '.') === mass
 
   ctx.fillStyle = p.rock
   ctx.fillRect(x, y, TILE, TILE)
@@ -496,6 +660,258 @@ function statue(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette)
   ctx.fillRect(x + 4, y + 11, 8, 1)
 }
 
+
+// --- pieces of the future -------------------------------------------------
+
+/** A hull panel: the wall of every deck. Pale plate, a dark seam, a light strip. */
+function hullPanel(ctx: CanvasRenderingContext2D, x: number, y: number, col: number, row: number, p: Palette): void {
+  ctx.fillStyle = p.wallDark
+  ctx.fillRect(x, y, TILE, TILE)
+  ctx.fillStyle = p.wall
+  ctx.fillRect(x + 1, y + 1, 14, 14)
+  ctx.fillStyle = p.wallLight
+  ctx.fillRect(x + 1, y + 1, 14, 2)
+  ctx.fillRect(x + 1, y + 1, 2, 14)
+  // Rivets at two corners, and a thin cyan running light along some panels.
+  ctx.fillStyle = p.wallDark
+  ctx.fillRect(x + 3, y + 4, 1, 1)
+  ctx.fillRect(x + 12, y + 12, 1, 1)
+  if ((col + row) % 3 === 0) {
+    ctx.fillStyle = p.trunk
+    ctx.fillRect(x + 5, y + 8, 6, 1)
+  }
+}
+
+/** A sealed panel with something behind it: a hull panel, a screw, and a glint. */
+function sealedPanel(ctx: CanvasRenderingContext2D, x: number, y: number, col: number, row: number, p: Palette): void {
+  hullPanel(ctx, x, y, col, row, p)
+  ctx.fillStyle = p.wallDark
+  ctx.fillRect(x + 6, y + 5, 4, 4)
+  ctx.fillStyle = p.wallLight
+  ctx.fillRect(x + 7, y + 6, 2, 2)
+  // The seam along the bottom edge glows: whatever is behind it is lit.
+  ctx.fillStyle = '#2a2f3d'
+  ctx.fillRect(x + 4, y + 12, 8, 3)
+  ctx.fillStyle = '#57d2c6'
+  ctx.fillRect(x + 6, y + 13, 4, 1)
+}
+
+/** A crate or a machine: a solid block with a cyan light on its face. */
+function crate(ctx: CanvasRenderingContext2D, x: number, y: number, col: number, row: number, p: Palette): void {
+  ctx.fillStyle = p.rockDark
+  ctx.fillRect(x, y, TILE, TILE)
+  ctx.fillStyle = p.rock
+  ctx.fillRect(x + 1, y + 1, 14, 14)
+  ctx.fillStyle = p.rockLight
+  ctx.fillRect(x + 1, y + 1, 14, 2)
+  ctx.fillRect(x + 1, y + 1, 2, 14)
+  ctx.fillStyle = p.rockDark
+  ctx.fillRect(x + 4, y + 7, 8, 1)
+  if ((col * 3 + row) % 2 === 0) {
+    ctx.fillStyle = '#57d2c6'
+    ctx.fillRect(x + 11, y + 4, 2, 1)
+  } else {
+    ctx.fillStyle = '#e2883a'
+    ctx.fillRect(x + 3, y + 11, 3, 1)
+  }
+}
+
+/** A marked walkway: lighter plating with a yellow line down each side. The sand path of the ship. */
+function walkway(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  col: number,
+  row: number,
+  p: Palette,
+  screen: Screen,
+): void {
+  ctx.fillStyle = '#4b5567'
+  ctx.fillRect(x, y, TILE, TILE)
+  ctx.fillStyle = '#56617a'
+  ctx.fillRect(x, y + TILE - 1, TILE, 1)
+  ctx.fillRect(x + TILE - 1, y, 1, TILE)
+  // The yellow runs along the edge of the walkway, not through the middle of
+  // it, so a wide apron reads as a floor with a border rather than a slab.
+  const isWalk = (c: number, r: number): boolean => ((screen.rows[r] ?? '')[c] ?? '.') === 'S'
+  ctx.fillStyle = p.path
+  if (!isWalk(col, row - 1)) ctx.fillRect(x, y, TILE, 2)
+  if (!isWalk(col, row + 1)) ctx.fillRect(x, y + TILE - 2, TILE, 2)
+  if (!isWalk(col - 1, row)) ctx.fillRect(x, y, 2, TILE)
+  if (!isWalk(col + 1, row)) ctx.fillRect(x + TILE - 2, y, 2, TILE)
+  ctx.fillStyle = '#56617a'
+  if ((col * 3 + row) % 4 === 0) ctx.fillRect(x + 6, y + 7, 3, 1)
+}
+
+/** Loose cabling, orange and yellow, spilling out of the floor. The bush. */
+function cables(ctx: CanvasRenderingContext2D, x: number, y: number, col: number, row: number, p: Palette): void {
+  ctx.fillStyle = p.leafDark
+  ctx.fillRect(x + 2, y + 5, 12, 9)
+  ctx.fillStyle = p.leaf
+  ctx.fillRect(x + 3, y + 6, 10, 7)
+  ctx.fillStyle = p.leafLight
+  ctx.fillRect(x + 4, y + 7, 3, 1)
+  ctx.fillRect(x + 9, y + 9, 3, 1)
+  ctx.fillRect(x + 6, y + 11, 4, 1)
+  ctx.fillStyle = p.leafDark
+  ctx.fillRect(x + 7, y + 3, 2, 3)
+  ctx.fillRect(x + ((col + row) % 2 ? 4 : 10), y + 8, 2, 2)
+}
+
+/** A rock spire: the border of every rock, dark and pointed. */
+function spire(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  col: number,
+  row: number,
+  p: Palette,
+  line: string,
+  screen: Screen,
+): void {
+  const above = ((screen.rows[row - 1] ?? '')[col] ?? '.') === 'T'
+  const left = (line[col - 1] ?? '.') === 'T'
+  ctx.fillStyle = p.wall
+  ctx.fillRect(x, y, TILE, TILE)
+  ctx.fillStyle = p.wallLight
+  if (!above) {
+    // A jagged top edge, so a row of these reads as a ridge, not a wall.
+    ctx.fillRect(x, y + 2, 4, 2)
+    ctx.fillRect(x + 4, y, 3, 2)
+    ctx.fillRect(x + 7, y + 3, 4, 1)
+    ctx.fillRect(x + 11, y + 1, 5, 2)
+    ctx.fillStyle = p.ground
+    ctx.fillRect(x, y, 4, 2)
+    ctx.fillRect(x + 7, y, 4, 3)
+    ctx.fillRect(x + 11, y, 5, 1)
+    ctx.fillStyle = p.wallLight
+  }
+  if (!left) ctx.fillRect(x, y + 4, 2, 12)
+  ctx.fillStyle = p.wallDark
+  ctx.fillRect(x + 6, y + 9, 2, 5)
+  ctx.fillRect(x + 11, y + 6, 1, 4)
+  ctx.fillRect(x + 3, y + 12, 2, 2)
+}
+
+/** A crystal cluster on a rock: the scrub, and it comes off with a tool. */
+function crystals(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
+  ctx.fillStyle = p.leafDark
+  ctx.fillRect(x + 3, y + 8, 4, 6)
+  ctx.fillRect(x + 7, y + 4, 3, 10)
+  ctx.fillRect(x + 10, y + 9, 3, 5)
+  ctx.fillStyle = p.leaf
+  ctx.fillRect(x + 4, y + 9, 2, 4)
+  ctx.fillRect(x + 8, y + 5, 1, 8)
+  ctx.fillRect(x + 11, y + 10, 1, 3)
+  ctx.fillStyle = p.leafLight
+  ctx.fillRect(x + 4, y + 9, 1, 2)
+  ctx.fillRect(x + 8, y + 5, 1, 3)
+}
+
+/** Crystals with a bottle wedged in among them. */
+function hidingCrystals(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
+  crystals(ctx, x, y, p)
+  ctx.fillStyle = '#2a2f3d'
+  ctx.fillRect(x + 12, y + 11, 3, 4)
+  ctx.fillStyle = '#c8fff8'
+  ctx.fillRect(x + 13, y + 12, 1, 3)
+}
+
+/** Open space: black, with stars that turn slowly, and a lit lip at every edge. */
+function space(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  col: number,
+  row: number,
+  frame: number,
+  screen: Screen,
+): void {
+  ctx.fillStyle = '#06070f'
+  ctx.fillRect(x, y, TILE, TILE)
+  // Three stars a tile, at fixed spots, one of them blinking.
+  const seed = col * 31 + row * 17
+  const stars: [number, number][] = [
+    [(seed * 7) % 14 + 1, (seed * 11) % 14 + 1],
+    [(seed * 13) % 14 + 1, (seed * 3) % 14 + 1],
+    [(seed * 5) % 14 + 1, (seed * 19) % 14 + 1],
+  ]
+  stars.forEach(([sx, sy], i) => {
+    const blink = i === 0 && Math.floor((frame + seed) / 40) % 3 === 0
+    ctx.fillStyle = blink ? '#1a2140' : i === 2 ? '#8f98a8' : '#f6f3e7'
+    ctx.fillRect(x + sx, y + sy, 1, 1)
+  })
+  // Where the floor stops, a rim, so the drop reads as a drop.
+  const isSpace = (c: number, r: number): boolean => ((screen.rows[r] ?? '')[c] ?? '~') === '~'
+  ctx.fillStyle = '#2a3140'
+  if (!isSpace(col, row - 1)) ctx.fillRect(x, y, TILE, 2)
+  if (!isSpace(col, row + 1)) ctx.fillRect(x, y + TILE - 2, TILE, 2)
+  if (!isSpace(col - 1, row)) ctx.fillRect(x, y, 2, TILE)
+  if (!isSpace(col + 1, row)) ctx.fillRect(x + TILE - 2, y, 2, TILE)
+}
+
+/** A metal gantry over the void. */
+function gantry(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
+  ctx.fillStyle = p.wallDark
+  ctx.fillRect(x, y, TILE, TILE)
+  ctx.fillStyle = p.wall
+  for (let i = 0; i < 4; i++) ctx.fillRect(x, y + i * 4 + 1, TILE, 2)
+  ctx.fillStyle = p.wallLight
+  ctx.fillRect(x, y, 2, TILE)
+  ctx.fillRect(x + TILE - 2, y, 2, TILE)
+}
+
+/** A hatch: a round door in a frame, with a light over it. Every way in and out. */
+function hatch(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette, frame: number): void {
+  ctx.fillStyle = p.wall
+  ctx.fillRect(x, y, TILE, TILE)
+  ctx.fillStyle = p.wallLight
+  ctx.fillRect(x, y, TILE, 2)
+  ctx.fillStyle = p.wallDark
+  ctx.fillRect(x + 2, y + 3, 12, 13)
+  ctx.fillStyle = '#000000'
+  ctx.fillRect(x + 4, y + 5, 8, 11)
+  ctx.fillRect(x + 3, y + 7, 10, 7)
+  // The light over the door: green, blinking slowly.
+  ctx.fillStyle = Math.floor(frame / 30) % 2 === 0 ? '#7fbb4c' : '#4d7a2c'
+  ctx.fillRect(x + 7, y + 1, 2, 1)
+}
+
+/** A lift hatch in the floor: the stairs down. */
+function liftHatch(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette, frame: number): void {
+  ctx.fillStyle = p.wallDark
+  ctx.fillRect(x, y, TILE, TILE)
+  ctx.fillStyle = p.wall
+  ctx.fillRect(x + 1, y + 1, 14, 14)
+  ctx.fillStyle = '#000000'
+  ctx.fillRect(x + 3, y + 3, 10, 10)
+  ctx.fillStyle = p.wallLight
+  ctx.fillRect(x + 3, y + 3, 10, 1)
+  ctx.fillRect(x + 3, y + 3, 1, 10)
+  const on = Math.floor(frame / 20) % 2 === 0
+  ctx.fillStyle = on ? '#57d2c6' : '#2a7a72'
+  ctx.fillRect(x + 1, y + 7, 2, 2)
+  ctx.fillRect(x + 13, y + 7, 2, 2)
+}
+
+/** A console pillar: what stands where a statue would. */
+function pillar(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette, frame: number): void {
+  ctx.fillStyle = p.rockDark
+  ctx.fillRect(x + 3, y + 1, 10, 15)
+  ctx.fillStyle = p.rock
+  ctx.fillRect(x + 4, y + 2, 8, 13)
+  ctx.fillStyle = p.rockLight
+  ctx.fillRect(x + 4, y + 2, 8, 1)
+  ctx.fillStyle = '#12131a'
+  ctx.fillRect(x + 5, y + 4, 6, 4)
+  ctx.fillStyle = Math.floor(frame / 24) % 2 === 0 ? '#57d2c6' : '#2a7a72'
+  ctx.fillRect(x + 6, y + 5, 3, 1)
+  ctx.fillRect(x + 6, y + 6, 4, 1)
+  ctx.fillStyle = p.rockDark
+  ctx.fillRect(x + 5, y + 10, 6, 1)
+  ctx.fillRect(x + 5, y + 12, 6, 1)
+}
+
 // --- overlays -------------------------------------------------------------
 
 /** Sealed barriers are drawn on top, so their runes shimmer. */
@@ -515,13 +931,14 @@ export function drawBarriers(
   openedTiles: ReadonlySet<string>,
   frame: number,
 ): void {
+  const future = isFutureTheme(themeFor(screen))
   // Seal tiles the map author placed directly, with no barrier behind them.
   for (let row = 0; row < SCREEN_ROWS; row++) {
     const line = screen.rows[row] as string
     for (let col = 0; col < SCREEN_COLS; col++) {
       if (line[col] !== '=') continue
       if (openedTiles.has(`${col},${row}`)) continue
-      drawRuneSeal(ctx, atlas, col, row, frame)
+      drawRuneSeal(ctx, atlas, col, row, frame, future)
     }
   }
 
@@ -544,13 +961,14 @@ export function drawBarriers(
         if (open) break
         {
           const bob = Math.sin(frame / 26) > 0 ? 0 : 1
-          atlas.draw(ctx, 'scribe', x, y - bob)
+          // On the ship it is a droid in the way, not an old man.
+          atlas.draw(ctx, future ? 'droid' : 'scribe', x, y - bob)
         }
         // A keeper covers one tile; a wide doorway needs the rest sealed, or
         // the second door looks like a way round him.
         for (const tile of placement.opens ?? []) {
           if (tile.col === placement.col && tile.row === placement.row) continue
-          drawRuneSeal(ctx, atlas, tile.col, tile.row, frame)
+          drawRuneSeal(ctx, atlas, tile.col, tile.row, frame, future)
         }
         break
 
@@ -562,7 +980,7 @@ export function drawBarriers(
         for (const tile of placement.opens ?? [{ col: placement.col, row: placement.row }]) {
           // Skip anything the seal-tile pass above already painted.
           if ((screen.rows[tile.row] ?? '')[tile.col] === '=') continue
-          drawRuneSeal(ctx, atlas, tile.col, tile.row, frame)
+          drawRuneSeal(ctx, atlas, tile.col, tile.row, frame, future)
         }
         break
 
@@ -577,14 +995,32 @@ export function drawBarriers(
   }
 }
 
-/** A barrier of runes: the seal, and a slow pulse behind it. */
+/**
+ * A barrier of runes: the seal, and a slow pulse behind it. On the ship the
+ * same barrier is a force field — hatched light that flickers rather than a
+ * carved stone that glows.
+ */
 function drawRuneSeal(
   ctx: CanvasRenderingContext2D,
   atlas: Atlas,
   col: number,
   row: number,
   frame: number,
+  future = false,
 ): void {
+  if (future) {
+    const flicker = Math.floor(frame / 4) % 7 === 0 ? 0.55 : 0.85
+    ctx.save()
+    ctx.globalAlpha = flicker
+    atlas.draw(ctx, 'field', col * TILE, row * TILE)
+    ctx.restore()
+    ctx.save()
+    ctx.globalAlpha = 0.25 + Math.sin(frame / 9 + col) * 0.15
+    ctx.fillStyle = '#c8fff8'
+    ctx.fillRect(col * TILE + 1, row * TILE + 1, TILE - 2, TILE - 2)
+    ctx.restore()
+    return
+  }
   atlas.draw(ctx, 'seal', col * TILE, row * TILE)
   const glow = 0.18 + Math.sin(frame / 18 + col) * 0.12
   ctx.save()

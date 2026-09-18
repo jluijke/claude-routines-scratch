@@ -18,6 +18,8 @@ export interface PetDef {
   blurb: string
   /** On the ground, and mid-stride — or mid-air, for the ones that hop. */
   frames: [SpriteName, SpriteName]
+  /** The same two poses, half chrome: what it is a thousand years on. */
+  cyborgFrames: [SpriteName, SpriteName]
   /**
    * Pixels of lift, for an animal that hops rather than trots. A rabbit and a
    * kangaroo do not walk, and drawing them sliding along the grass looked
@@ -45,18 +47,21 @@ export const PETS: PetDef[] = [
     name: 'Dog',
     blurb: 'Scruffy, loyal, and convinced every monster started it.',
     frames: ['dogA', 'dogB'],
+    cyborgFrames: ['cyborgDogA', 'cyborgDogB'],
   },
   {
     kind: 'cat',
     name: 'Cat',
     blurb: 'Comes along because she has decided to, not because you asked.',
     frames: ['catA', 'catB'],
+    cyborgFrames: ['cyborgCatA', 'cyborgCatB'],
   },
   {
     kind: 'rabbit',
     name: 'Rabbit',
     blurb: 'Quick, nervous, and much braver after a good meal.',
     frames: ['rabbitA', 'rabbitB'],
+    cyborgFrames: ['cyborgRabbitA', 'cyborgRabbitB'],
     hop: 3,
     hopRate: 3.4,
   },
@@ -65,12 +70,14 @@ export const PETS: PetDef[] = [
     name: 'Wombat',
     blurb: 'Low, wide and stubborn. Nothing moves a wombat that does not want moving.',
     frames: ['wombatA', 'wombatB'],
+    cyborgFrames: ['cyborgWombatA', 'cyborgWombatB'],
   },
   {
     kind: 'kangaroo',
     name: 'Kangaroo',
     blurb: 'Keeps up without trying. Kicks like a falling gate.',
     frames: ['kangarooA', 'kangarooB'],
+    cyborgFrames: ['cyborgKangarooA', 'cyborgKangarooB'],
     // Longer, slower bounds than the rabbit's — it covers the same ground in
     // fewer of them, which is most of what tells the two apart in motion.
     hop: 5,
@@ -81,8 +88,14 @@ export const PETS: PetDef[] = [
     name: 'Goat',
     blurb: 'Eats anything, fears nothing, and headbutts first.',
     frames: ['goatA', 'goatB'],
+    cyborgFrames: ['cyborgGoatA', 'cyborgGoatB'],
   },
 ]
+
+/** How it is drawn where he is: fur in the land, half chrome on the ship. */
+export function petFrames(def: PetDef, level: 1 | 2): [SpriteName, SpriteName] {
+  return level === 2 ? def.cyborgFrames : def.frames
+}
 
 export function petByKind(kind: PetKind | undefined): PetDef | undefined {
   return PETS.find((pet) => pet.kind === kind)

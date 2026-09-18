@@ -99,6 +99,9 @@ export function roughen(screen: Screen): Screen {
   const rows = [...screen.rows]
   // Only the wooded overworld. Dungeon rooms are walls, and meant to be square.
   if (!rows.some((line) => line.includes('T'))) return screen
+  // And only where the border is something that grows. A ship's hull is built
+  // straight; the rocks outside it are as ragged as any wood.
+  if (screen.setting === 'ship' || screen.setting === 'airlock') return screen
 
   const rng = new Rng(`trees-${screen.id}`)
   const keep = protectedTiles(screen)

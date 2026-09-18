@@ -20,15 +20,17 @@ import { itemSprite } from './render/icons'
 import { Enemy, isBossKind, overlaps, type Projectile } from './entities/enemies'
 import { Player, PLAYER_SIZE, type Facing } from './entities/player'
 import { SCREEN_COLS, SCREEN_H, SCREEN_ROWS, SCREEN_W, TILE, TILES, isSolidChar, toTile, type TileChar } from './world/tiles'
-import { screenById, SCREENS, START_SCREEN, type EnemyKind, type Screen } from './world/screens'
+import { screenById, SCREENS, type EnemyKind, type Prop, type Screen } from './world/screens'
 import { overworldLayout, stepBackFromGate } from './world/analysis'
 import { gateById, type Gate } from './gates'
-import { isTool, ITEMS, materialOf, TOOL_SLOT, type ItemId } from './items'
+import { isTool, ITEMS, itemName, materialOf, TOOL_SLOT, type ItemId } from './items'
 import { dropMultiplier, opensFreely } from './pacing'
-import type { SaveData } from '../core/save'
-import { hopOffset, petByKind } from './pets'
+import type { Level, SaveData } from '../core/save'
+import { hopOffset, petByKind, petFrames } from './pets'
 import type { ShopKind } from './ui/shop'
 import { TOTAL_EXERCISES } from '../content/exercises'
+import { flavourFor, type Flavour } from './flavour'
+import { START_SCREENS } from './levels'
 
 /** What the sign says when a dungeon guardian falls. */
 export interface BossVictory {
@@ -228,15 +230,24 @@ const FOOD_EVERY = 4
  * rooms, shop interiors, the island across the water — is through a door or
  * over water, and that is exactly where the animal waits behind.
  */
-const OVERWORLD = new Set(overworldLayout().cells.keys())
+const OVERWORLD = new Set([
+  ...overworldLayout(START_SCREENS[1]).cells.keys(),
+  ...overworldLayout(START_SCREENS[2]).cells.keys(),
+])
 
 /**
- * The rooms with a guardian in them, in map order. Derived rather than written
- * down, so adding a fifth dungeon cannot leave the sign counting to four.
+ * The rooms with a guardian in them, per world, in map order. Derived rather
+ * than written down, so adding a fifth dungeon cannot leave the sign counting
+ * to four — and so the ship's four count for the ship, not for the land.
  */
-const BOSS_ROOMS = SCREENS
-  .filter((screen) => (screen.spawns ?? []).some((spawn) => isBossKind(spawn.kind)))
-  .map((screen) => screen.id)
+const BOSS_ROOMS: Record<Level, string[]> = { 1: [], 2: [] }
+for (const screen of SCREENS) {
+  if (!(screen.spawns ?? []).some((spawn) => isBossKind(spawn.kind))) continue
+  BOSS_ROOMS[screen.level ?? 1].push(screen.id)
+}
+
+/** How far round him the Arc Staff's ring reaches, from his centre. */
+const ARC_RADIUS = 26
 
 /** 'boss3' -> 3. The guardian knows which dungeon it belongs to. */
 function bossLevel(kind: EnemyKind): number {
@@ -293,6 +304,15 @@ export class World {
   private foodOffered = false
   /** He said no to a sack; do not ask again until he steps off it. */
   private foodDeclined = false
+  /**
+   * Tiles on this screen that a prop makes solid: the computers and the suit
+   * lockers, which are things you walk into rather than over.
+   */
+  private solidProps = new Set<string>()
+  /** The prop he is currently pushing against, so it fires once per push. */
+  private bumping: Prop | undefined
+  /** Why he last died, for the sign that says so. */
+  private deathCause: 'hearts' | 'suit' = 'hearts'
   private message = ''
   private messageTimer = 0
   /** Barrier the hero is standing against, if any. */
@@ -324,7 +344,14 @@ export class World {
 
     this.atlas = new Atlas()
 
-    this.screen = screenById(save.player.screenId) ?? (screenById(START_SCREEN) as Screen)
+    // A save whose screen belongs to the other world — a hand edit, or an
+    // older build — starts at this world's beginning rather than somewhere
+    // its gear makes no sense.
+    const remembered = screenById(save.player.screenId)
+    this.screen =
+      remembered && (remembered.level ?? 1) === save.level
+        ? remembered
+        : (screenById(START_SCREENS[save.level]) as Screen)
     this.player = new Player(
       {
         ...(save.player.equippedSword ? { sword: save.player.equippedSword } : {}),
@@ -386,6 +413,28 @@ export class World {
     this.stop()
     this.input.destroy()
     this.canvas.remove()
+  }
+
+  /** Which world he is in. */
+  get level(): Level {
+    return this.save.level
+  }
+
+  /** The world's own words for things: sacks and bushes, or batteries and panels. */
+  private get words(): Flavour {
+    return flavourFor(this.save.level)
+  }
+
+  /** Whether he is drawn in the space suit: on when he put it on, until he is back inside. */
+  suited(): boolean {
+    return this.save.world.suitOn
+  }
+
+  /** What the sign should say when he has just died. */
+  deathMessage(): string {
+    return this.deathCause === 'suit'
+      ? `${this.words.noSuit} There is no air out there. ${this.words.defeated}`
+      : this.words.defeated
   }
 
   /** Writes the live state back into the save object. */
@@ -527,24 +576,35 @@ export class World {
     this.victory = undefined
     this.discovery = undefined
     this.mapOpen = false
+    this.bumping = undefined
+    this.solidProps = new Set(
+      (next.props ?? []).filter((p) => p.terminal || p.locker).map((p) => `${p.col},${p.row}`),
+    )
+    // Back inside the ship, the suit comes off by itself. Out on a rock or in
+    // an airlock it stays on: nobody takes a helmet off in a vacuum.
+    if (this.save.world.suitOn && next.setting !== 'rock' && next.setting !== 'airlock') {
+      this.save.world.suitOn = false
+      if (arrived) this.showMessage(this.words.suitOff)
+    }
     this.placePet(next, arrived)
     if (arrived) this.considerFood(next)
     // Underground counts too: the potion is three places, not three fields.
     if (arrived && this.save.world.invisibleScreens > 0) {
       this.save.world.invisibleScreens -= 1
       if (this.save.world.invisibleScreens === 0) {
-        this.showMessage('The potion wears off. They can see you again.')
+        this.showMessage(this.words.potionWearsOff)
       }
     }
     this.transition = 12
 
     const cleared = this.save.world.defeatedBosses
+    const look = (next.level ?? 1) === 2 ? 'robot' : 'monster'
     for (const [index, spawn] of (next.spawns ?? []).entries()) {
       // A defeated boss stays defeated — all of them, not just the two that
       // existed when this was written. Asked of the archetype table rather than
       // a list of names that has to be remembered.
       if (isBossKind(spawn.kind) && cleared.includes(next.id)) continue
-      this.enemies.push(new Enemy(spawn.kind, spawn.col, spawn.row, this.rng.int(1, 1e9) + index))
+      this.enemies.push(new Enemy(spawn.kind, spawn.col, spawn.row, this.rng.int(1, 1e9) + index, look))
     }
 
     if (remember && !this.save.world.visitedScreens.includes(id)) {
@@ -574,11 +634,15 @@ export class World {
   /** Which tune suits this room. */
   private trackFor(screen: Screen): TrackName {
     const boss = (screen.spawns ?? []).some((s) => isBossKind(s.kind))
-    if (boss && !this.save.world.defeatedBosses.includes(screen.id)) return 'boss'
-    if (screen.shop) return 'shop'
     const theme = themeFor(screen)
+    if (boss && !this.save.world.defeatedBosses.includes(screen.id)) {
+      return theme === 'rock' ? 'mech' : 'boss'
+    }
+    if (screen.shop) return 'shop'
     if (theme === 'dungeon') return 'dungeon'
     if (theme === 'cave') return 'cave'
+    if (theme === 'ship') return 'ship'
+    if (theme === 'rock' || theme === 'airlock') return 'rock'
     return 'overworld'
   }
 
@@ -641,8 +705,8 @@ export class World {
           this.callbacks.onBossDefeated({
             level: this.victory.level,
             dungeonName: this.victory.dungeonName,
-            defeated: this.save.world.defeatedBosses.filter((id) => BOSS_ROOMS.includes(id)).length,
-            total: BOSS_ROOMS.length,
+            defeated: this.save.world.defeatedBosses.filter((id) => BOSS_ROOMS[this.level].includes(id)).length,
+            total: BOSS_ROOMS[this.level].length,
           })
         }
       }
@@ -654,7 +718,7 @@ export class World {
       if (this.flight.frames <= 0) {
         this.flight = undefined
         this.input.clearTarget()
-        this.showMessage('The Wings tear apart as you land. That crossing was one way.')
+        this.showMessage(this.words.wingsTorn)
       }
       return
     }
@@ -679,7 +743,7 @@ export class World {
         this.mapOpen = true
         sfx.play('select')
       } else {
-        this.showMessage('You have no map. There must be one somewhere.', 140)
+        this.showMessage(this.words.noMap, 140)
       }
       return
     }
@@ -721,6 +785,7 @@ export class World {
     // something does, he is out of it on the next frame rather than for good.
     this.ensureFree()
     this.checkGateContact(opened)
+    this.checkBumps()
     this.checkTreasure()
     this.checkPickup()
     this.checkFood()
@@ -762,8 +827,39 @@ export class World {
     const { col, row } = toTile(x, y)
     if (col < 0 || row < 0 || col >= 16 || row >= 11) return true
     if (opened.has(`${col},${row}`)) return false
+    if (this.solidProps.has(`${col},${row}`)) return true
     const char = ((this.screen.rows[row] ?? '')[col] ?? '#') as TileChar
     return isSolidChar(char, canCrossWater)
+  }
+
+  /**
+   * The things he walks into on purpose: a ship's computer, which opens the
+   * shop it runs, and an airlock locker, which puts the suit on him. Each
+   * fires once per push — walk away and back to bump it again.
+   */
+  private checkBumps(): void {
+    const ahead = this.pointAhead(this.player.centre(), this.player.facing, 8)
+    const { col, row } = toTile(ahead.x, ahead.y)
+    const prop = (this.screen.props ?? []).find(
+      (p) => (p.terminal || p.locker) && p.col === col && p.row === row,
+    )
+    if (!prop) {
+      this.bumping = undefined
+      return
+    }
+    if (this.bumping === prop) return
+    this.bumping = prop
+    if (prop.locker) {
+      this.save.world.suitOn = true
+      sfx.play('select')
+      this.showMessage(this.words.suitOn)
+      this.callbacks.onChange()
+      return
+    }
+    if (prop.terminal) {
+      sfx.play('select')
+      this.callbacks.onShop(prop.terminal)
+    }
   }
 
   private clampToScreen(): void {
@@ -834,10 +930,17 @@ export class World {
       // there is no coming back from should be something he chose to do, not
       // something that happens because he walked the wrong way.
       if (portal.requires && isTool(portal.requires) && this.selectedTool() !== portal.requires) {
-        this.showMessage(
-          `You have the ${ITEMS[portal.requires].name}, but they are not in your hand. ` +
-            'Press C until the B slot shows them.',
-        )
+        this.showMessage(this.words.wingsNotHeld(itemName(portal.requires, this.level)))
+        return
+      }
+      // The outer door of an airlock. The droid said it, the locker is right
+      // there, and the game does exactly what it warned it would.
+      if (portal.needsSuit && !this.save.world.suitOn) {
+        this.deathCause = 'suit'
+        this.player.hearts = 0
+        sfx.play('playerHurt')
+        this.showMessage(this.words.noSuit)
+        this.callbacks.onChange()
         return
       }
       if (portal.requires && portal.consumes) {
@@ -963,7 +1066,7 @@ export class World {
     if (!spot) return
     this.save.world.screensSinceFood = 0
     this.save.world.foodTile = { screen: next.id, col: spot.col, row: spot.row }
-    this.showMessage('A sack of animal food is lying in the open.')
+    this.showMessage(this.words.foodAppears)
   }
 
   /**
@@ -1051,9 +1154,7 @@ export class World {
     this.discovery = {
       frames: DISCOVERY_FRAMES,
       item: 'animalFood',
-      message:
-        'You hold up a sack of animal food. Your friend has already smelled it — ' +
-        'and it is going to fight anything that comes near you.',
+      message: this.words.foodTaken,
     }
     this.callbacks.onChange()
   }
@@ -1105,10 +1206,16 @@ export class World {
     const sword = this.player.swordBox()
     const playerBox = { x: this.player.x, y: this.player.y, w: PLAYER_SIZE, h: PLAYER_SIZE }
 
+    // The Arc Staff swings a ring of lightning right round him, so anything
+    // close enough on any side is hit — the one weapon that reaches behind.
+    const arc = sword && this.hasArcStaff() ? this.player.centre() : undefined
+
     for (const enemy of [...this.enemies]) {
       const box = enemy.box()
+      const at = enemy.centre()
+      const inArc = arc !== undefined && Math.hypot(at.x - arc.x, at.y - arc.y) <= ARC_RADIUS + enemy.size / 2
 
-      if (sword && overlaps(sword, box)) {
+      if ((sword && overlaps(sword, box)) || inArc) {
         if (enemy.hurt(this.player.swordDamage)) {
           sfx.play('enemyHit')
           if (enemy.isDead()) this.defeat(enemy)
@@ -1124,6 +1231,11 @@ export class World {
         }
       }
     }
+  }
+
+  /** Whether the thing he is swinging is the Arc Staff: the future's gold. */
+  private hasArcStaff(): boolean {
+    return this.level === 2 && this.player.loadout.sword === 'goldenSword'
   }
 
   private defeat(enemy: Enemy): void {
@@ -1243,7 +1355,7 @@ export class World {
   cycleTool(): void {
     const owned = this.ownedTools()
     if (owned.length === 0) {
-      this.showMessage('You have no items to use yet.', 80)
+      this.showMessage(this.words.noItems, 80)
       return
     }
     // selectedTool() falls back to the first item he owns, so before he has
@@ -1254,7 +1366,7 @@ export class World {
     const next = owned[(index + 1) % owned.length] as ItemId
     this.save.player.equippedTool = next
     sfx.play('select')
-    this.showMessage(`${ITEMS[next].name} ready.`, 70)
+    this.showMessage(`${itemName(next, this.level)} ready.`, 70)
     this.callbacks.onChange()
   }
 
@@ -1262,7 +1374,7 @@ export class World {
   private useItem(): void {
     const tool = this.selectedTool()
     if (!tool) {
-      this.showMessage('Nothing to use yet. Buy something at the shop.', 80)
+      this.showMessage(this.words.nothingToUse, 80)
       return
     }
 
@@ -1278,7 +1390,7 @@ export class World {
       case 'wings':
         // They are not pressed, they are worn. Holding them is what matters,
         // and saying so here is where he will look for the answer.
-        return this.showMessage('Hold the Wings and walk into open water. They only carry you across.', 110)
+        return this.showMessage(this.words.wingsHowTo, 110)
       default:
         this.showMessage('You cannot use that here.', 70)
     }
@@ -1286,7 +1398,7 @@ export class World {
 
   private placeBomb(): void {
     if ((this.save.inventory.bomb ?? 0) <= 0) {
-      this.showMessage('You are out of bombs.', 80)
+      this.showMessage(this.words.outOfBombs, 80)
       return
     }
     // One at a time, so a handful of bombs cannot clear a whole room at once.
@@ -1302,7 +1414,7 @@ export class World {
 
   private lightCandle(): void {
     if (this.candleUsedHere) {
-      this.showMessage('The blue candle only lights once in each room.', 90)
+      this.showMessage(this.words.candleOncePerRoom, 90)
       return
     }
     this.candleUsedHere = true
@@ -1318,14 +1430,14 @@ export class World {
 
   private dropBait(): void {
     if (this.enemies.length === 0) {
-      this.showMessage('Nothing here is hungry.', 70)
+      this.showMessage(this.words.nothingHungry, 70)
       return
     }
     this.save.inventory.bait = (this.save.inventory.bait ?? 0) - 1
     const centre = this.player.centre()
     const spot = this.pointAhead(centre, this.player.facing, 24)
     for (const enemy of this.enemies) enemy.distract(spot.x, spot.y)
-    this.showMessage('The monsters stop to eat.', 120)
+    this.showMessage(this.words.baitDropped, 120)
     this.callbacks.onChange()
   }
 
@@ -1358,11 +1470,9 @@ export class World {
       this.breakTile(bush.col, bush.row)
       sfx.play('secret')
       // A tree is not a bush, and one with a bottle in it deserves saying so.
-      this.showMessage(
-        char === 'p' ? 'The tree burns away, and something rolls out of it.' : 'The bush burns away.',
-      )
+      this.showMessage(char === 'p' ? this.words.hidingTreeBurned : this.words.bushBurned)
     } else {
-      this.showMessage('The flame gutters out.', 70)
+      this.showMessage(this.words.flameGutters, 70)
     }
 
     for (const enemy of [...this.enemies]) {
@@ -1409,7 +1519,7 @@ export class World {
 
     if (opened) {
       sfx.play('secret')
-      this.showMessage('The cracked rock blows apart, revealing a way through.')
+      this.showMessage(this.words.wallBlown)
     }
 
     // Bombs hurt monsters, not the child. Getting the placement slightly wrong
@@ -1446,7 +1556,7 @@ export class World {
     if (pickup && !this.pickupHidden(pickup) && !this.save.world.takenChests.includes(pickup.id)) {
       // Bob it gently, so a sword in the grass reads as a thing to collect.
       const bob = Math.sin(this.frame / 20) > 0 ? 0 : 1
-      this.atlas.draw(ctx, itemSprite(pickup.item), pickup.col * TILE, pickup.row * TILE - bob)
+      this.atlas.draw(ctx, itemSprite(pickup.item, this.level), pickup.col * TILE, pickup.row * TILE - bob)
     }
 
     const treasure = this.screen.treasure
@@ -1475,7 +1585,8 @@ export class World {
       // Flashes faster as the fuse runs down.
       const urgency = bomb.fuse < 34 ? 3 : bomb.fuse < 66 ? 6 : 10
       const lit = Math.floor(this.frame / urgency) % 2 === 0
-      this.atlas.draw(ctx, lit ? 'bombLit' : 'bomb', bomb.x, bomb.y)
+      const future = this.level === 2
+      this.atlas.draw(ctx, lit ? (future ? 'chargeLit' : 'bombLit') : future ? 'charge' : 'bomb', bomb.x, bomb.y)
     }
 
     for (const burst of this.bursts) {
@@ -1488,7 +1599,7 @@ export class World {
     const food = this.foodHere()
     if (food) {
       const bob = Math.floor(this.frame / 18) % 2 === 0 ? 0 : 1
-      this.atlas.draw(ctx, 'animalFood', food.col * TILE, food.row * TILE - bob)
+      this.atlas.draw(ctx, itemSprite('animalFood', this.level), food.col * TILE, food.row * TILE - bob)
     }
 
     this.drawPet(ctx)
@@ -1514,7 +1625,11 @@ export class World {
     // Over everything: the map covers the play field, but not the HUD, so he
     // can still see his hearts and rupees while he reads it.
     if (this.mapOpen) {
-      drawWorldMap(ctx, { here: this.screen.id, visited: this.save.world.visitedScreens }, this.frame)
+      drawWorldMap(
+        ctx,
+        { here: this.screen.id, visited: this.save.world.visitedScreens, level: this.level },
+        this.frame,
+      )
     }
 
     if (this.transition > 0) {
@@ -1530,7 +1645,9 @@ export class World {
       screenName: this.screen.name,
       exercisesDone: this.save.spelling.completedExercises.length,
       totalExercises: TOTAL_EXERCISES,
-      ...(tool ? { tool: { name: ITEMS[tool].name, count: this.save.inventory[tool] ?? 0 } } : {}),
+      level: this.level,
+      weaponLabel: this.words.weaponLabel,
+      ...(tool ? { tool: { name: itemName(tool, this.level), count: this.save.inventory[tool] ?? 0 } } : {}),
     })
 
     if (this.message) this.drawMessageBar(ctx)
@@ -1594,10 +1711,32 @@ export class World {
     const beat = Math.floor(flight.frames / FLAP_FRAMES) % 2 === 0
     const x = groundX - 2
     const y = groundY - 4 - lift
-    this.atlas.draw(ctx, 'wings', x, y - (beat ? 5 : 3))
-    const shieldTier = capitalise(materialOf(this.player.loadout.shield))
     const way = capitalise(flight.facing)
-    this.atlas.draw(ctx, `hero${shieldTier}${way}${beat ? 'A' : 'B'}` as SpriteName, x, y)
+    if (this.level === 2) {
+      // Astride the rocket, which rides under him with its exhaust flickering.
+      this.atlas.draw(ctx, 'rocket', x, y + 4)
+      ctx.fillStyle = beat ? '#e8bb2c' : '#e2883a'
+      ctx.fillRect(Math.round(x) + 6, Math.round(y) + 19, 4, beat ? 4 : 2)
+      this.atlas.draw(ctx, this.heroSprite(`${way}${beat ? 'A' : 'B'}`), x, y - 2)
+      return
+    }
+    this.atlas.draw(ctx, 'wings', x, y - (beat ? 5 : 3))
+    this.atlas.draw(ctx, this.heroSprite(`${way}${beat ? 'A' : 'B'}`), x, y)
+  }
+
+  /**
+   * The hero's sprite for a pose: in the shield he carries, and in the space
+   * suit when he has it on.
+   */
+  private heroSprite(pose: string): SpriteName {
+    const shieldTier = capitalise(materialOf(this.player.loadout.shield))
+    return `hero${this.suited() ? 'Suit' : ''}${shieldTier}${pose}` as SpriteName
+  }
+
+  /** The blade he swings, pointing a given way: steel in the land, light on the ship. */
+  private bladeSprite(pose: string): SpriteName {
+    const bladeTier = capitalise(materialOf(this.player.loadout.sword ?? 'woodenSword'))
+    return `sword${this.level === 2 ? 'Future' : ''}${bladeTier}${pose}` as SpriteName
   }
 
   /**
@@ -1871,7 +2010,8 @@ export class World {
     const beat = def.hop
       ? lift < def.hop / 3
       : Math.floor(this.frame / (pet.hunting ? 4 : 7)) % 2 === 0
-    const sprite = beat ? def.frames[0] : def.frames[1]
+    const frames = petFrames(def, this.level)
+    const sprite = beat ? frames[0] : frames[1]
     const y = pet.y - lift
     if (pet.facing === 'left') {
       // Mirrored by flipping the context, so one drawing faces both ways.
@@ -1921,11 +2061,10 @@ export class World {
     const x = this.player.x - 2
     const y = this.player.y - 4
 
-    const shieldTier = capitalise(materialOf(this.player.loadout.shield))
-    this.atlas.draw(ctx, `hero${shieldTier}DownA` as SpriteName, x, y + bob)
+    this.atlas.draw(ctx, this.heroSprite('DownA'), x, y + bob)
     this.atlas.draw(
       ctx,
-      itemSprite(discovery.item),
+      itemSprite(discovery.item, this.level),
       this.player.x + PLAYER_SIZE / 2 - 8,
       y - 4 - raise * 14 + bob,
     )
@@ -1992,15 +2131,13 @@ export class World {
     const x = this.player.x - 2
     const y = this.player.y - 4
 
-    const bladeTier = capitalise(materialOf(this.player.loadout.sword ?? 'woodenSword'))
     this.atlas.draw(
       ctx,
-      `sword${bladeTier}Up` as SpriteName,
+      this.bladeSprite('Up'),
       this.player.x + PLAYER_SIZE / 2 - 4,
       y + 2 - raise * 16 + bob,
     )
-    const shieldTier = capitalise(materialOf(this.player.loadout.shield))
-    this.atlas.draw(ctx, `hero${shieldTier}DownA` as SpriteName, x, y + bob)
+    this.atlas.draw(ctx, this.heroSprite('DownA'), x, y + bob)
   }
 
   /** The light: the room whites out as the guardian goes, then eight spokes
@@ -2059,8 +2196,7 @@ export class World {
 
     // The hero is drawn in the material of the shield he is carrying, and the
     // blade in the material of the sword — so the wooden ones look wooden.
-    const shieldTier = capitalise(materialOf(this.player.loadout.shield))
-    this.atlas.draw(ctx, `hero${shieldTier}${way}${frame}` as SpriteName, this.player.x - 2, this.player.y - 4)
+    this.atlas.draw(ctx, this.heroSprite(`${way}${frame}`), this.player.x - 2, this.player.y - 4)
 
     // The blade, pointing the way he is facing. The sprite is a fixed length;
     // a better sword reaches slightly further than it draws, which is a fairer
@@ -2069,8 +2205,26 @@ export class World {
     if (!sword) return
     const centreX = this.player.x + PLAYER_SIZE / 2
     const centreY = this.player.y + PLAYER_SIZE / 2
-    const bladeTier = capitalise(materialOf(this.player.loadout.sword ?? 'woodenSword'))
-    const blade = `sword${bladeTier}${way}` as SpriteName
+    const blade = this.bladeSprite(way)
+
+    // The Arc Staff's ring: a circle of light that opens out round him as the
+    // swing goes, so the all-round hit is something he can see.
+    if (this.hasArcStaff()) {
+      const t = 1 - this.player.attackTimer / 14
+      ctx.save()
+      ctx.globalAlpha = 0.75 * (1 - t) + 0.1
+      ctx.strokeStyle = '#c8fff8'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.arc(centreX, centreY, 8 + t * (ARC_RADIUS - 8), 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.strokeStyle = '#57d2c6'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.arc(centreX, centreY, 6 + t * (ARC_RADIUS - 10), 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.restore()
+    }
 
     switch (facing) {
       case 'right':
@@ -2217,6 +2371,8 @@ export class World {
       projectiles: this.projectiles.length,
       bursts: this.bursts.length,
       candleUsedHere: this.candleUsedHere,
+      level: this.level,
+      suitOn: this.save.world.suitOn,
       screensSinceFood: this.save.world.screensSinceFood,
       food: this.foodHere(),
       x: Math.round(this.player.x),
@@ -2257,7 +2413,9 @@ export class World {
   respawn(): void {
     this.player.hearts = this.player.maxHearts
     this.player.invulnerable = 90
-    this.loadScreen(START_SCREEN)
+    this.deathCause = 'hearts'
+    this.save.world.suitOn = false
+    this.loadScreen(START_SCREENS[this.level])
     this.player.placeAtTile(7, 5)
     this.ensureFree()
     this.syncSave()

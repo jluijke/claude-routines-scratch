@@ -8,12 +8,32 @@ import type { PetKind } from '../game/pets'
 import { emptyMasteryStore, type MasteryStore } from '../spelling/mastery'
 
 const STORAGE_KEY = 'zsq.save'
-export const SAVE_VERSION = 6
+export const SAVE_VERSION = 7
+
+/** The two worlds: the land, and the sky-ship a thousand years on. */
+export type Level = 1 | 2
+
+/**
+ * What he carries and how he stands: the part of the save that belongs to one
+ * level and not the other. Stepping into the future leaves the sword, the
+ * shield and the purse behind, and stepping back picks them up again.
+ */
+export interface Kit {
+  player: SaveData['player']
+  inventory: SaveData['inventory']
+}
 
 export interface SaveData {
   version: number
   createdAt: number
   updatedAt: number
+  /** Which world he is in. Everything below `player` is for that world. */
+  level: Level
+  /**
+   * The other level's gear and purse, put aside while he is away from it, so
+   * a parent can send him back and forth without anything being lost.
+   */
+  stash?: Kit
   player: {
     hearts: number
     maxHearts: number
@@ -59,6 +79,12 @@ export interface SaveData {
      * every arrival — above ground and below it alike.
      */
     invisibleScreens: number
+    /**
+     * Whether he is wearing his space suit. Put on at an airlock locker, and
+     * taken off again by walking back into the ship. Out on a rock without it
+     * he does not last a second.
+     */
+    suitOn: boolean
     /** Which of the six grammar rules the next sack will teach. */
     grammarRule: number
     /**
@@ -99,6 +125,7 @@ export function newSave(): SaveData {
     version: SAVE_VERSION,
     createdAt: now,
     updatedAt: now,
+    level: 1,
     player: {
       hearts: 3,
       maxHearts: 3,
@@ -121,6 +148,7 @@ export function newSave(): SaveData {
       petFedScreens: 0,
       screensSinceFood: 0,
       invisibleScreens: 0,
+      suitOn: false,
       grammarRule: 0,
       grammarAsked: [],
     },
@@ -193,6 +221,16 @@ const MIGRATIONS: Record<number, Migration> = {
     data['world'] = world
     return data
   },
+
+  // 6 -> 7: a second world. A save from before this is in the first one, with
+  // nothing put aside, and is not wearing a space suit.
+  6: (data) => {
+    if (data['level'] !== 2) data['level'] = 1
+    const world = (data['world'] as Record<string, unknown>) ?? {}
+    if (typeof world['suitOn'] !== 'boolean') world['suitOn'] = false
+    data['world'] = world
+    return data
+  },
 }
 
 export function migrate(raw: Record<string, unknown>): SaveData {
@@ -218,6 +256,8 @@ export function withDefaults(data: Record<string, unknown>): SaveData {
   merged.world.petFedScreens = merged.world.petFedScreens ?? 0
   merged.world.screensSinceFood = merged.world.screensSinceFood ?? 0
   merged.world.invisibleScreens = merged.world.invisibleScreens ?? 0
+  merged.world.suitOn = merged.world.suitOn ?? false
+  merged.level = merged.level === 2 ? 2 : 1
   merged.world.grammarRule = merged.world.grammarRule ?? 0
   merged.world.grammarAsked = merged.world.grammarAsked ?? []
   merged.spelling = { ...base.spelling, ...(data['spelling'] as object) }

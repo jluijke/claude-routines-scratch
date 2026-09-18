@@ -7,13 +7,17 @@
  * choice feel like his.
  */
 import { button, clear, el } from '../../spelling/ui/dom'
-import { PETS, type PetDef, type PetKind } from '../pets'
+import { PETS, petFrames, type PetDef, type PetKind } from '../pets'
 import { spriteCanvas } from '../render/icons'
 import { sfx } from '../../core/audio/sfx'
+import { flavourFor } from '../flavour'
+import type { Level } from '../../core/save'
 
 export interface PetShopOptions {
   /** The animal he already has, if he has been in before. */
   chosen: PetKind | undefined
+  /** Fur in the land, half chrome on the ship. */
+  level: Level
   /** He picked one. Save it and put it at his heel. */
   onChoose: (kind: PetKind) => void
   onClose: () => void
@@ -24,12 +28,14 @@ export function showPetShop(
   options: PetShopOptions,
 ): { close: () => void; refresh: () => void } {
   let chosen = options.chosen
+  const { level } = options
+  const words = flavourFor(level)
 
   const list = el('div', { class: 'pet-list' })
   const note = el('p', { class: 'shop-note', role: 'status', 'aria-live': 'polite' })
 
   const closeButton = button(
-    'Back outside',
+    level === 2 ? 'Log off' : 'Back outside',
     () => {
       close()
       options.onClose()
@@ -38,12 +44,9 @@ export function showPetShop(
   )
 
   const panel = el('div', { class: 'overlay' }, [
-    el('section', { class: 'shop panel-game pet-shop' }, [
-      el('h2', { class: 'panel-title' }, ['The Pet Cave']),
-      el('p', { class: 'shop-greeting' }, [
-        '"They all want to come with you. Pick the one you like the look of — ' +
-          'and if you change your mind, come back and pick another."',
-      ]),
+    el('section', { class: `shop panel-game pet-shop${level === 2 ? ' computer' : ''}` }, [
+      el('h2', { class: 'panel-title' }, [words.petShopTitle]),
+      el('p', { class: 'shop-greeting' }, [words.petShopGreeting]),
       note,
       list,
       el('div', { class: 'gate-actions' }, [closeButton]),
@@ -67,9 +70,9 @@ export function showPetShop(
     action.disabled = mine
 
     const card = el('div', { class: 'pet-row' }, [
-      el('div', { class: 'pet-icon' }, [spriteCanvas(pet.frames[0], 3)]),
+      el('div', { class: 'pet-icon' }, [spriteCanvas(petFrames(pet, level)[0], 3)]),
       el('div', { class: 'shop-item' }, [
-        el('span', { class: 'shop-name' }, [pet.name]),
+        el('span', { class: 'shop-name' }, [level === 2 ? `Cyborg ${pet.name}` : pet.name]),
         el('span', { class: 'shop-desc' }, [pet.blurb]),
       ]),
       action,
@@ -81,7 +84,10 @@ export function showPetShop(
   function choose(pet: PetDef): void {
     chosen = pet.kind
     sfx.play('bark')
-    note.textContent = `"The ${pet.name.toLowerCase()} it is. Off you go, then."`
+    note.textContent =
+      level === 2
+        ? `"CYBORG ${pet.name.toUpperCase()} ACTIVATED. IT IS WAITING OUTSIDE."`
+        : `"The ${pet.name.toLowerCase()} it is. Off you go, then."`
     options.onChoose(pet.kind)
     render()
   }

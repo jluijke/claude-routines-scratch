@@ -32,6 +32,8 @@ export interface PromptOptions {
   exerciseNumber?: number
   /** Undefined when there is no exercise left to spend — a review challenge. */
   isReview: boolean
+  /** Overrides the kind's label: a battery pack is not a sack of animal food. */
+  kindLabel?: string
   onAccept: () => void
   onDecline: () => void
 }
@@ -61,7 +63,7 @@ export function showGatePrompt(root: HTMLElement, options: PromptOptions): () =>
 
   const panel = el('div', { class: 'overlay' }, [
     el('section', { class: 'gate-prompt panel-game' }, [
-      el('p', { class: 'gate-kind' }, [KIND_LABEL[gate.kind]]),
+      el('p', { class: 'gate-kind' }, [options.kindLabel ?? KIND_LABEL[gate.kind]]),
       el('p', { class: 'gate-message' }, [gate.message]),
       el('p', { class: 'gate-exercise' }, [heading]),
       ...(rewardLine(gate) ? [el('p', { class: 'gate-reward' }, [rewardLine(gate) as string])] : []),

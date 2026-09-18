@@ -10,12 +10,14 @@ import { readFileSync, writeFileSync } from 'node:fs'
 const world = JSON.parse(readFileSync(process.env.WORLD ?? '/tmp/world.json', 'utf8'))
 const OUT = process.env.OUT ?? '/tmp/atlas.html'
 
-const DUNGEONS = ['Sunken Hall', 'Hollow Keep', 'Ember Vault', 'Sunless Spire']
-const themeOf = (s) =>
-  DUNGEONS.includes(s.region) ? 'dungeon' : s.dark || s.shop ? 'cave' : 'overworld'
+// The dump carries each screen's theme, worked out by the game's own rule.
+const themeOf = (s) => s.theme
 
-const overworld = world.screens.filter((s) => s.at)
 const byId = new Map(world.screens.map((s) => [s.id, s]))
+const land = world.screens.filter((s) => s.level === 1)
+const ship = world.screens.filter((s) => s.level === 2)
+const overworld = land.filter((s) => s.at)
+const decks = ship.filter((s) => s.at)
 
 // The mountain track is walkable but sits off the main grid — see the note on
 // the page. Ordered by following its own exits upward.
@@ -33,24 +35,31 @@ const minX = Math.min(...overworld.map((s) => s.at.x))
 const minY = Math.min(...overworld.map((s) => s.at.y))
 const cols = Math.max(...overworld.map((s) => s.at.x)) - minX + 1
 const rows = Math.max(...overworld.map((s) => s.at.y)) - minY + 1
+const sMinX = Math.min(...decks.map((s) => s.at.x))
+const sMinY = Math.min(...decks.map((s) => s.at.y))
+const sCols = Math.max(...decks.map((s) => s.at.x)) - sMinX + 1
+const sRows = Math.max(...decks.map((s) => s.at.y)) - sMinY + 1
 
 /** Everything hard to find, in the order he would meet it. */
 const findings = []
 for (const s of world.screens) {
   for (const p of s.portals) {
-    if (!p.hidden && !p.requires && !p.guardedBy) continue
+    if (!p.hidden && !p.requires && !p.guardedBy && !p.needsSuit) continue
     findings.push({
       what: p.toName,
       where: s.name,
       tile: `col ${p.col}, row ${p.row}`,
       how: p.hidden === 'bomb'
-        ? 'Bomb the cracked rock'
+        ? (s.level === 2 ? 'Blow the cracked bulkhead with a Plasma Charge' : 'Bomb the cracked rock')
         : p.hidden === 'candle'
-          ? 'Burn the bush with the Blue Candle'
+          ? (s.level === 2 ? 'Unscrew the loose panel with the Laser Screwdriver' : 'Burn the bush with the Blue Candle')
           : p.requires
-            ? `${p.requires}, held in the B slot — press C until they show${p.consumes ? '. They tear on the way, so it is one way only' : ''}`
-            : `Opens once "${p.guardedBy}" is done`,
+            ? `${p.requires}, held in the B slot — press C until it shows${p.consumes ? (s.level === 2 ? '. It burns out on landing, so it is one way only' : '. They tear on the way, so it is one way only') : ''}`
+            : p.needsSuit
+              ? 'Walk into the locker first: without the suit this door is fatal'
+              : `Opens once "${p.guardedBy}" is done`,
       kind: p.hidden ?? (p.requires ? 'item' : 'gate'),
+      level: s.level,
     })
   }
 }
@@ -61,6 +70,7 @@ const shops = world.screens.filter((s) => s.shop)
 const sealedChests = world.screens.flatMap((s) =>
   s.gates.filter((g) => g.kind === 'chest').map((g) => ({ screen: s, gate: g })),
 )
+const levelTag = (s) => (s.level === 2 ? ' · Level 2' : '')
 
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
@@ -92,38 +102,43 @@ const gridCells = overworld
   .map((s) => `<div class="cell" style="grid-column:${s.at.x - minX + 1};grid-row:${s.at.y - minY + 1}">${tile(s)}</div>`)
   .join('\n')
 
+const deckCells = decks
+  .map((s) => `<div class="cell" style="grid-column:${s.at.x - sMinX + 1};grid-row:${s.at.y - sMinY + 1}">${tile(s)}</div>`)
+  .join('\n')
+
 const trackCells = mountain
   .map((id, i) => `<div class="cell" style="grid-row:${mountain.length - i}">${tile(byId.get(id))}</div>`)
   .join('\n')
 
 /** Interiors, grouped the way they connect. */
-const clusters = []
-for (const region of [...new Set(world.screens.filter((s) => !s.at && s.region !== 'Mountain').map((s) => s.region))]) {
-  const members = world.screens.filter((s) => !s.at && s.region === region)
-  clusters.push({ region, members })
-}
-
-const clusterHtml = clusters
-  .map(
-    (c) => `<section class="cluster">
+function clustersOf(list) {
+  const clusters = []
+  for (const region of [...new Set(list.filter((s) => !s.at && s.region !== 'Mountain').map((s) => s.region))]) {
+    const members = list.filter((s) => !s.at && s.region === region)
+    clusters.push({ region, members })
+  }
+  return clusters
+    .map(
+      (c) => `<section class="cluster">
       <h3>${esc(c.region)}</h3>
       <div class="strip">${c.members.map((s) => tile(s, { small: true })).join('')}</div>
     </section>`,
-  )
-  .join('\n')
+    )
+    .join('\n')
+}
+const clusterHtml = clustersOf(land)
+const shipClusterHtml = clustersOf(ship)
 
-const findingRows = findings
-  .map(
-    (f) => `<tr>
+const findingRow = (f) => `<tr>
       <td><span class="pin ${f.kind === 'bomb' ? 'm-bomb' : f.kind === 'candle' ? 'm-candle' : f.kind === 'item' ? 'm-item' : 'm-gate'}"></span>${esc(f.what)}</td>
       <td>${esc(f.where)}</td>
       <td class="mono">${esc(f.tile)}</td>
       <td>${esc(f.how)}</td>
-    </tr>`,
-  )
-  .join('\n')
+    </tr>`
+const findingRows = findings.filter((f) => f.level === 1).map(findingRow).join('\n')
+const shipFindingRows = findings.filter((f) => f.level === 2).map(findingRow).join('\n')
 
-const html = `<title>Atlas of the Land</title>
+const html = `<title>Atlas of Both Worlds</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500&family=Silkscreen&display=swap">
@@ -197,6 +212,7 @@ const html = `<title>Atlas of the Land</title>
 
   .board { display: flex; gap: 26px; align-items: flex-start; overflow-x: auto; padding-bottom: 8px; }
   .grid { display: grid; grid-template-columns: repeat(${cols}, minmax(104px, 1fr)); grid-template-rows: repeat(${rows}, auto); gap: 6px; flex: 1 1 auto; min-width: 640px; }
+  .grid.ship { grid-template-columns: repeat(${sCols}, minmax(104px, 1fr)); grid-template-rows: repeat(${sRows}, auto); }
   .aside { flex: none; width: 138px; padding-left: 22px; border-left: 1px dashed var(--rule); }
   .track { display: grid; grid-template-rows: repeat(${mountain.length}, auto); gap: 6px; }
   .lbl { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--faint); letter-spacing: .1em; text-transform: uppercase; margin: 0 0 8px; }
@@ -231,15 +247,15 @@ const html = `<title>Atlas of the Land</title>
 <div class="wrap">
   <header class="top">
     <div>
-      <p class="eyebrow">Parent's copy · every secret shown</p>
-      <h1>Atlas of the Land</h1>
-      <p class="lede">Every screen in the game, drawn from the game's own tiles. The ${findings.length} ways in that nobody finds by accident are listed first.</p>
+      <p class="eyebrow">Parent's copy · every secret shown · both worlds</p>
+      <h1>Atlas of the Land, and of the Ship</h1>
+      <p class="lede">Every screen in both levels, drawn from the game's own tiles. Level 1 is the land; Level 2 is the sky-ship a thousand years on, reached by beating all four dungeon guardians — or from the parent panel. The ways in that nobody finds by accident are listed first for each.</p>
     </div>
-    <div class="stamp">${world.screens.length} screens<br>${overworld.length} you can walk between<br>generated ${esc(world.generated)}</div>
+    <div class="stamp">${land.length} screens in the land · ${ship.length} on the ship<br>${overworld.length} + ${decks.length} you can walk between<br>generated ${esc(world.generated)}</div>
   </header>
 
-  <h2>What you cannot find by walking</h2>
-  <p class="note">These are the doors with nothing marking them. Everything else in the world is reachable by walking into it.</p>
+  <h2>Level 1 · What you cannot find by walking</h2>
+  <p class="note">These are the doors with nothing marking them. Everything else in the land is reachable by walking into it.</p>
   <div class="scroller">
     <table>
       <thead><tr><th>Leads to</th><th>On this screen</th><th>Tile</th><th>How it opens</th></tr></thead>
@@ -247,7 +263,7 @@ const html = `<title>Atlas of the Land</title>
     </table>
   </div>
 
-  <h2>The overworld</h2>
+  <h2>Level 1 · The overworld</h2>
   <p class="note">Laid out exactly as it connects — each square is one screen, in its true position. The Mountain Track is drawn apart because it is entered through the crypt door and its one downhill exit would put it on top of the Graveyard.</p>
   <div class="legend">
     <span><i class="m-bomb"></i>Needs a bomb</span>
@@ -266,23 +282,62 @@ const html = `<title>Atlas of the Land</title>
     </div>
   </div>
 
-  <h2>Inside</h2>
+  <h2>Level 1 · Inside</h2>
   <p class="note">Caves, shops and dungeon rooms are reached through doors, so they have no place on the grid above — the same split the original made.</p>
   ${clusterHtml}
+
+  <h2>Level 2 · The sky-ship</h2>
+  <p class="note">The same quest a thousand years on, in a different shape: a block of decks he works his way round rather than a road north. The four rocks — the dungeons of the future — hang off the middle of it through four airlocks. There are no shop doors: each shop is a computer he walks into. The stores console is on the Bridge, the cyborg bay console in the Medbay, the forge console in Engineering; the two hidden terminals are behind cracked bulkheads in the Vault and on the Lower Deck.</p>
+  <div class="board">
+    <div class="grid ship">${deckCells}</div>
+  </div>
+
+  <h2>Level 2 · What you cannot find by walking</h2>
+  <p class="note">The airlocks are the one new rule of the ship: walk into the locker inside each one to put the space suit on before the outer door. Without it the outer door ends him on the spot, and a medical drone carries him back to the bridge. The suit comes off by itself when he walks back into the ship.</p>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>Leads to</th><th>On this screen</th><th>Tile</th><th>How it opens</th></tr></thead>
+      <tbody>${shipFindingRows}</tbody>
+    </table>
+  </div>
+
+  <h2>Level 2 · Inside, and out on the rocks</h2>
+  <p class="note">The airlocks, the four rocks with a mech at the core of each, the hidden rooms behind bulkheads, and the outpost across the void from the hangar — the island of the ship, reached by rocket and left by a second one bought from the stranded pilot below it.</p>
+  ${shipClusterHtml}
+
+  <h2>Level 2 · Same things, new names</h2>
+  <div class="cols">
+    <div class="stack">
+      <div class="row"><b>Wooden, Metal, Bronze Sword</b><span>Training Saber, Blue and Green Lightsaber</span></div>
+      <div class="row"><b>Golden Sword</b><span>Arc Staff — its ring hits all round him</span></div>
+      <div class="row"><b>Shields</b><span>Deflector Plate, Energy, Force, Photon Shield</span></div>
+      <div class="row"><b>Wings</b><span>Rocketship — hangar to outpost and back</span></div>
+      <div class="row"><b>Blue Candle</b><span>Laser Screwdriver — lights dark decks, unscrews panels</span></div>
+      <div class="row"><b>Bombs</b><span>Plasma Charges — blow cracked bulkheads</span></div>
+    </div>
+    <div class="stack">
+      <div class="row"><b>Bait</b><span>Scrap Metal</span></div>
+      <div class="row"><b>Tunics, Blue Ring</b><span>Nano-suits, Circuit Ring</span></div>
+      <div class="row"><b>Map</b><span>Ship Schematic — behind the cracked bulkhead in the Observatory</span></div>
+      <div class="row"><b>Animal food</b><span>Battery pack — same grammar rule and four questions</span></div>
+      <div class="row"><b>Vanishing potion</b><span>Cloaking Serum — behind sealed panels in the Mess Hall and Laboratory Two</span></div>
+      <div class="row"><b>The animal</b><span>The same six, half chrome; chosen at the cyborg bay console</span></div>
+    </div>
+  </div>
 
   <h2>Everything worth walking to</h2>
   <div class="cols">
     <div>
       <h3>Chests you just open</h3>
-      <div class="stack">${treasures.map((s) => `<div class="row"><b>${esc(s.treasure.rupees)} rupees</b><span>${esc(s.name)}</span></div>`).join('')}</div>
+      <div class="stack">${treasures.map((s) => `<div class="row"><b>${esc(s.treasure.rupees)} rupees</b><span>${esc(s.name)}${levelTag(s)}</span></div>`).join('')}</div>
       <h3 style="margin-top:22px">Lying on the ground</h3>
-      <div class="stack">${pickups.map((s) => `<div class="row"><b>${esc(s.pickup.itemName)}</b><span>${esc(s.name)}</span></div>`).join('')}</div>
-      <h3 style="margin-top:22px">Shops</h3>
-      <div class="stack">${shops.map((s) => `<div class="row"><b>${esc(s.name)}</b><span>${esc(s.region)}</span></div>`).join('')}</div>
+      <div class="stack">${pickups.map((s) => `<div class="row"><b>${esc(s.pickup.itemName)}</b><span>${esc(s.name)}${levelTag(s)}</span></div>`).join('')}</div>
+      <h3 style="margin-top:22px">Shops and computers</h3>
+      <div class="stack">${shops.map((s) => `<div class="row"><b>${esc(s.name)}</b><span>${esc(s.region)}${levelTag(s)}</span></div>`).join('')}</div>
     </div>
     <div>
       <h3>Chests behind a spelling exercise</h3>
-      <div class="stack">${sealedChests.map((c) => `<div class="row"><b>${esc(c.screen.name)}</b><span class="mono">col ${c.gate.col}, row ${c.gate.row}</span></div>`).join('')}</div>
+      <div class="stack">${sealedChests.map((c) => `<div class="row"><b>${esc(c.screen.name)}${levelTag(c.screen)}</b><span class="mono">col ${c.gate.col}, row ${c.gate.row}</span></div>`).join('')}</div>
     </div>
   </div>
 
@@ -312,6 +367,9 @@ const html = `<title>Atlas of the Land</title>
     overworld: { g:'#4aab4a', s:'#3f9a41', wall:'#7c6a4a', rock:'#b08b52', water:'#2c6fd4', path:'#d8b878', leaf:'#116b22', leafDark:'#063d12' },
     dungeon:   { g:'#2b2f6b', s:'#333878', wall:'#4550c0', rock:'#3a4290', water:'#1c58b8', path:'#3a3f80', leaf:'#3a4290', leafDark:'#1d2258' },
     cave:      { g:'#4a3a2a', s:'#3d3022', wall:'#6b5540', rock:'#7a6248', water:'#2c5fa4', path:'#5a4632', leaf:'#7a6248', leafDark:'#4f3f2b' },
+    ship:      { g:'#3b4452', s:'#46505f', wall:'#3a414d', rock:'#5a6b8a', water:'#06070f', path:'#c9a32c', leaf:'#e2883a', leafDark:'#6b7686' },
+    rock:      { g:'#5c5e66', s:'#4f5159', wall:'#3a3c45', rock:'#7a7c86', water:'#06070f', path:'#8a8c96', leaf:'#57d2c6', leafDark:'#3a3c45' },
+    airlock:   { g:'#2e3440', s:'#3a4252', wall:'#4e5563', rock:'#5a6b8a', water:'#06070f', path:'#c9a32c', leaf:'#e2883a', leafDark:'#4e5563' },
   }
   function colourFor(ch, p) {
     switch (ch) {

@@ -6,13 +6,24 @@
  * challenge before the shopkeeper will sell at all.
  */
 import { button, clear, el } from '../../spelling/ui/dom'
-import { CASTAWAY_SHOP, ITEMS, SECRET_SHOP, VILLAGE_SHOP, type ItemDef, type ItemId } from '../items'
+import {
+  CASTAWAY_SHOP,
+  ITEMS,
+  SECRET_SHOP,
+  VILLAGE_SHOP,
+  itemDescription,
+  itemGate,
+  itemName,
+  type ItemDef,
+  type ItemId,
+} from '../items'
 import { gateById, type Gate } from '../gates'
-import type { SaveData } from '../../core/save'
+import type { Level, SaveData } from '../../core/save'
 import { sfx } from '../../core/audio/sfx'
 import { itemIcon, spriteCanvas } from '../render/icons'
 
-export type ShopKind = 'village' | 'secret' | 'smith' | 'castaway' | 'pets'
+export type { ShopKind } from '../world/screens'
+import type { ShopKind } from '../world/screens'
 
 const SMITH_STOCK: ItemId[] = ['metalSword', 'bronzeSword', 'goldenSword']
 
@@ -25,37 +36,58 @@ const SMITH_STOCK: ItemId[] = ['metalSword', 'bronzeSword', 'goldenSword']
  * look. So the man selling the bombs mentions it, once, and stops as soon as
  * the map is in the pack.
  */
-function patter(item: ItemDef, save: SaveData): string {
+function patter(item: ItemDef, save: SaveData, level: Level): string {
   if (item.id === 'bomb' && (save.inventory.map ?? 0) === 0) {
-    return (
-      '"Bombs. Mind your toes. And if you are going north — there is a cracked ' +
-      'boulder in the rocks on the forest path. Something is behind it."'
-    )
+    return level === 2
+      ? '"PLASMA CHARGES. MIND YOUR TOES. NOTE: A CRACKED BULKHEAD IN THE OBSERVATORY. SOMETHING IS BEHIND IT."'
+      : '"Bombs. Mind your toes. And if you are going north — there is a cracked ' +
+          'boulder in the rocks on the forest path. Something is behind it."'
   }
-  return `"${item.name}. Good choice."`
+  return level === 2 ? `"${itemName(item.id, level).toUpperCase()}. GOOD CHOICE."` : `"${item.name}. Good choice."`
 }
 
-const TITLES: Record<ShopKind, string> = {
-  village: 'The Village Shop',
-  secret: 'A Hidden Trader',
-  smith: 'The Smithy',
-  castaway: 'The Castaway',
-  pets: 'The Pet Cave',
+const TITLES: Record<Level, Record<ShopKind, string>> = {
+  1: {
+    village: 'The Village Shop',
+    secret: 'A Hidden Trader',
+    smith: 'The Smithy',
+    castaway: 'The Castaway',
+    pets: 'The Pet Cave',
+  },
+  2: {
+    village: 'Ship Computer — Stores',
+    secret: 'Hidden Terminal',
+    smith: 'Forge Console',
+    castaway: 'Outpost Terminal',
+    pets: 'Cyborg Bay Console',
+  },
 }
 
-const GREETINGS: Record<ShopKind, string> = {
-  village: '"Come in, come in. Rupees on the counter."',
-  secret: 'The hooded figure says nothing, and gestures at the shelf.',
-  smith: '"I forge blades. Bring me rupees and a steady mind."',
-  castaway:
-    'He does not look up. "Everyone who comes here needs the same thing, and I am the only one selling it. Three hundred. I am not sorry."',
-  // Unused: the pet cave has its own panel, because choosing a friend is not
-  // shopping. Here so the tables stay complete rather than optional.
-  pets: '"They all want to come with you. Pick the one you like the look of."',
+const GREETINGS: Record<Level, Record<ShopKind, string>> = {
+  1: {
+    village: '"Come in, come in. Rupees on the counter."',
+    secret: 'The hooded figure says nothing, and gestures at the shelf.',
+    smith: '"I forge blades. Bring me rupees and a steady mind."',
+    castaway:
+      'He does not look up. "Everyone who comes here needs the same thing, and I am the only one selling it. Three hundred. I am not sorry."',
+    // Unused: the pet cave has its own panel, because choosing a friend is not
+    // shopping. Here so the tables stay complete rather than optional.
+    pets: '"They all want to come with you. Pick the one you like the look of."',
+  },
+  2: {
+    village: 'SHIP STORES ONLINE. RUPEES ACCEPTED. NO REFUNDS.',
+    secret: 'The terminal shows no name, only a list, and waits.',
+    smith: 'FORGE CONSOLE ONLINE. WEAPONS PRINTED FOR RUPEES AND A STEADY MIND.',
+    castaway:
+      'The pilot\'s voice comes out of the speaker. "Everyone who lands here needs the same thing, and I am the only one selling it. Three hundred. I am not sorry."',
+    pets: 'SIX CYBORG COMPANIONS ONLINE.',
+  },
 }
 
 export interface ShopOptions {
   kind: ShopKind
+  /** Which world's names and prices to show — the same items either way. */
+  level: Level
   save: SaveData
   /** Ask for the barrier challenge that unlocks a gated item. */
   onGateRequest: (gate: Gate) => void
@@ -65,7 +97,7 @@ export interface ShopOptions {
 }
 
 export function showShop(root: HTMLElement, options: ShopOptions): { close: () => void; refresh: () => void } {
-  const { kind, save } = options
+  const { kind, save, level } = options
   const stock =
     kind === 'village' ? VILLAGE_SHOP
     : kind === 'secret' ? SECRET_SHOP
@@ -76,15 +108,17 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
   const list = el('div', { class: 'shop-list' })
   const note = el('p', { class: 'shop-note', role: 'status', 'aria-live': 'polite' })
 
-  const closeButton = button('Leave the shop', () => {
+  const closeButton = button(level === 2 ? 'Log off' : 'Leave the shop', () => {
     close()
     options.onClose()
   }, { class: 'btn btn-quiet' })
 
   const panel = el('div', { class: 'overlay' }, [
-    el('section', { class: 'shop panel-game' }, [
-      el('h2', { class: 'panel-title' }, [TITLES[kind]]),
-      el('p', { class: 'shop-greeting' }, [GREETINGS[kind]]),
+    // On the ship it is a computer screen, and it looks like one: the same
+    // panel with a monitor bezel and a scanline over it.
+    el('section', { class: `shop panel-game${level === 2 ? ' computer' : ''}` }, [
+      el('h2', { class: 'panel-title' }, [TITLES[level][kind]]),
+      el('p', { class: 'shop-greeting' }, [GREETINGS[level][kind]]),
       // Up here with the greeting, not under the list. The village shelf is
       // long enough that a reply printed at the bottom lands well off the
       // screen from the button that caused it.
@@ -119,7 +153,8 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
     const isStackable = item.stackable === true
     const alreadyHave = already > 0 && !isStackable
 
-    const gate = item.gate ? gateById(item.gate) : undefined
+    const gateId = itemGate(item.id, level)
+    const gate = gateId ? gateById(gateId) : undefined
     const gateOpen = !gate || save.world.openedGates.includes(gate.id)
     const missingRequirement = item.requires && owned(item.requires) === 0
     const price = item.price ?? 0
@@ -128,9 +163,11 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
     const status = alreadyHave
       ? 'Owned'
       : missingRequirement
-        ? `Needs the ${ITEMS[item.requires as ItemId].name}`
+        ? `Needs the ${itemName(item.requires as ItemId, level)}`
         : !gateOpen
-          ? 'The shopkeeper wants to see you spell first'
+          ? level === 2
+            ? 'The computer wants to see you spell first'
+            : 'The shopkeeper wants to see you spell first'
           : !affordable
             ? `${price - save.player.rupees} rupees short`
             : ''
@@ -161,12 +198,12 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
     action.disabled = alreadyHave || Boolean(missingRequirement) || (gateOpen && !affordable)
 
     const row = el('div', { class: 'shop-row' }, [
-      el('div', { class: 'shop-icon' }, [itemIcon(item.id, 2)]),
+      el('div', { class: 'shop-icon' }, [itemIcon(item.id, 2, level)]),
       el('div', { class: 'shop-item' }, [
         el('span', { class: 'shop-name' }, [
-          item.name + (isStackable && already > 0 ? ` x${already}` : ''),
+          itemName(item.id, level) + (isStackable && already > 0 ? ` x${already}` : ''),
         ]),
-        el('span', { class: 'shop-desc' }, [item.description]),
+        el('span', { class: 'shop-desc' }, [itemDescription(item.id, level)]),
         ...(status ? [el('span', { class: 'shop-status' }, [status])] : []),
       ]),
       el('span', { class: 'shop-price' }, [
@@ -191,7 +228,7 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
     save.inventory[item.id] = (save.inventory[item.id] ?? 0) + bundle
 
     sfx.play('rupee')
-    note.textContent = patter(item, save)
+    note.textContent = patter(item, save, level)
     options.onPurchase()
     render()
   }

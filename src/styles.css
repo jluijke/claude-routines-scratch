@@ -897,3 +897,79 @@ tr.mastery-unseen { opacity: 0.55; }
   background: #fffdf7;
   color: var(--ink);
 }
+
+/* ----------------------------------------------------- the ship's computers */
+
+/*
+ * The same pixel panel, worn as a monitor: a thick bezel, a faint scanline
+ * over everything, and terminal green for the title. The shop on the ship is
+ * a screen he bumps into, and it should look like one.
+ */
+.panel-game.computer {
+  border-color: #6b7686;
+  box-shadow: 0 0 0 3px #3a414d, 0 0 0 8px #232a34, 0 0 32px rgba(87, 210, 198, 0.25), 0 18px 50px rgba(0, 0, 0, 0.75);
+  background-image: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px);
+  position: relative;
+}
+.panel-game.computer .panel-title { color: #57d2c6; }
+.panel-game.computer .panel-title::before { content: '> '; }
+.panel-game.computer .shop-greeting { color: #8fd39c; font-style: normal; letter-spacing: 0.04em; }
+.panel-game.computer .shop-row { border-color: #3a414d; }
+.panel-game.computer .shop-row:hover { border-color: #57d2c6; }
+.panel-game.computer .btn-primary { background: #1f6f68; border-color: #57d2c6; }
+.panel-game.computer .btn-primary:hover:not(:disabled) { background: #2a8a82; }
+
+/* ------------------------------------------------------------- the story */
+
+.overlay-story { background: rgba(4, 6, 12, 0.94); }
+.story-panel {
+  width: min(600px, 96vw);
+  text-align: center;
+  padding: 1.8rem 1.6rem 1.4rem;
+  animation: victory-in 340ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.panel-game .story-kicker {
+  margin: 0 0 0.4rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--hud-faint);
+}
+.panel-game .story-title {
+  margin: 0 0 1.1rem;
+  font-size: 1.15rem;
+  letter-spacing: 0.1em;
+  color: #57d2c6;
+}
+.panel-game .story-text {
+  font-family: var(--font-ui);
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: var(--hud-text);
+  min-height: 7.5em;
+  margin: 0 0 0.6rem;
+}
+.story-text-in { animation: story-fade 420ms ease-out both; }
+.story-dots {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 0;
+  margin: 0 0 1rem;
+}
+.story-dots li { width: 8px; height: 8px; background: var(--hud-edge); }
+.story-dots li.done { background: #57d2c6; }
+.story-panel .gate-actions { justify-content: center; }
+@keyframes story-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The last guardian of a world: the sign lights up gold rather than just going up. */
+.victory-panel.final { border-color: var(--hud-gold); box-shadow: 0 0 0 3px var(--hud-ink), 0 0 40px rgba(230, 180, 34, 0.45), 0 18px 50px rgba(0, 0, 0, 0.75); }
+.victory-panel.final .victory-banner { color: var(--hud-gold); font-size: 1.1rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .story-panel, .story-text-in { animation: none; }
+}

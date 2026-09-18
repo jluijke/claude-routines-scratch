@@ -8,6 +8,7 @@
 import type { SpriteName } from '../render/sprites'
 import type { ItemId } from '../items'
 import { roughen } from './scenery'
+import { AUTHORED_FUTURE } from './screens2'
 
 export type EnemyKind = 'shooter' | 'chaser' | 'flyer' | 'caster' | 'boss1' | 'boss2' | 'boss3' | 'boss4'
 
@@ -40,7 +41,16 @@ export interface Prop {
   row: number
   /** Shown when the player stands next to it and presses the item key. */
   talk?: string
+  /**
+   * A ship computer. Solid, and walking into it opens the shop it runs — the
+   * future has no shop doors to go through, just screens to bump.
+   */
+  terminal?: ShopKind
+  /** A suit locker in an airlock. Solid; walking into it puts the suit on. */
+  locker?: boolean
 }
+
+export type ShopKind = 'village' | 'secret' | 'smith' | 'castaway' | 'pets'
 
 export interface Portal {
   col: number
@@ -56,7 +66,19 @@ export interface Portal {
   consumes?: boolean
   /** Said when he has not got what it takes. */
   refusal?: string
+  /**
+   * The outer door of an airlock. Stepping through it without the suit on is
+   * the end of him — the one door in the game that kills rather than refuses.
+   */
+  needsSuit?: boolean
 }
+
+/**
+ * How a Level 2 screen is dressed. The tile characters mean the same thing
+ * everywhere — solid, water, bush, door — and the setting decides how each is
+ * drawn: hull panels or rock spires, deck plating or crater dust.
+ */
+export type Setting = 'ship' | 'rock' | 'airlock'
 
 /**
  * A chest that opens simply for being found. Every other chest in the game is
@@ -103,7 +125,11 @@ export interface Screen {
   /** An item lying on the ground, picked up by walking over it. */
   pickup?: Pickup
   /** Opens the shop interface on entry. */
-  shop?: 'village' | 'secret' | 'smith' | 'castaway' | 'pets'
+  shop?: ShopKind
+  /** Which world this is part of. Absent means the land, Level 1. */
+  level?: 2
+  /** Level 2 only: what the place is made of. */
+  setting?: Setting
 }
 
 const AUTHORED: Screen[] = [
@@ -1778,7 +1804,7 @@ const AUTHORED: Screen[] = [
  * the readable way to write a map; the woods are then grown in unevenly, so no
  * two clearings are the same shape. See world/scenery.ts.
  */
-export const SCREENS: Screen[] = AUTHORED.map(roughen)
+export const SCREENS: Screen[] = [...AUTHORED, ...AUTHORED_FUTURE].map(roughen)
 
 export const SCREENS_BY_ID: ReadonlyMap<string, Screen> = new Map(SCREENS.map((s) => [s.id, s]))
 
@@ -1786,4 +1812,5 @@ export function screenById(id: string): Screen | undefined {
   return SCREENS_BY_ID.get(id)
 }
 
+/** Where the land begins. Level 2 begins on the bridge; see game/levels.ts. */
 export const START_SCREEN = 'village-square'

@@ -8,18 +8,21 @@
  * turning point, and each used to go by as a line in the message bar.
  */
 import { button, el } from '../../spelling/ui/dom'
-import { ITEMS, type ItemId } from '../items'
+import { itemDescription, itemName, type ItemId } from '../items'
 import { itemIcon } from '../render/icons'
+import type { Level } from '../../core/save'
 
 export interface DiscoveryOptions {
   item: ItemId
+  /** Which world found it, for its name and its picture. */
+  level: Level
   /** What the world said about finding it, in its own words. */
   message: string
   onContinue: () => void
 }
 
 export function showDiscovery(root: HTMLElement, options: DiscoveryOptions): () => void {
-  const item = ITEMS[options.item]
+  const { level } = options
 
   const onward = button('Take it →', () => {
     close()
@@ -29,10 +32,10 @@ export function showDiscovery(root: HTMLElement, options: DiscoveryOptions): () 
   const panel = el('div', { class: 'overlay overlay-found' }, [
     el('section', { class: 'panel-game found-panel' }, [
       el('p', { class: 'found-banner' }, ['You found']),
-      el('div', { class: 'found-icon' }, [itemIcon(options.item, 5)]),
-      el('h2', { class: 'found-title' }, [item.name]),
+      el('div', { class: 'found-icon' }, [itemIcon(options.item, 5, level)]),
+      el('h2', { class: 'found-title' }, [itemName(options.item, level)]),
       el('p', { class: 'found-story' }, [options.message]),
-      el('p', { class: 'found-what' }, [item.description]),
+      el('p', { class: 'found-what' }, [itemDescription(options.item, level)]),
       el('div', { class: 'gate-actions' }, [onward]),
     ]),
   ])

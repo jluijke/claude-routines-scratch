@@ -9,7 +9,8 @@
 import { answerInput, button, el } from '../spelling/ui/dom'
 import { speakWord, type SpeechEngine } from '../core/audio/speech'
 import { CONCEPTS } from '../content/concepts'
-import { ITEMS, type ItemId } from '../game/items'
+import { ITEMS, itemName, type ItemId } from '../game/items'
+import type { Level } from '../core/save'
 import { masteredCount } from '../spelling/mastery'
 import { EXERCISES, TOTAL_EXERCISES } from '../content/exercises'
 import { deserialise, serialise, type SaveData } from '../core/save'
@@ -36,6 +37,8 @@ export interface DashboardOptions {
   onGrant: (items: ItemId[]) => void
   /** Leaves a sack of animal food on the screen he is standing on. */
   onDropFood: () => boolean
+  /** Sends him to the other world, without having to beat four guardians first. */
+  onEnterLevel: (level: Level) => void
   onClose: () => void
 }
 
@@ -120,11 +123,14 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
   // the map screen at all.
   const sellable = Object.values(ITEMS).filter((item) => item.price !== undefined || item.id === 'map')
 
+  // Named as the world he is in names them: a parent testing the ship should
+  // see the lightsaber on the list, not the metal sword it used to be.
+  const named = (id: ItemId): string => itemName(id, save.level)
   const grantSelect = el('select', { class: 'kit-select' }, [
     el('option', { value: '' }, ['Choose an item…']),
     ...sellable.map((item) =>
       el('option', { value: item.id }, [
-        item.price === undefined ? `${item.name} — found, never sold` : `${item.name} — ${item.price} rupees`,
+        item.price === undefined ? `${named(item.id)} — found, never sold` : `${named(item.id)} — ${item.price} rupees`,
       ]),
     ),
   ])
@@ -149,7 +155,7 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
       return
     }
     options.onGrant([id])
-    grantNote.textContent = `Added the ${ITEMS[id].name}.`
+    grantNote.textContent = `Added the ${named(id)}.`
   }, { class: 'btn btn-quiet' })
 
   const grantAll = button('Give him everything', () => {
@@ -159,12 +165,28 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
 
   // Animal food turns up on its own every four screens above ground, which is
   // a long way to walk when what you want is to see the grammar questions.
-  const dropFood = button('Drop animal food here', () => {
+  const dropFood = button(save.level === 2 ? 'Drop a battery pack here' : 'Drop animal food here', () => {
     const where = options.onDropFood()
     grantNote.textContent = where
-      ? 'A sack is on this screen. Walk onto it.'
-      : 'Nowhere to put one here — he needs an animal first, and to be above ground.'
+      ? (save.level === 2 ? 'A battery pack is on this screen. Walk onto it.' : 'A sack is on this screen. Walk onto it.')
+      : 'Nowhere to put one here — he needs an animal first, and to be on a screen it walks on.'
   }, { class: 'btn btn-quiet' })
+
+  // --- the two worlds ----------------------------------------------------
+  //
+  // Level 2 is meant to be reached by beating the four guardians of the land.
+  // A parent should not have to.
+  const otherLevel: Level = save.level === 2 ? 1 : 2
+  const levelButton = button(
+    otherLevel === 2 ? 'Jump to Level 2: the sky-ship' : 'Back to Level 1: the land',
+    () => options.onEnterLevel(otherLevel),
+    { class: 'btn btn-quiet' },
+  )
+  const levelNote = el('p', { class: 'q-hint-line' }, [
+    save.level === 2
+      ? 'He is in Level 2. His Level 1 sword, shield and rupees are put aside and come back when he returns.'
+      : 'He is in Level 1. Jumping ahead puts his gear and rupees aside — they come back when he returns — and starts him on the bridge of the ship with nothing but his hearts and his animal.',
+  ])
 
   // --- the voice ---------------------------------------------------------
   //
@@ -224,12 +246,15 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
         stat('Needs practice', String(shaky.length)),
         stat('Rupees', String(save.player.rupees)),
         stat('Hearts', `${save.player.hearts} of ${save.player.maxHearts}`),
+        stat('World', save.level === 2 ? 'Level 2: the ship' : 'Level 1: the land'),
       ]),
 
       el('h3', {}, ['Testing kit']),
       el('div', { class: 'dash-actions' }, [grantSelect, grantOne, grantAll, dropFood]),
       grantNote,
       skipNote,
+      el('div', { class: 'dash-actions' }, [levelButton]),
+      levelNote,
 
       el('h3', {}, ['Play and spelling balance']),
       el('p', {}, [describePacing(save.pacing)]),

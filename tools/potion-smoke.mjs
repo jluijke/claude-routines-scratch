@@ -38,7 +38,8 @@ await page.waitForTimeout(400)
 /** Where the two of them are, asked of the world rather than written down. */
 const homes = await page.evaluate(async () => {
   const { SCREENS } = await import('/src/game/world/screens.ts')
-  return SCREENS.filter((s) => s.pickup?.item === 'potion').map((s) => ({
+  // The land's two. The ship has two serums of its own, checked in level2-smoke.
+  return SCREENS.filter((s) => s.pickup?.item === 'potion' && !s.level).map((s) => ({
     screen: s.id,
     id: s.pickup.id,
     region: s.region,

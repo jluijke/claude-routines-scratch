@@ -47,7 +47,8 @@ Both input methods work everywhere; neither is a second-class citizen.
 | Sword | Z or Space | Right-click |
 | Use item | X | On-screen button |
 | Swap item | C or Tab | On-screen ↻ button |
-| Music on/off | M | — |
+| Music on/off | N | — |
+| Map (once found) | M | — |
 | The controls, and pause | Control or Escape | On-screen ? button |
 
 Tapping **Control** pauses the game and shows every key on one screen, so he
@@ -130,6 +131,35 @@ before it is a lesson. It is pitch dark, so the Blue Candle is what turns
 stumbling into exploring, and two rooms down there is an unsealed chest holding
 a hundred rupees.
 
+## Level 2: the sky-ship
+
+Beating all four dungeon guardians ends the land's quest with a story: a
+machine at the top of the Sunless Spire wakes and carries him a thousand years
+forward, to a sky-ship taken over by robots. The machine cannot carry metal —
+his sword, shield and rupees are put aside and are waiting when he comes home;
+his hearts and his animal come with him.
+
+The ship is the same game in a different shape, drawn in the same pixel style:
+a block of decks he works his way round rather than a road north, with four
+rocks — the dungeons of the future — hanging off the middle of it. Everything
+has an equivalent: lightsabers for swords and the **Arc Staff** for the golden
+one (its ring hits all round him), a rocket for the Wings, a laser screwdriver
+for the candle, plasma charges for bombs, battery packs for animal food, a
+cloaking serum behind sealed panels for the potion, and a ship schematic for
+the map. The monsters are robots and the six animals are half chrome. There are
+no shop doors: each shop is a **computer he bumps into**, and each asks its own
+proof before selling, so nothing proved to the village shopkeeper carries over.
+
+**Airlocks** are the one new rule. Each rock is reached through an airlock with
+a suit locker in it. Walking into the locker puts the space suit on; walking
+out of the outer door without it ends him on the spot, and a medical drone
+carries him back to the bridge. The suit comes off by itself when he walks back
+into the ship. Airlocks have no robots in them.
+
+Beating all four mechs ends the game with a second story. The parent dashboard
+can jump him to Level 2 directly, and back, at any time; gear is swapped, never
+lost.
+
 ## For the parent
 
 **The reading voice** is chosen in that dashboard. The game picks the clearest
@@ -146,9 +176,10 @@ balance between playing and spelling. It also exports and imports the progress
 file so he can play on more than one device.
 
 It also holds a **testing kit**: hand over any shop item instantly, or all of
-them at once with 999 rupees, skipping both the price and the spelling. It is
-there so a parent can check a corner of the game works without playing the whole
-curriculum to reach it.
+them at once with 999 rupees, skipping both the price and the spelling; drop a
+sack of animal food (or a battery pack) on the spot; and jump between Level 1
+and Level 2. It is there so a parent can check a corner of the game works
+without playing the whole curriculum to reach it.
 
 Firefox claims that key combination for its own private window before the page
 sees it, so there is also a **"For grown-ups"** link at the foot of the title

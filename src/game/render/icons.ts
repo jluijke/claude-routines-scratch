@@ -12,6 +12,7 @@
  */
 import { PALETTE, SPRITES, type SpriteName } from './sprites'
 import { ITEMS, materialOf, type ItemId } from '../items'
+import type { Level } from '../../core/save'
 
 /** Renders one sprite into its own canvas, sized for CSS pixels. */
 export function spriteCanvas(name: SpriteName, scale = 2): HTMLCanvasElement {
@@ -47,8 +48,9 @@ function capitalise(word: string): string {
  * they are actually made of, so the bronze one looks bronze on the shelf and
  * bronze in his hand.
  */
-export function itemSprite(id: ItemId): SpriteName {
+export function itemSprite(id: ItemId, level: Level = 1): SpriteName {
   const tier = capitalise(materialOf(id))
+  if (level === 2) return futureItemSprite(id, tier)
   if (ITEMS[id].category === 'sword') return `swordIcon${tier}` as SpriteName
   if (ITEMS[id].category === 'shield') return `shield${tier}` as SpriteName
 
@@ -82,7 +84,41 @@ export function itemSprite(id: ItemId): SpriteName {
   }
 }
 
+/** The same item, as the future draws it: a saber for a sword, a rocket for the Wings. */
+function futureItemSprite(id: ItemId, tier: string): SpriteName {
+  if (ITEMS[id].category === 'sword') return `swordIconFuture${tier}` as SpriteName
+  if (ITEMS[id].category === 'shield') return `shieldFuture${tier}` as SpriteName
+  switch (id) {
+    case 'wings':
+      return 'rocket'
+    case 'blueTunic':
+      return 'nanoBlue'
+    case 'redTunic':
+      return 'nanoRed'
+    case 'bow':
+      return 'blaster'
+    case 'arrows':
+      return 'cell'
+    case 'blueCandle':
+      return 'screwdriver'
+    case 'bomb':
+      return 'charge'
+    case 'bait':
+      return 'scrap'
+    case 'blueRing':
+      return 'circuitRing'
+    case 'map':
+      return 'schematic'
+    case 'animalFood':
+      return 'battery'
+    case 'potion':
+      return 'serum'
+    default:
+      return 'heart'
+  }
+}
+
 /** The icon for a shop row or an inventory line. */
-export function itemIcon(id: ItemId, scale = 2): HTMLCanvasElement {
-  return spriteCanvas(itemSprite(id), scale)
+export function itemIcon(id: ItemId, scale = 2, level: Level = 1): HTMLCanvasElement {
+  return spriteCanvas(itemSprite(id, level), scale)
 }

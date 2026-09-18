@@ -8,9 +8,16 @@ import { SCREENS, screenById } from '../src/game/world/screens'
 import { overworldLayout } from '../src/game/world/analysis'
 import { TILES, type TileChar } from '../src/game/world/tiles'
 import { gateById } from '../src/game/gates'
-import { ITEMS } from '../src/game/items'
+import { itemName } from '../src/game/items'
+import { START_SCREENS } from '../src/game/levels'
+import { themeFor } from '../src/game/render/world'
 
-const { cells } = overworldLayout()
+// Each world laid out from its own start, so a ship screen has a position on
+// the ship's grid and none on the land's.
+const cells = new Map([
+  ...overworldLayout(START_SCREENS[1]).cells,
+  ...overworldLayout(START_SCREENS[2]).cells,
+])
 
 /** Why a door is hard to find, if it is. */
 function hiddenBy(screenId: string, col: number, row: number): string | undefined {
@@ -27,9 +34,11 @@ const screens = SCREENS.map((screen) => ({
   id: screen.id,
   name: screen.name,
   region: screen.region,
+  level: screen.level ?? 1,
+  theme: themeFor(screen),
   rows: screen.rows,
   dark: screen.dark ?? false,
-  shop: screen.shop,
+  shop: screen.shop ?? (screen.props ?? []).find((p) => p.terminal)?.terminal,
   at: cells.get(screen.id),
   exits: screen.exits,
   portals: (screen.portals ?? []).map((portal) => ({
@@ -38,7 +47,8 @@ const screens = SCREENS.map((screen) => ({
     to: portal.to,
     toName: screenById(portal.to)?.name ?? portal.to,
     hidden: hiddenBy(screen.id, portal.col, portal.row),
-    requires: portal.requires ? ITEMS[portal.requires].name : undefined,
+    requires: portal.requires ? itemName(portal.requires, screen.level ?? 1) : undefined,
+    needsSuit: portal.needsSuit ?? false,
     consumes: portal.consumes ?? false,
     guardedBy: portal.guardedBy,
   })),
@@ -57,7 +67,7 @@ const screens = SCREENS.map((screen) => ({
   }),
   treasure: screen.treasure,
   pickup: screen.pickup
-    ? { ...screen.pickup, itemName: ITEMS[screen.pickup.item].name }
+    ? { ...screen.pickup, itemName: itemName(screen.pickup.item, screen.level ?? 1) }
     : undefined,
   props: (screen.props ?? []).filter((p) => p.talk).map((p) => ({ col: p.col, row: p.row, talk: p.talk })),
   spawns: (screen.spawns ?? []).map((s) => s.kind),

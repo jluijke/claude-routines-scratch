@@ -4,7 +4,7 @@
 import { SCREEN_W } from '../world/tiles'
 import type { Atlas } from './atlas'
 import type { Player } from '../entities/player'
-import { ITEMS } from '../items'
+import { itemName } from '../items'
 
 export const HUD_H = 40
 
@@ -15,6 +15,9 @@ export interface HudState {
   totalExercises: number
   /** The item in the B slot, and how many are left. */
   tool?: { name: string; count: number }
+  /** Which world, for naming things: a sword in the land, a weapon on the ship. */
+  level: 1 | 2
+  weaponLabel: string
 }
 
 export function drawHud(
@@ -62,8 +65,8 @@ export function drawHud(
   ctx.fillStyle = '#5d6472'
   // Before he finds one there is no sword to name, and reading ITEMS for a
   // missing id crashed the whole render loop.
-  const sword = player.loadout.sword ? material(ITEMS[player.loadout.sword].name) : 'NONE'
-  ctx.fillText(`SWORD ${sword}`, 4, 32)
+  const sword = player.loadout.sword ? material(itemName(player.loadout.sword, state.level)) : 'NONE'
+  ctx.fillText(`${state.weaponLabel} ${sword}`, 4, 32)
 
   // The B slot, so he can see what the item button will do before pressing it.
   if (state.tool) {
@@ -71,7 +74,7 @@ export function drawHud(
     ctx.fillStyle = '#c9a86a'
     ctx.fillText(label, SCREEN_W - 4 - label.length * 4.2, 32)
   } else {
-    const shieldLabel = `SHIELD ${material(ITEMS[player.loadout.shield].name)}`
+    const shieldLabel = `SHIELD ${material(itemName(player.loadout.shield, state.level))}`
     ctx.fillText(shieldLabel, SCREEN_W - 4 - shieldLabel.length * 4.2, 32)
   }
 }
