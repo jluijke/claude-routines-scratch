@@ -72,6 +72,77 @@ const sealedChests = world.screens.flatMap((s) =>
 )
 const levelTag = (s) => (s.level === 2 ? ' · Level 2' : '')
 
+/**
+ * The guardians: where each one lives, and the walk to it.
+ *
+ * Found by walking back from the boss room through the doors that lead into
+ * it until a screen on the walkable map is reached, so the route is the real
+ * one and not a description that could drift.
+ */
+const isBossRoom = (s) => s.spawns.some((k) => /^boss/.test(k))
+function routeTo(room) {
+  // Breadth-first over "which screens have a door into this one".
+  const parent = new Map([[room.id, null]])
+  const queue = [room.id]
+  while (queue.length) {
+    const id = queue.shift()
+    const here = byId.get(id)
+    if (here.at) {
+      const path = []
+      for (let cur = id; cur; cur = parent.get(cur)) path.push(byId.get(cur))
+      return path
+    }
+    for (const other of world.screens) {
+      if (other.level !== room.level || parent.has(other.id)) continue
+      // Doors, and walking off an edge: the Mountain Track sits off the map
+      // and is climbed screen by screen to the Hollow Keep.
+      if (other.portals.some((p) => p.to === id) || Object.values(other.exits).includes(id)) {
+        parent.set(other.id, id)
+        queue.push(other.id)
+      }
+    }
+  }
+  return [room]
+}
+const guardians = world.screens
+  .filter(isBossRoom)
+  .map((room) => {
+    const path = routeTo(room)
+    const number = Number(room.spawns.find((k) => /^boss/.test(k)).replace('boss', ''))
+    const barriers = path.flatMap((sc) =>
+      sc.gates
+        .filter((g) => g.kind !== 'chest' && g.kind !== 'wall')
+        .map((g) => ({ screen: sc.name, kind: g.kind, id: g.id, optional: g.optional, challenge: g.challenge })),
+    )
+    return { room, number, path, barriers, level: room.level }
+  })
+  .sort((a, b) => a.level - b.level || a.number - b.number)
+
+const kindWord = (g) =>
+  g.challenge === 'half' ? 'half an exercise'
+  : g.challenge === 'intro' ? 'two quick words'
+  : g.optional ? 'a short review challenge'
+  : 'the next unfinished exercise'
+
+const guardianHtml = (level) =>
+  guardians
+    .filter((g) => g.level === level)
+    .map((g) => {
+      const entry = g.path[0]
+      const steps = g.path.map((sc) => esc(sc.name)).join(' → ')
+      const rows = g.barriers
+        .map((b) => `<div class="row"><b>${esc(b.screen)}</b><span>${esc(b.kind)} · ${esc(kindWord(b))}</span></div>`)
+        .join('')
+      return `<section class="guardian">
+        <h3><span class="pin m-boss"></span>${level === 2 ? 'Mech' : 'Guardian'} ${g.number} · ${esc(g.room.region)}</h3>
+        <p><b>Lives in:</b> ${esc(g.room.name)}. <b>Start from:</b> ${esc(entry.name)} on the map${level === 2 ? '' : ''}.</p>
+        <p class="mono">${steps}</p>
+        <p class="lbl">Spelling barriers on the screens along the way (${g.barriers.length})</p>
+        <div class="stack">${rows || '<div class="row"><span>none</span></div>'}</div>
+      </section>`
+    })
+    .join('\n')
+
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 /** A screen as a 16x11 pixel map, plus its markers. */
@@ -83,6 +154,7 @@ function tile(s, opts = {}) {
   }
   if (s.treasure) marks.push({ col: s.treasure.col, row: s.treasure.row, cls: 'm-chest', title: `${s.treasure.rupees} rupees` })
   if (s.pickup) marks.push({ col: s.pickup.col, row: s.pickup.row, cls: 'm-pickup', title: s.pickup.itemName })
+  if (isBossRoom(s)) marks.push({ col: 7, row: 4, cls: 'm-boss', title: 'The guardian' })
   for (const g of s.gates) {
     marks.push({ col: g.col, row: g.row, cls: g.kind === 'chest' ? 'm-sealed' : 'm-gate', title: g.id })
   }
@@ -209,6 +281,12 @@ const html = `<title>Atlas of Both Worlds</title>
   .m-item { background: var(--item); } .m-gate { background: var(--gate); }
   .m-door { background: #cfd6c4; } .m-chest, .m-sealed { background: var(--chest); }
   .m-pickup { background: var(--gold-bright); }
+  .m-boss { background: #ff3b30; box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px rgba(0,0,0,.6); }
+  .guardian { border: 1px solid var(--rule); border-left: 4px solid #ff3b30; border-radius: 6px; padding: 12px 14px; margin-bottom: 14px; background: var(--panel); }
+  .guardian h3 { display: flex; align-items: center; gap: 4px; }
+  .guardian p { margin: 4px 0; }
+  .guardian .mono { color: var(--dim); white-space: normal; }
+  .guardians { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
 
   .board { display: flex; gap: 26px; align-items: flex-start; overflow-x: auto; padding-bottom: 8px; }
   .grid { display: grid; grid-template-columns: repeat(${cols}, minmax(104px, 1fr)); grid-template-rows: repeat(${rows}, auto); gap: 6px; flex: 1 1 auto; min-width: 640px; }
@@ -254,6 +332,10 @@ const html = `<title>Atlas of Both Worlds</title>
     <div class="stamp">${land.length} screens in the land · ${ship.length} on the ship<br>${overworld.length} + ${decks.length} you can walk between<br>generated ${esc(world.generated)}</div>
   </header>
 
+  <h2>Level 1 · The four guardians</h2>
+  <p class="note">All four have to fall before the story moves to Level 2. Each lives at the far end of a dungeon; the route below runs from a screen on the walkable map, through every door, to the room the guardian is in. A defeated guardian stays defeated. A red pin marks each guardian's room on the maps further down.</p>
+  <div class="guardians">${guardianHtml(1)}</div>
+
   <h2>Level 1 · What you cannot find by walking</h2>
   <p class="note">These are the doors with nothing marking them. Everything else in the land is reachable by walking into it.</p>
   <div class="scroller">
@@ -273,6 +355,7 @@ const html = `<title>Atlas of Both Worlds</title>
     <span><i class="m-chest"></i>Chest</span>
     <span><i class="m-pickup"></i>On the ground</span>
     <span><i class="m-door"></i>Plain door</span>
+    <span><i class="m-boss"></i>A guardian</span>
   </div>
   <div class="board">
     <div class="grid">${gridCells}</div>
@@ -291,6 +374,10 @@ const html = `<title>Atlas of Both Worlds</title>
   <div class="board">
     <div class="grid ship">${deckCells}</div>
   </div>
+
+  <h2>Level 2 · The four mechs</h2>
+  <p class="note">All four have to fall to finish the game. Each lives at the core of a rock, and every rock is reached through an airlock — suit up at the locker inside before the outer door.</p>
+  <div class="guardians">${guardianHtml(2)}</div>
 
   <h2>Level 2 · What you cannot find by walking</h2>
   <p class="note">The airlocks are the one new rule of the ship: walk into the locker inside each one to put the space suit on before the outer door. Without it the outer door ends him on the spot, and a medical drone carries him back to the bridge. The suit comes off by itself when he walks back into the ship.</p>
