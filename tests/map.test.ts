@@ -8,6 +8,7 @@ import {
   stepBackFromGate,
   trappingGates,
   unmarkedBarriers,
+  unmarkedDoors,
   walledInFeatures,
   strandedFeatures,
   unreachableDoors,
@@ -31,6 +32,34 @@ describe('the world joins up', () => {
   it('has no door you cannot walk up to', () => {
     // The shop door sat in the top row of its building with wall beneath it.
     expect(unreachableDoors()).toEqual([])
+  })
+
+  it('has no door that draws nothing, in either world', () => {
+    // Two airlock hatches on the ship sat on plain deck plating, with a droid
+    // beside one announcing a hatch that could not be seen.
+    expect(unmarkedDoors()).toEqual([])
+  })
+
+  it('catches a door dropped on plain floor with nothing drawn for it', () => {
+    const screen = {
+      ...(screenById('ship-corridor-2') as Screen),
+      id: 'test-deck',
+      rows: [
+        'TTTTTTT..TTTTTTT',
+        'T..............T',
+        'T..............T',
+        'T..............T',
+        '...............T',
+        'T..............T',
+        'T..............T',
+        'T..............T',
+        'T..............T',
+        'T..............T',
+        'TTTTTTT..TTTTTTT',
+      ],
+      portals: [{ col: 11, row: 9, to: 'airlock-1', spawnCol: 7, spawnRow: 8 }],
+    } as Screen
+    expect(unmarkedDoors([screen])).toHaveLength(1)
   })
 
   it('has no barrier you can simply walk around', () => {

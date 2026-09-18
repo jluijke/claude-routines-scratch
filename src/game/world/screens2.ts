@@ -212,7 +212,7 @@ export const AUTHORED_FUTURE: Screen[] = [
       'T............TTT',
       'T..RR......RR..T',
       'T.....,,,......T',
-      'T..............T',
+      'T..........C...T',
       'T..............T',
       'TTTTTTT..TTTTTTT',
     ],
@@ -221,7 +221,7 @@ export const AUTHORED_FUTURE: Screen[] = [
       { gateId: 'ship-lab-seal', col: 13, row: 4, guards: 'right', opens: [{ col: 13, row: 4 }] },
     ],
     // Airlock one is off this deck, in the wall by the far crates.
-    portals: [{ col: 11, row: 9, to: 'airlock-1', spawnCol: 7, spawnRow: 8 }],
+    portals: [{ col: 11, row: 8, to: 'airlock-1', spawnCol: 7, spawnRow: 8 }],
     props: [
       {
         sprite: 'droid',
@@ -478,7 +478,7 @@ export const AUTHORED_FUTURE: Screen[] = [
       'T............=..',
       'T.~~~~~..~~~~TTT',
       'T.~~~~~..~~~~~.T',
-      'T..............T',
+      'T..C...........T',
       'T..............T',
       'TTTTTTT..TTTTTTT',
     ],
@@ -487,7 +487,7 @@ export const AUTHORED_FUTURE: Screen[] = [
       { gateId: 'ship-reactor-seal', col: 13, row: 5, guards: 'right', opens: [{ col: 13, row: 5 }] },
     ],
     // Airlock three, off the coolant deck.
-    portals: [{ col: 3, row: 9, to: 'airlock-3', spawnCol: 7, spawnRow: 8 }],
+    portals: [{ col: 3, row: 8, to: 'airlock-3', spawnCol: 7, spawnRow: 8 }],
     spawns: [
       { kind: 'flyer', col: 4, row: 5 },
       { kind: 'flyer', col: 11, row: 5 },
@@ -889,9 +889,9 @@ export const AUTHORED_FUTURE: Screen[] = [
   },
 
   // ------------------------------------------------------------- airlocks
-  airlock('airlock-1', 'Airlock One', { to: 'ship-corridor-2', spawnCol: 11, spawnRow: 8 }, { to: 'rock-1-landing', spawnCol: 13, spawnRow: 5 }),
+  airlock('airlock-1', 'Airlock One', { to: 'ship-corridor-2', spawnCol: 11, spawnRow: 7 }, { to: 'rock-1-landing', spawnCol: 13, spawnRow: 5 }),
   airlock('airlock-2', 'Airlock Two', { to: 'ship-cargo-2', spawnCol: 6, spawnRow: 6 }, { to: 'rock-2-landing', spawnCol: 13, spawnRow: 5 }),
-  airlock('airlock-3', 'Airlock Three', { to: 'ship-engine-2', spawnCol: 3, spawnRow: 8 }, { to: 'rock-3-landing', spawnCol: 13, spawnRow: 5 }),
+  airlock('airlock-3', 'Airlock Three', { to: 'ship-engine-2', spawnCol: 3, spawnRow: 9 }, { to: 'rock-3-landing', spawnCol: 13, spawnRow: 5 }),
   airlock('airlock-4', 'Airlock Four', { to: 'ship-reactor', spawnCol: 7, spawnRow: 6 }, { to: 'rock-4-landing', spawnCol: 13, spawnRow: 5 }),
 
   // ------------------------------------------------- rock one: the Grey Rock

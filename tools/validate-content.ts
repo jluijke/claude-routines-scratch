@@ -23,6 +23,7 @@ import {
   unmarkedBarriers,
   walledInFeatures,
   strandedFeatures,
+  unmarkedDoors,
   unreachableDoors,
 } from '../src/game/world/analysis'
 import { ITEMS, SECRET_SHOP, VILLAGE_SHOP } from '../src/game/items'
@@ -285,6 +286,9 @@ for (const problem of layoutConflicts()) {
   fail(`Map layout: ${problem}`)
 }
 for (const problem of unreachableDoors()) {
+  fail(`Door: ${problem}`)
+}
+for (const problem of unmarkedDoors()) {
   fail(`Door: ${problem}`)
 }
 for (const problem of bypassableBarriers()) {

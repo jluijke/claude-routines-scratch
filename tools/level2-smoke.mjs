@@ -51,7 +51,9 @@ await page.evaluate(() => {
   window.zsq.state.player.rupees = 777
   for (let i = 0; i < 6; i++) window.zsq.world.grantHeartContainer()
 })
-const landRupees = 777
+// Read once the fight is over, never assumed: rupees the guardian dropped and
+// he happened to walk over are his too, and that is not this check's business.
+let landRupees = 777
 
 // ------------------------------------------------- the last guardian falls
 async function killTheBossIn(screen) {
@@ -79,6 +81,7 @@ check('the last guardian of the land can be killed', await killTheBossIn('d4-bos
 await page.waitForSelector('.victory-panel', { timeout: 8000 })
 check('the sign says the level is complete', /level 1 complete/i.test((await page.textContent('.victory-banner')) ?? ''))
 check('and offers the next world', Boolean(await page.$('button:has-text("next world")')))
+landRupees = (await state()).player.rupees
 await page.getByRole('button', { name: /next world/i }).click()
 await page.waitForSelector('.story-panel', { timeout: 4000 })
 check('the story appears', Boolean(await page.$('.story-panel')))

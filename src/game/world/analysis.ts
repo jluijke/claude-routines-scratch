@@ -172,6 +172,41 @@ export function unreachableDoors(screens: readonly Screen[] = SCREENS): string[]
   return problems
 }
 
+/**
+ * Doors that draw nothing at all.
+ *
+ * Two airlock hatches on the ship sat on plain deck plating: a droid stood
+ * beside one announcing it, and the only way to find it was to walk over the
+ * tile. A door has to look like a door, or be deliberately hidden behind
+ * something a tool opens — those are the two honest cases, and nothing else is.
+ *
+ * Three things are allowed and are not this bug:
+ *  - a tile drawn as an entrance: a hatch, a doorway, a stairway;
+ *  - a tile a tool opens, which is the "find it by trying" case;
+ *  - a crossing that needs an item, where the world paints its own launch pad;
+ *  - the doorway gap at the foot of an interior, which is how you walk out.
+ */
+export function unmarkedDoors(screens: readonly Screen[] = SCREENS): string[] {
+  const drawn = new Set<TileChar>(['C', 'D', 'H', '^'])
+  const problems: string[] = []
+
+  for (const screen of screens) {
+    const isInterior = Object.keys(screen.exits ?? {}).length === 0
+    for (const portal of screen.portals ?? []) {
+      const char = ((screen.rows[portal.row] ?? '')[portal.col] ?? '#') as TileChar
+      if (drawn.has(char)) continue
+      const def = TILES[char]
+      if (def?.cracked || def?.bush) continue
+      if (portal.requires) continue
+      if (isInterior && portal.row >= SCREEN_ROWS - 2) continue
+      problems.push(
+        `${screen.id}: the door to "${portal.to}" at ${portal.col},${portal.row} sits on plain "${char}" and draws nothing`,
+      )
+    }
+  }
+  return problems
+}
+
 const OPPOSITE: Record<Direction, Direction> = {
   up: 'down',
   down: 'up',
