@@ -412,7 +412,7 @@ export const AUTHORED_FUTURE: Screen[] = [
         spawnRow: 5,
         requires: 'wings',
         consumes: true,
-        refusal: 'Open space, and a long way across it. Nothing walks over that.',
+        refusal: 'A launch pad, and open space beyond it. Nothing walks over that.',
       },
     ],
     props: [
@@ -819,7 +819,7 @@ export const AUTHORED_FUTURE: Screen[] = [
         spawnRow: 5,
         requires: 'wings',
         consumes: true,
-        refusal: 'The ship is a long way off across the dark, and you have nothing to fly with.',
+        refusal: 'A launch pad. The ship is a long way off across the dark, and you have nothing to fly with.',
       },
     ],
   },

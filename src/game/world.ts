@@ -506,8 +506,17 @@ export class World {
   /** Solidity as the player experiences it right now. */
   private blockedHere(): (x: number, y: number) => boolean {
     const opened = this.openedTiles()
-    const canCrossWater = this.save.inventory.wings !== undefined
-    return (x, y) => this.isSolidAt(x, y, opened, canCrossWater)
+    return (x, y) => this.isSolidAt(x, y, opened, this.canCrossWater())
+  }
+
+  /**
+   * Whether the water can be walked on. The Wings make a river fordable, and
+   * that is how the land has always played. Nothing makes the vacuum walkable:
+   * on the ship the rocket only ever fires from its launch pad, and the void
+   * stays the void — he walked off the outpost into it, once, and got lost.
+   */
+  private canCrossWater(): boolean {
+    return this.level === 1 && this.save.inventory.wings !== undefined
   }
 
   private wouldOverlap(x: number, y: number): boolean {
@@ -1281,7 +1290,7 @@ export class World {
     const survivors: Projectile[] = []
 
     const opened = this.openedTiles()
-    const canCrossWater = this.save.inventory.wings !== undefined
+    const canCrossWater = this.canCrossWater()
 
     for (const shot of this.projectiles) {
       shot.x += shot.vx * step
@@ -1544,6 +1553,7 @@ export class World {
     const opened = this.openedTiles()
     drawTiles(ctx, this.screen, opened, this.frame)
     drawBarriers(ctx, this.atlas, this.screen, opened, this.frame)
+    this.drawLaunchPads(ctx)
 
     for (const prop of this.screen.props ?? []) {
       // The suit stands by the wall until he is wearing it.
@@ -1653,6 +1663,48 @@ export class World {
     })
 
     if (this.message) this.drawMessageBar(ctx)
+  }
+
+  /**
+   * Where a crossing begins, marked so it can be found: a ring of lights on
+   * the ship's launch pads, a ring of pale stones with a feather turning over
+   * it on the land's shores. A pad nobody can see is a pad nobody steps on.
+   */
+  private drawLaunchPads(ctx: CanvasRenderingContext2D): void {
+    for (const portal of this.screen.portals ?? []) {
+      if (portal.requires !== 'wings') continue
+      const x = portal.col * TILE
+      const y = portal.row * TILE
+      const pulse = Math.floor(this.frame / 18) % 2 === 0
+      if (this.level === 2) {
+        ctx.fillStyle = '#2a2f3d'
+        ctx.fillRect(x + 2, y + 2, 12, 12)
+        ctx.fillStyle = pulse ? '#57d2c6' : '#2a7a72'
+        ctx.fillRect(x + 3, y + 2, 10, 1)
+        ctx.fillRect(x + 3, y + 13, 10, 1)
+        ctx.fillRect(x + 2, y + 3, 1, 10)
+        ctx.fillRect(x + 13, y + 3, 1, 10)
+        ctx.fillStyle = pulse ? '#f2c94c' : '#e2883a'
+        ctx.fillRect(x + 2, y + 2, 2, 2)
+        ctx.fillRect(x + 12, y + 2, 2, 2)
+        ctx.fillRect(x + 2, y + 12, 2, 2)
+        ctx.fillRect(x + 12, y + 12, 2, 2)
+        // An arrow up the middle: this is where you launch from.
+        ctx.fillStyle = '#c8fff8'
+        ctx.fillRect(x + 7, y + 5, 2, 6)
+        ctx.fillRect(x + 6, y + 6, 4, 1)
+        ctx.fillRect(x + 5, y + 7, 6, 1)
+        continue
+      }
+      ctx.fillStyle = '#d9d6c4'
+      for (const [dx, dy] of [[2, 2], [7, 1], [12, 2], [13, 7], [12, 12], [7, 13], [2, 12], [1, 7]] as const) {
+        ctx.fillRect(x + dx, y + dy, 2, 2)
+      }
+      ctx.fillStyle = pulse ? '#f6f3e7' : '#c8d0da'
+      ctx.fillRect(x + 7, y + 5, 1, 6)
+      ctx.fillRect(x + 6, y + 6, 1, 3)
+      ctx.fillRect(x + 8, y + 6, 1, 3)
+    }
   }
 
   /**
@@ -1835,12 +1887,7 @@ export class World {
 
   /** Is this tile solid right now, opened walls and burned trees included? */
   debugSolidAt(col: number, row: number): boolean {
-    return this.isSolidAt(
-      col * TILE + TILE / 2,
-      row * TILE + TILE / 2,
-      this.openedTiles(),
-      this.save.inventory.wings !== undefined,
-    )
+    return this.isSolidAt(col * TILE + TILE / 2, row * TILE + TILE / 2, this.openedTiles(), this.canCrossWater())
   }
 
   /** Whether this screen's pickup is being drawn — hidden ones are not. */

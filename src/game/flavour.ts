@@ -94,7 +94,7 @@ const SHIP: Flavour = {
   outOfBombs: 'You are out of plasma charges.',
   nothingHungry: 'Nothing here wants scrap.',
   baitDropped: 'The robots stop to chew on the scrap.',
-  wingsHowTo: 'Hold the Rocketship and walk into open space. It only carries you across.',
+  wingsHowTo: 'Hold the Rocketship and step onto a launch pad — the ring of lights. It only carries you across.',
   wingsNotHeld: (name) =>
     `You have the ${name}, but it is not in your hand. Press C until the B slot shows it.`,
   wingsTorn: 'The rocket burns out as you land. That crossing was one way.',
