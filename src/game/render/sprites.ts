@@ -789,6 +789,74 @@ const ARROW = S([
   '.......kk.......',
 ])
 
+/**
+ * An arrow in flight, and the blaster's bolt.
+ *
+ * Drawn pointing right and down; the other two directions are the mirror and
+ * the flip, the way the sword is done. The icon on the shop shelf is a
+ * different drawing: a bundle standing on end reads as ammunition, and an
+ * arrow crossing the screen has to read as one thing moving fast.
+ */
+const ARROW_FLY_RIGHT = defineSprite(16, 8, [
+  '................',
+  '..w.........k...',
+  '.ww.........kw..',
+  'wwwnnnnnnnnnnwwk',
+  '.ww.........kw..',
+  '..w.........k...',
+  '................',
+  '................',
+])
+
+const ARROW_FLY_DOWN = defineSprite(8, 16, [
+  '..w..w..',
+  '..w..w..',
+  '..wnnw..',
+  '...nn...',
+  '...nn...',
+  '...nn...',
+  '...nn...',
+  '...nn...',
+  '...nn...',
+  '...nn...',
+  '..knnk..',
+  '.kwwwwk.',
+  '..kwwk..',
+  '...kk...',
+  '........',
+  '........',
+])
+
+const BOLT_RIGHT = defineSprite(16, 8, [
+  '................',
+  '................',
+  '.....ccccccc....',
+  '..cccwwwwwwwcc..',
+  '..cccwwwwwwwcc..',
+  '.....ccccccc....',
+  '................',
+  '................',
+])
+
+const BOLT_DOWN = defineSprite(8, 16, [
+  '........',
+  '........',
+  '..cccc..',
+  '.cwwwwc.',
+  '.cwwwwc.',
+  '.cwwwwc.',
+  '.cwwwwc.',
+  '.cwwwwc.',
+  '.cwwwwc.',
+  '.cwwwwc.',
+  '.cwwwwc.',
+  '..cccc..',
+  '........',
+  '........',
+  '........',
+  '........',
+])
+
 const WINGS = S([
   '................',
   '...kk......kk...',
@@ -1945,6 +2013,14 @@ export const SPRITES = {
   arrow: ARROW,
   wings: WINGS,
   worldMap: MAP,
+  arrowFlyRight: ARROW_FLY_RIGHT,
+  arrowFlyLeft: mirror(ARROW_FLY_RIGHT),
+  arrowFlyDown: ARROW_FLY_DOWN,
+  arrowFlyUp: flipVertical(ARROW_FLY_DOWN),
+  boltRight: BOLT_RIGHT,
+  boltLeft: mirror(BOLT_RIGHT),
+  boltDown: BOLT_DOWN,
+  boltUp: flipVertical(BOLT_DOWN),
   dogA: DOG_A,
   dogB: DOG_B,
   catA: CAT_A,

@@ -19,6 +19,10 @@ export interface Flavour {
   candleOncePerRoom: string
   wallBlown: string
   outOfBombs: string
+  /** Pressing the item key with the bow in hand and nothing to fire. */
+  noArrows: string
+  /** What the shopkeeper says as he hands the bow over. */
+  bowPatter: string
   nothingHungry: string
   baitDropped: string
   wingsHowTo: string
@@ -53,6 +57,8 @@ const LAND: Flavour = {
   candleOncePerRoom: 'The blue candle only lights once in each room.',
   wallBlown: 'The cracked rock blows apart, revealing a way through.',
   outOfBombs: 'You are out of bombs.',
+  noArrows: 'You have no arrows left. The shop sells them.',
+  bowPatter: '"The Bow. Press C until it is in your hand, then X to loose one. Arrows sold separately."',
   nothingHungry: 'Nothing here is hungry.',
   baitDropped: 'The monsters stop to eat.',
   wingsHowTo: 'Hold the Wings and walk into open water. They only carry you across.',
@@ -92,6 +98,8 @@ const SHIP: Flavour = {
   candleOncePerRoom: 'The laser screwdriver needs a moment to recharge. Once per room.',
   wallBlown: 'The cracked bulkhead blows apart, revealing a way through.',
   outOfBombs: 'You are out of plasma charges.',
+  noArrows: 'You have no power cells left. A computer sells them.',
+  bowPatter: '"BLASTER. PRESS C UNTIL IT IS IN YOUR HAND, THEN X TO FIRE. POWER CELLS SOLD SEPARATELY."',
   nothingHungry: 'Nothing here wants scrap.',
   baitDropped: 'The robots stop to chew on the scrap.',
   wingsHowTo: 'Hold the Rocketship and step onto a launch pad — the ring of lights. It only carries you across.',

@@ -18,6 +18,7 @@ import {
   type ItemId,
 } from '../items'
 import { gateById, type Gate } from '../gates'
+import { flavourFor } from '../flavour'
 import type { Level, SaveData } from '../../core/save'
 import { sfx } from '../../core/audio/sfx'
 import { itemIcon, spriteCanvas } from '../render/icons'
@@ -43,6 +44,9 @@ function patter(item: ItemDef, save: SaveData, level: Level): string {
       : '"Bombs. Mind your toes. And if you are going north — there is a cracked ' +
           'boulder in the rocks on the forest path. Something is behind it."'
   }
+  // The bow is the one thing on the shelf that needs a word of instruction:
+  // it is the only weapon that lives in the item slot rather than in his hand.
+  if (item.id === 'bow') return flavourFor(level).bowPatter
   return level === 2 ? `"${itemName(item.id, level).toUpperCase()}. GOOD CHOICE."` : `"${item.name}. Good choice."`
 }
 

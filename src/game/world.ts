@@ -79,6 +79,31 @@ interface Bomb {
   fuse: number
 }
 
+/**
+ * An arrow he has loosed, or a bolt from the blaster.
+ *
+ * Kept apart from the enemies' projectiles, which are the things that hurt
+ * *him*: these hurt them, stop at walls, and only one is ever in the air, so
+ * the bow is a weapon you aim rather than a button you hold down.
+ */
+interface Shot {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  facing: Facing
+  life: number
+}
+
+/** How fast an arrow flies, in pixels a second. Well clear of a walking hero. */
+const ARROW_SPEED = 170
+/** What it takes off. Two, so it fells the small things and wears down a brute. */
+const ARROW_DAMAGE = 2
+/** Frames before it falls short: about a second and a half, longer than a room. */
+const ARROW_LIFE = 90
+/** The arrow's own size, for hitting things. */
+const SHOT_SIZE = 8
+
 /** The flash after a bomb, or the candle's flame. */
 interface Burst {
   x: number
@@ -281,6 +306,8 @@ export class World {
   private projectiles: Projectile[] = []
   private drops: Drop[] = []
   private bombs: Bomb[] = []
+  /** Arrows and bolts in the air. At most one, by design. */
+  private shots: Shot[] = []
   private bursts: Burst[] = []
   /** The candle lights one flame per room, as the blue one always did. */
   private candleUsedHere = false
@@ -577,6 +604,7 @@ export class World {
     this.drops = []
     this.bombs = []
     this.bursts = []
+    this.shots = []
     this.candleUsedHere = false
     // Load-bearing: teleport, respawn and the dev console all come through
     // here, and a flight left over from another screen would draw the hero at
@@ -811,6 +839,7 @@ export class World {
     this.resolveCombat()
     this.updatePet(step)
     this.updateProjectiles(step)
+    this.updateShots(step)
     this.updateDrops(step)
     this.updateBombs(step)
 
@@ -1262,6 +1291,7 @@ export class World {
       this.projectiles = []
       this.bombs = []
       this.bursts = []
+      this.shots = []
       this.victory = {
         frames: VICTORY_FRAMES,
         level: bossLevel(enemy.kind),
@@ -1392,6 +1422,8 @@ export class World {
         return this.placeBomb()
       case 'blueCandle':
         return this.lightCandle()
+      case 'bow':
+        return this.loose()
       case 'bait':
         return this.dropBait()
       case 'recoveryHeart':
@@ -1435,6 +1467,67 @@ export class World {
     // Burn the bush in front, or the one he is standing in. Demanding exact
     // alignment from a nine-year-old turns a nice discovery into a chore.
     this.burnAt(ahead.x, ahead.y, centre.x, centre.y)
+  }
+
+  /**
+   * Looses an arrow the way he is facing.
+   *
+   * One in the air at a time, as the game this borrows from did: an arrow is
+   * worth aiming, and a child who can hold the button down never learns to.
+   */
+  private loose(): void {
+    if ((this.save.inventory.arrows ?? 0) <= 0) {
+      this.showMessage(this.words.noArrows, 110)
+      return
+    }
+    if (this.shots.length > 0) return
+
+    this.save.inventory.arrows = (this.save.inventory.arrows ?? 0) - 1
+    const centre = this.player.centre()
+    const away = this.pointAhead(centre, this.player.facing, 10)
+    const dx = this.player.facing === 'left' ? -1 : this.player.facing === 'right' ? 1 : 0
+    const dy = this.player.facing === 'up' ? -1 : this.player.facing === 'down' ? 1 : 0
+    this.shots.push({
+      x: away.x - SHOT_SIZE / 2,
+      y: away.y - SHOT_SIZE / 2,
+      vx: dx * ARROW_SPEED,
+      vy: dy * ARROW_SPEED,
+      facing: this.player.facing,
+      life: ARROW_LIFE,
+    })
+    sfx.play('swordSwing')
+    this.callbacks.onChange()
+  }
+
+  /** The arrow crosses the room: it stops at rock, and at the first thing it hits. */
+  private updateShots(step: number): void {
+    if (this.shots.length === 0) return
+    const opened = this.openedTiles()
+    const canCrossWater = this.canCrossWater()
+    const flying: Shot[] = []
+
+    for (const shot of this.shots) {
+      shot.x += shot.vx * step
+      shot.y += shot.vy * step
+      shot.life -= 1
+      if (shot.life <= 0) continue
+      if (shot.x < -8 || shot.y < -8 || shot.x > SCREEN_W + 8 || shot.y > SCREEN_H + 8) continue
+      // Walls stop it, so a monster behind a rock is safe from it — which is
+      // what makes the bow a thing you line up rather than a thing you spam.
+      if (this.isSolidAt(shot.x + SHOT_SIZE / 2, shot.y + SHOT_SIZE / 2, opened, canCrossWater)) continue
+
+      const box = { x: shot.x, y: shot.y, w: SHOT_SIZE, h: SHOT_SIZE }
+      const struck = this.enemies.find((enemy) => overlaps(box, enemy.box()))
+      if (struck) {
+        if (struck.hurt(ARROW_DAMAGE)) {
+          sfx.play('enemyHit')
+          if (struck.isDead()) this.defeat(struck)
+        }
+        continue
+      }
+      flying.push(shot)
+    }
+    this.shots = flying
   }
 
   private dropBait(): void {
@@ -1593,6 +1686,18 @@ export class World {
       this.atlas.draw(ctx, shot.magic ? 'magicBolt' : 'projectile', shot.x, shot.y)
     }
 
+    // His own arrows, drawn pointing the way they are going and centred on
+    // the little box that does the hitting.
+    for (const shot of this.shots) {
+      const sideways = shot.facing === 'left' || shot.facing === 'right'
+      this.atlas.draw(
+        ctx,
+        `${this.level === 2 ? 'bolt' : 'arrowFly'}${capitalise(shot.facing)}` as SpriteName,
+        shot.x + SHOT_SIZE / 2 - (sideways ? 8 : 4),
+        shot.y + SHOT_SIZE / 2 - (sideways ? 4 : 8),
+      )
+    }
+
     for (const bomb of this.bombs) {
       // Flashes faster as the fuse runs down.
       const urgency = bomb.fuse < 34 ? 3 : bomb.fuse < 66 ? 6 : 10
@@ -1659,7 +1764,16 @@ export class World {
       totalExercises: TOTAL_EXERCISES,
       level: this.level,
       weaponLabel: this.words.weaponLabel,
-      ...(tool ? { tool: { name: itemName(tool, this.level), count: this.save.inventory[tool] ?? 0 } } : {}),
+      // The bow is one thing he owns for good; what is worth counting is what
+      // it fires, so the slot shows arrows rather than a permanent "x1".
+      ...(tool
+        ? {
+            tool: {
+              name: itemName(tool, this.level),
+              count: this.save.inventory[tool === 'bow' ? 'arrows' : tool] ?? 0,
+            },
+          }
+        : {}),
     })
 
     if (this.message) this.drawMessageBar(ctx)
@@ -2418,6 +2532,8 @@ export class World {
       petFedScreens: this.save.world.petFedScreens,
       invisibleScreens: this.save.world.invisibleScreens,
       projectiles: this.projectiles.length,
+      shots: this.shots.length,
+      arrows: this.save.inventory.arrows ?? 0,
       bursts: this.bursts.length,
       candleUsedHere: this.candleUsedHere,
       level: this.level,
