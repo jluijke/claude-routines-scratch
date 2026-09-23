@@ -118,6 +118,32 @@ const guardians = world.screens
   })
   .sort((a, b) => a.level - b.level || a.number - b.number)
 
+/**
+ * The mouth of each guardian's lair, on the walkable map.
+ *
+ * The guardian himself is deep inside, in a room that has no place on the
+ * grid — so what is worth marking out there is the door he goes in by. Taken
+ * from the first step of each route, so it is the real door and not a guess.
+ */
+const lairs = new Map()
+for (const g of guardians) {
+  // The last screen on the route he can still walk to, and the door he leaves
+  // it by. For three of the four that is the first step; for the one up the
+  // Mountain Track it is four screens further on, at the Summit Gate, and
+  // marking the crypt door at the bottom of the hill would be a lie.
+  const outside = (sc) => Boolean(sc.at) || mountain.includes(sc.id)
+  let i = -1
+  g.path.forEach((sc, at) => { if (outside(sc)) i = at })
+  const entry = g.path[i]
+  const next = g.path[i + 1]
+  if (!entry || !next) continue
+  const door = entry.portals.find((p) => p.to === next.id)
+  if (!door) continue
+  const list = lairs.get(entry.id) ?? []
+  list.push({ col: door.col, row: door.row, number: g.number, room: g.room.name, level: g.level })
+  lairs.set(entry.id, list)
+}
+
 const kindWord = (g) =>
   g.challenge === 'half' ? 'half an exercise'
   : g.challenge === 'intro' ? 'two quick words'
@@ -145,27 +171,77 @@ const guardianHtml = (level) =>
 
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
+/** What opens a piece of cracked rock, in the words of the world it is in. */
+const charge = (level) => (level === 2 ? 'a Plasma Charge' : 'a bomb')
+const flame = (level) => (level === 2 ? 'the Laser Screwdriver' : 'the Blue Candle')
+
+/** The hover text on a cracked tile: what it is, and what is behind it. */
+function breakTitle(s, b) {
+  const tool = b.needs === 'bomb' ? charge(s.level) : flame(s.level)
+  if (b.opens) return `Open with ${tool} — into ${b.opens.name}`
+  if (b.gate) return `Open with ${tool}, or spell it open — nothing behind it either way`
+  return `Cracked, and nothing behind it — ${tool} spent here buys nothing`
+}
+
 /** A screen as a 16x11 pixel map, plus its markers. */
 function tile(s, opts = {}) {
   const marks = []
+  const breakable = (col, row) => s.breakables.some((b) => b.col === col && b.row === row)
+  // Anything sitting on breakable rock is marked from the rock, below, so a
+  // door and the boulder in front of it do not put two dots on one tile.
   for (const p of s.portals) {
-    const cls = p.hidden === 'bomb' ? 'm-bomb' : p.hidden === 'candle' ? 'm-candle' : p.requires ? 'm-item' : 'm-door'
-    marks.push({ col: p.col, row: p.row, cls, title: `to ${p.toName}` })
+    if (p.hidden) continue
+    marks.push({ col: p.col, row: p.row, cls: p.requires ? 'm-item' : 'm-door', title: `to ${p.toName}` })
   }
   if (s.treasure) marks.push({ col: s.treasure.col, row: s.treasure.row, cls: 'm-chest', title: `${s.treasure.rupees} rupees` })
   if (s.pickup) marks.push({ col: s.pickup.col, row: s.pickup.row, cls: 'm-pickup', title: s.pickup.itemName })
   if (isBossRoom(s)) marks.push({ col: 7, row: 4, cls: 'm-boss', title: 'The guardian' })
   for (const g of s.gates) {
+    if (breakable(g.col, g.row)) continue
     marks.push({ col: g.col, row: g.row, cls: g.kind === 'chest' ? 'm-sealed' : 'm-gate', title: g.id })
+  }
+  // Every piece of cracked rock on the screen, whether or not it hides
+  // anything — a hollow pin is rock that opens onto nothing.
+  for (const b of s.breakables) {
+    marks.push({
+      col: b.col,
+      row: b.row,
+      cls: b.needs === 'candle' ? 'm-candle' : b.opens || b.gate ? 'm-bomb' : 'm-dud',
+      title: breakTitle(s, b),
+    })
+  }
+
+  // The way in to a big monster's cave, drawn on the tile of the door itself.
+  // If something already marks that tile — a boulder, usually — the black
+  // centre goes inside that pin rather than beside it.
+  for (const lair of lairs.get(s.id) ?? []) {
+    const note = `The way to ${lair.level === 2 ? 'mech' : 'guardian'} ${lair.number}, in ${lair.room}`
+    // Every pin on that tile, not just the first: a dungeon door usually
+    // carries a barrier pin as well, and blacking out only the one underneath
+    // leaves the other sitting on top of it still wearing its own colour.
+    const existing = marks.filter((m) => m.col === lair.col && m.row === lair.row)
+    if (existing.length) {
+      for (const m of existing) {
+        m.cls += ' m-lair'
+        m.title += ` · ${note}`
+      }
+    } else {
+      marks.push({ col: lair.col, row: lair.row, cls: 'm-lair', title: note })
+    }
   }
 
   const dots = marks
     .map((m) => `<i class="mk ${m.cls}" style="left:${(m.col / 16) * 100}%;top:${(m.row / 11) * 100}%" title="${esc(m.title)}"></i>`)
     .join('')
 
+  // The pins hang off the picture, not off the figure: with the caption inside
+  // the positioning box, a pin on the bottom row of a screen landed somewhere
+  // in the middle of the screen's name.
   return `<figure class="screen${opts.small ? ' small' : ''}">
-      <canvas width="16" height="11" data-rows="${esc(s.rows.join('|'))}" data-theme="${themeOf(s)}"></canvas>
-      ${dots}
+      <div class="shot">
+        <canvas width="16" height="11" data-rows="${esc(s.rows.join('|'))}" data-theme="${themeOf(s)}"></canvas>
+        ${dots}
+      </div>
       <figcaption><span class="sname">${esc(s.name)}</span></figcaption>
     </figure>`
 }
@@ -198,6 +274,59 @@ function clustersOf(list) {
     )
     .join('\n')
 }
+/**
+ * Every piece of cracked rock in a world, and what a bomb on it buys.
+ *
+ * The table above this one is a list of doors, so a bomb that opens nothing
+ * never appears in it — and those are exactly the ones that make him think he
+ * is stuck. This is the other list: every cracked tile there is, taken off the
+ * tile rows themselves.
+ */
+function bombSpots(level) {
+  return world.screens
+    .filter((s) => s.level === level)
+    .flatMap((s) => s.breakables.filter((b) => b.needs === 'bomb').map((b) => ({ s, b })))
+}
+
+/** True if a door is a step on some guardian's route — i.e. he must open it. */
+const onGuardianRoute = (fromId, toId) =>
+  guardians.some((g) => g.path.some((sc, i) => sc.id === fromId && g.path[i + 1]?.id === toId))
+
+const bombRows = (level) =>
+  bombSpots(level)
+    .map(({ s, b }) => {
+      const must = b.opens && onGuardianRoute(s.id, b.opens.id)
+      const what = b.opens
+        ? `<b>${esc(b.opens.name)}</b>`
+        : b.gate
+          ? 'Nothing — a spelling barrier stands on it, and open or not there is only more path behind it'
+          : '<i>Nothing at all.</i> Solid rock, and the charge is wasted'
+      return `<tr class="${must ? 'must' : b.opens ? '' : 'dud'}">
+      <td><span class="pin ${b.opens || b.gate ? 'm-bomb' : 'm-dud'}"></span>${esc(s.name)}</td>
+      <td class="mono">col ${b.col}, row ${b.row}</td>
+      <td>${what}</td>
+      <td>${must ? '<b class="must-tag">Must be opened to finish the game</b>' : b.opens ? 'Optional' : '—'}</td>
+    </tr>`
+    })
+    .join('\n')
+
+const mustCount = (level) => bombSpots(level).filter(({ s, b }) => b.opens && onGuardianRoute(s.id, b.opens.id)).length
+const dudCount = (level) => bombSpots(level).filter(({ b }) => !b.opens && !b.gate).length
+
+/** The key to the pins, above each of the two maps. */
+const legend = `<div class="legend">
+    <span><i class="m-lair"></i>The way in to a big monster's cave</span>
+    <span><i class="m-bomb"></i>Cracked — a bomb opens it</span>
+    <span><i class="m-dud"></i>Cracked, with nothing behind it</span>
+    <span><i class="m-candle"></i>Needs the candle</span>
+    <span><i class="m-item"></i>Needs an item</span>
+    <span><i class="m-gate"></i>Spelling barrier</span>
+    <span><i class="m-chest"></i>Chest</span>
+    <span><i class="m-pickup"></i>On the ground</span>
+    <span><i class="m-door"></i>Plain door</span>
+    <span><i class="m-boss"></i>The guardian's own room</span>
+  </div>`
+
 const clusterHtml = clustersOf(land)
 const shipClusterHtml = clustersOf(ship)
 
@@ -224,7 +353,7 @@ const html = `<title>Atlas of Both Worlds</title>
     --rule: #d5dacd;
     --gold: #a8791a;
     --gold-bright: #e6b422;
-    --bomb: #d5433f;
+    --bomb: #ffd400;
     --candle: #e07b1f;
     --item: #2c6fd4;
     --gate: #7a51c4;
@@ -241,7 +370,7 @@ const html = `<title>Atlas of Both Worlds</title>
       --rule: #2a2f20;
       --gold: #e6b422;
       --gold-bright: #ffd45e;
-      --bomb: #ff6b66;
+      --bomb: #ffe14d;
       --candle: #f2a04a;
       --item: #6aa3f0;
       --gate: #b393f0;
@@ -252,7 +381,7 @@ const html = `<title>Atlas of Both Worlds</title>
   :root[data-theme="dark"] {
     --ground: #101309; --panel: #181c12; --ink: #e9ecdf; --dim: #9aa38e;
     --faint: #666f5c; --rule: #2a2f20; --gold: #e6b422; --gold-bright: #ffd45e;
-    --bomb: #ff6b66; --candle: #f2a04a; --item: #6aa3f0; --gate: #b393f0;
+    --bomb: #ffe14d; --candle: #f2a04a; --item: #6aa3f0; --gate: #b393f0;
     --chest: #4fd18a; --shadow: none;
   }
 
@@ -275,13 +404,32 @@ const html = `<title>Atlas of Both Worlds</title>
 
   .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 18px 0 22px; font-size: 13px; color: var(--dim); }
   .legend span { display: inline-flex; align-items: center; gap: 7px; }
-  .pin, .legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; box-shadow: 0 0 0 1.5px rgba(0,0,0,.45); }
+  .pin, .legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
   .pin { margin-right: 8px; vertical-align: -1px; }
-  .m-bomb { background: var(--bomb); } .m-candle { background: var(--candle); }
+  /* The ring every pin gets unless it asks for its own. Wrapped in :where() so
+     that it counts for nothing: without that, ".legend i" outranks the rules
+     below and a pin in the key comes out a different shape from the same pin
+     on the map. */
+  :where(.pin, .legend i, .mk) { box-shadow: 0 0 0 1.5px rgba(0,0,0,.5); }
+  /* Bright yellow, and ringed dark, because it has to carry on pale sand as
+     well as on black rock. Hollow yellow is cracked rock with nothing in it. */
+  .m-bomb { background: var(--bomb); box-shadow: 0 0 0 1.6px rgba(0,0,0,.75); }
+  .m-dud { background: #fff; box-shadow: inset 0 0 0 3px var(--bomb), 0 0 0 1.4px rgba(0,0,0,.55); }
+  .m-candle { background: var(--candle); }
   .m-item { background: var(--item); } .m-gate { background: var(--gate); }
   .m-door { background: #cfd6c4; } .m-chest, .m-sealed { background: var(--chest); }
-  .m-pickup { background: var(--gold-bright); }
+  /* Ringed white, so a thing lying on the ground is not mistaken for the
+     bright yellow of cracked rock. */
+  .m-pickup { background: var(--gold-bright); box-shadow: 0 0 0 1.5px #fff, 0 0 0 2.8px rgba(0,0,0,.5); }
   .m-boss { background: #ff3b30; box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px rgba(0,0,0,.6); }
+  /* The mouth of a big monster's cave, out on the walkable map: a black dot,
+     ringed white so it still reads against the dark doorway underneath it.
+     On a tile that is already marked, the black takes the centre and whatever
+     was there keeps the ring. */
+  .m-lair { background: #000 !important; box-shadow: 0 0 0 1.8px #fff, 0 0 0 3px rgba(0,0,0,.55); }
+  .m-bomb.m-lair { box-shadow: 0 0 0 2.2px var(--bomb), 0 0 0 3.4px rgba(0,0,0,.7); }
+  .m-candle.m-lair { box-shadow: 0 0 0 2.2px var(--candle), 0 0 0 3.4px rgba(0,0,0,.7); }
+  .m-dud.m-lair { box-shadow: 0 0 0 1.8px #fff, 0 0 0 3px rgba(0,0,0,.55); }
   .guardian { border: 1px solid var(--rule); border-left: 4px solid #ff3b30; border-radius: 6px; padding: 12px 14px; margin-bottom: 14px; background: var(--panel); }
   .guardian h3 { display: flex; align-items: center; gap: 4px; }
   .guardian p { margin: 4px 0; }
@@ -295,12 +443,13 @@ const html = `<title>Atlas of Both Worlds</title>
   .track { display: grid; grid-template-rows: repeat(${mountain.length}, auto); gap: 6px; }
   .lbl { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--faint); letter-spacing: .1em; text-transform: uppercase; margin: 0 0 8px; }
 
-  .screen { position: relative; margin: 0; }
-  .screen canvas { width: 100%; height: auto; display: block; image-rendering: pixelated; border: 1px solid var(--rule); background: #000; }
-  .screen.small canvas { border-color: var(--rule); }
+  .screen { margin: 0; }
+  .shot { position: relative; display: block; }
+  .shot canvas { width: 100%; height: auto; display: block; image-rendering: pixelated; border: 1px solid var(--rule); background: #000; }
+  .screen.small .shot canvas { border-color: var(--rule); }
   figcaption { margin-top: 4px; }
   .sname { font-family: 'IBM Plex Sans Condensed', system-ui, sans-serif; font-size: 12px; font-weight: 600; color: var(--dim); }
-  .mk { position: absolute; width: 8px; height: 8px; border-radius: 50%; transform: translate(-50%, -50%); margin-left: 3.1%; margin-top: 4.5%; box-shadow: 0 0 0 1.5px rgba(0,0,0,.6); }
+  .mk { position: absolute; width: 8px; height: 8px; border-radius: 50%; transform: translate(-50%, -50%); margin-left: 3.1%; margin-top: 4.5%; }
 
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th { text-align: left; font-family: 'Silkscreen', monospace; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); font-weight: 400; padding: 0 12px 8px 0; border-bottom: 1px solid var(--rule); }
@@ -308,6 +457,10 @@ const html = `<title>Atlas of Both Worlds</title>
   td:first-child { font-weight: 500; }
   .mono { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; color: var(--dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .scroller { overflow-x: auto; }
+  /* A bomb he has to spend, and a bomb he would waste. */
+  tr.must td { background: color-mix(in srgb, var(--bomb) 14%, transparent); }
+  .must-tag { color: var(--ink); }
+  tr.dud td { color: var(--faint); }
 
   .cluster { margin-bottom: 22px; }
   .strip { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -345,18 +498,18 @@ const html = `<title>Atlas of Both Worlds</title>
     </table>
   </div>
 
+  <h2>Level 1 · Where every bomb goes</h2>
+  <p class="note">All ${bombSpots(1).length} pieces of cracked rock in the land, read off the tiles themselves. <b>${mustCount(1)} of them have to be blown open to finish the game</b> — two of the four dungeons have no other way in, so a child with no bombs cannot reach half the guardians however well he spells. Bombs are 40 rupees in the village shop, and the blast opens every cracked tile it touches, so one is often enough for a cluster. ${dudCount(1)} of the ${bombSpots(1).length} open onto nothing at all — all three inside the Ember Vault, where picking the right slab is the puzzle. Those are the hollow pins.</p>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>On this screen</th><th>Tile</th><th>What is behind it</th><th>Needed?</th></tr></thead>
+      <tbody>${bombRows(1)}</tbody>
+    </table>
+  </div>
+
   <h2>Level 1 · The overworld</h2>
   <p class="note">Laid out exactly as it connects — each square is one screen, in its true position. The Mountain Track is drawn apart because it is entered through the crypt door and its one downhill exit would put it on top of the Graveyard.</p>
-  <div class="legend">
-    <span><i class="m-bomb"></i>Needs a bomb</span>
-    <span><i class="m-candle"></i>Needs the candle</span>
-    <span><i class="m-item"></i>Needs an item</span>
-    <span><i class="m-gate"></i>Spelling barrier</span>
-    <span><i class="m-chest"></i>Chest</span>
-    <span><i class="m-pickup"></i>On the ground</span>
-    <span><i class="m-door"></i>Plain door</span>
-    <span><i class="m-boss"></i>A guardian</span>
-  </div>
+  ${legend}
   <div class="board">
     <div class="grid">${gridCells}</div>
     <div class="aside">
@@ -371,6 +524,7 @@ const html = `<title>Atlas of Both Worlds</title>
 
   <h2>Level 2 · The sky-ship</h2>
   <p class="note">The same quest a thousand years on, in a different shape: a block of decks he works his way round rather than a road north. The four rocks — the dungeons of the future — hang off the middle of it through four airlocks. There are no shop doors: each shop is a computer he walks into. The stores console is on the Bridge, the cyborg bay console in the Medbay, the forge console in Engineering; the two hidden terminals are behind cracked bulkheads in the Vault and on the Lower Deck.</p>
+  ${legend}
   <div class="board">
     <div class="grid ship">${deckCells}</div>
   </div>
@@ -385,6 +539,15 @@ const html = `<title>Atlas of Both Worlds</title>
     <table>
       <thead><tr><th>Leads to</th><th>On this screen</th><th>Tile</th><th>How it opens</th></tr></thead>
       <tbody>${shipFindingRows}</tbody>
+    </table>
+  </div>
+
+  <h2>Level 2 · Where every Plasma Charge goes</h2>
+  <p class="note">The same list for the ship. All ${bombSpots(2).length} cracked bulkheads, and this time <b>none of them stands between him and a mech</b> — every rock is reached through an airlock, so the charges here buy shortcuts, money and the Ship Schematic rather than progress. The one worth spending a charge on early is the Observatory: the Schematic behind it is the ship's map, and it is the only copy.</p>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>On this deck</th><th>Tile</th><th>What is behind it</th><th>Needed?</th></tr></thead>
+      <tbody>${bombRows(2)}</tbody>
     </table>
   </div>
 
@@ -473,7 +636,7 @@ const html = `<title>Atlas of Both Worlds</title>
       default: return p.g
     }
   }
-  for (const canvas of document.querySelectorAll('.screen canvas')) {
+  for (const canvas of document.querySelectorAll('.shot canvas')) {
     const rows = canvas.dataset.rows.split('|')
     const p = P[canvas.dataset.theme] || P.overworld
     const ctx = canvas.getContext('2d')

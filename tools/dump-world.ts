@@ -30,6 +30,49 @@ function hiddenBy(screenId: string, col: number, row: number): string | undefine
   return undefined
 }
 
+/**
+ * Every tile in a screen that a bomb or a flame would open.
+ *
+ * Read off the tile rows rather than off the doors, because the two are not
+ * the same list: some cracked rock has a way in behind it, some has a spelling
+ * barrier on it, and some has nothing at all. A parent working out where the
+ * bombs go needs all three, and only the rows know about the third.
+ */
+function breakablesOf(screen: (typeof SCREENS)[number]) {
+  const found: {
+    col: number
+    row: number
+    needs: 'bomb' | 'candle'
+    opens?: { id: string; name: string }
+    gate?: string
+  }[] = []
+  screen.rows.forEach((line, row) => {
+    ;[...line].forEach((char, col) => {
+      const def = TILES[char as TileChar]
+      if (!def?.cracked && !def?.bush) return
+      const portal = (screen.portals ?? []).find((p) => p.col === col && p.row === row)
+      const gate = (screen.gates ?? []).find(
+        (g) =>
+          (g.col === col && g.row === row) ||
+          (g.opens ?? []).some((t) => t.col === col && t.row === row),
+      )
+      // Every piece of cracked rock, even the ones with nothing behind them —
+      // a bomb spent on one of those is the reason he thinks he is stuck. The
+      // scenery bushes are a different matter: there are hundreds, and only the
+      // ones hiding something are worth a line.
+      if (!def.cracked && !portal && !gate) return
+      found.push({
+        col,
+        row,
+        needs: def.cracked ? 'bomb' : 'candle',
+        ...(portal ? { opens: { id: portal.to, name: screenById(portal.to)?.name ?? portal.to } } : {}),
+        ...(gate ? { gate: gate.gateId } : {}),
+      })
+    })
+  })
+  return found
+}
+
 const screens = SCREENS.map((screen) => ({
   id: screen.id,
   name: screen.name,
@@ -65,6 +108,7 @@ const screens = SCREENS.map((screen) => ({
       reward: gate?.reward,
     }
   }),
+  breakables: breakablesOf(screen),
   treasure: screen.treasure,
   pickup: screen.pickup
     ? { ...screen.pickup, itemName: itemName(screen.pickup.item, screen.level ?? 1) }
