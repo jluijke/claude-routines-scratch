@@ -174,6 +174,58 @@ for (let i = 0; i < 50 && !jumped; i++) {
 }
 check('the black mech is somewhere it did not walk to', jumped)
 
+// -------------------------------------------------- half dead, and it turns
+// Every mech but the splitter turns at the halfway mark: it starts vanishing,
+// and it starts throwing rings. This is what makes the second half of a fight
+// different from the first.
+
+/**
+ * Beats a mech down past half.
+ *
+ * Two things make this slower than it looks. A hit inside twelve frames of the
+ * last one is refused outright, so the blows have to be spaced or four in five
+ * land on nothing; and the ice mech takes nothing at all behind its shield, so
+ * it has to be hit in the window after it fires.
+ */
+const beatToHalf = async (screen) => {
+  for (let i = 0; i < 60; i++) {
+    const s = await world()
+    if (!s.monsters.length || s.mechs[0]?.enraged) return
+    if (!s.mechs[0]?.shielded) await page.evaluate(() => window.zsq.world.debugHitBoss(4))
+    await wait(230)
+  }
+}
+
+for (const n of [1, 3, 4]) {
+  // The charger is fought for real: under the potion it squares up to the
+  // middle of the room, never closes, and so never slams or throws its ring.
+  await enterCore(n, { unseen: n !== 1 })
+  await page.evaluate(() => { for (let i = 0; i < 14; i++) window.zsq.world.grantHeartContainer() })
+  check(`rock ${n} starts calm`, !(await world()).mechs[0].enraged)
+  await beatToHalf(CORES[n])
+
+  const angry = await world()
+  check(`rock ${n} turns at half health`, angry.mechs?.[0]?.enraged === true)
+  check(`rock ${n} says so`, /phasing|not stay put|holding still/i.test(angry.message ?? ''))
+
+  // Once it has turned it must not stand still to be hit, and it must throw
+  // something. Both are what the second phase is for.
+  let jumped = false
+  let threw = 0
+  let last = (await world()).monsters[0]
+  for (let i = 0; i < 60 && !(jumped && threw); i++) {
+    await wait(140)
+    const s = await world()
+    const now = s.monsters[0]
+    if (!now) break
+    threw = Math.max(threw, s.projectiles ?? 0)
+    if (Math.hypot(now.x - last.x, now.y - last.y) > 24) jumped = true
+    last = now
+  }
+  check(`rock ${n} vanishes once it has turned`, jumped)
+  check(`rock ${n} throws something once it has turned`, threw > 0)
+}
+
 console.log(JSON.stringify({ failures, errors, seen }, null, 2))
 for (const f of failures) console.log('  FAILED:', f)
 await browser.close()

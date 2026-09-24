@@ -7,7 +7,7 @@
  * and, just as importantly, that the land's guardians did not catch it.
  */
 import { describe, expect, it } from 'vitest'
-import { Enemy, type Projectile } from '../src/game/entities/enemies'
+import { Enemy, ringBurst, type Projectile } from '../src/game/entities/enemies'
 import { SPRITES } from '../src/game/render/sprites'
 
 const nowhereBlocked = () => false
@@ -205,5 +205,156 @@ describe('the black mech phases', () => {
       was = { x: one.x, y: one.y }
     }
     expect(jumps, 'it never blinked').toBeGreaterThan(0)
+  })
+})
+
+/** Beats it down to just past half, leaving the twelve-frame guard clear. */
+function halve(one: Enemy, target = { x: 200, y: 80 }): void {
+  const half = one.def.hp / 2
+  for (let i = 0; i < 200 && one.hp > half; i++) {
+    one.hurt(1)
+    run(one, 14, target)
+  }
+}
+
+describe('half dead, and it turns', () => {
+  it('enrages every mech but the splitter, which splits instead', () => {
+    for (const kind of ['boss1', 'boss3', 'boss4'] as const) {
+      const one = mech(kind)
+      expect(one.enraged, `${kind} starts angry`).toBe(false)
+      halve(one)
+      expect(one.enraged, `${kind} never turned`).toBe(true)
+      expect(one.justEnraged, `${kind} never said so`).toBe(true)
+    }
+    const red = mech('boss2')
+    halve(red)
+    expect(red.wantsSplit).toBe(true)
+    expect(red.enraged, 'the splitter enraged as well as splitting').toBe(false)
+  })
+
+  it('says so exactly once', () => {
+    const one = mech('boss4')
+    halve(one)
+    expect(one.justEnraged).toBe(true)
+    one.justEnraged = false
+    // Beat it to within an inch: it must not announce itself again.
+    for (let i = 0; i < 40 && one.hp > 1; i++) {
+      one.hurt(1)
+      run(one, 14)
+      expect(one.justEnraged, 'it turned twice').toBe(false)
+    }
+  })
+
+  it('hands the red mech its rage to its halves instead', () => {
+    const half = new Enemy('boss2', 4, 5, 7, 'robot', { half: true })
+    expect(half.enraged, 'a half arrives calm').toBe(true)
+  })
+
+  it('makes every one of them start vanishing', () => {
+    for (const kind of ['boss1', 'boss3', 'boss4'] as const) {
+      const one = mech(kind, 8, 5)
+      halve(one)
+      // Keep well away, so the charger stays stalking rather than charging.
+      let jumps = 0
+      let was = { x: one.x, y: one.y }
+      for (let i = 0; i < 700; i++) {
+        one.update(1 / 60, { x: 40, y: 150 }, nowhereBlocked, () => {})
+        if (Math.hypot(one.x - was.x, one.y - was.y) > 12) jumps += 1
+        was = { x: one.x, y: one.y }
+      }
+      expect(jumps, `${kind} never vanished once it turned`).toBeGreaterThan(0)
+    }
+  })
+
+  it('never blinks a charger out of its own charge', () => {
+    // A charge you can read is the whole fight. One that teleports mid-run is
+    // not a fight, it is something that happens to you.
+    const one = mech('boss1', 2, 5)
+    halve(one, { x: 236, y: 88 })
+    let was = { x: one.x, y: one.y }
+    for (let i = 0; i < 700; i++) {
+      one.update(1 / 60, { x: 236, y: 88 }, walledAt(8), () => {})
+      const moved = Math.hypot(one.x - was.x, one.y - was.y)
+      // A charge step is at most a few pixels; a blink is tens.
+      if (!one.isDazed && !one.isWindingUp && moved > 12) {
+        expect(one.isBlinking, 'it jumped without blinking').toBe(true)
+      }
+      was = { x: one.x, y: one.y }
+    }
+  })
+})
+
+describe('what it throws once it has turned', () => {
+  it('opens the red mech\'s fan from three bolts to five — but only its halves', () => {
+    // The whole one never turns: coming apart is its turn, so it keeps the
+    // fan of three right up to the moment it splits. Both halves throw five.
+    const whole = mech('boss2')
+    halve(whole)
+    expect(whole.enraged).toBe(false)
+    const fromWhole = run(whole, 400)
+
+    const half = new Enemy('boss2', 4, 5, 7, 'robot', { half: true })
+    const fromHalf = run(half, 400)
+    expect(fromWhole.length).toBeGreaterThan(0)
+    expect(fromHalf.length).toBeGreaterThan(fromWhole.length)
+  })
+
+  it('turns the ice mech\'s single shot into a burst of three', () => {
+    const one = mech('boss3')
+    const before = run(one, 300).length
+    halve(one)
+    expect(run(one, 300).length).toBeGreaterThan(before)
+  })
+
+  it('throws a ring off the charger when it hits the wall', () => {
+    const one = mech('boss1', 2, 5)
+    halve(one, { x: 236, y: 88 })
+    const fired: Projectile[] = []
+    for (let i = 0; i < 500; i++) {
+      one.update(1 / 60, { x: 236, y: 88 }, walledAt(8), (p) => fired.push(p))
+    }
+    expect(fired.length, 'the charger never threw anything').toBeGreaterThan(0)
+  })
+
+  it('leaves bolts where the black mech was standing', () => {
+    const one = mech('boss4', 8, 5)
+    halve(one)
+    const fired: Projectile[] = []
+    let rings = 0
+    let was = { x: one.x, y: one.y }
+    for (let i = 0; i < 700; i++) {
+      const before = fired.length
+      one.update(1 / 60, { x: 40, y: 150 }, nowhereBlocked, (p) => fired.push(p))
+      if (Math.hypot(one.x - was.x, one.y - was.y) > 12 && fired.length - before >= 6) rings += 1
+      was = { x: one.x, y: one.y }
+    }
+    expect(rings, 'it vanished without leaving anything behind').toBeGreaterThan(0)
+  })
+
+  it('throws a ring that always has a way out of it', () => {
+    // Evenly spaced and slower than he walks: the gaps open as it travels, so
+    // there is never a wall of fire with no door in it.
+    const ring = ringBurst({ x: 100, y: 100 }, 3)
+    expect(ring.length).toBe(8)
+    for (const bolt of ring) {
+      expect(Math.hypot(bolt.vx, bolt.vy)).toBeCloseTo(58, 0)
+      // A ring bolt always costs less than an aimed one.
+      expect(bolt.damage).toBe(2)
+    }
+    const angles = ring.map((b) => Math.atan2(b.vy, b.vx)).sort((a, b) => a - b)
+    for (let i = 1; i < angles.length; i++) {
+      expect(angles[i]! - angles[i - 1]!).toBeCloseTo(Math.PI / 4, 3)
+    }
+  })
+
+  it('never raises what a bolt costs him', () => {
+    // The fight gets busier, not more punishing — the difference between a
+    // good boss and one a nine-year-old gives up on.
+    for (const kind of ['boss1', 'boss2', 'boss3', 'boss4'] as const) {
+      const one = mech(kind)
+      const damage = one.def.damage
+      halve(one)
+      expect(one.def.damage, `${kind} hits harder when angry`).toBe(damage)
+    }
   })
 })

@@ -17,7 +17,7 @@ import { drawHud, HUD_H } from './render/hud'
 import { drawWorldMap } from './render/map'
 import { drawBarriers, drawDarkness, drawGlimmers, drawSpeech, drawTiles, themeFor, visibleTile } from './render/world'
 import { itemSprite } from './render/icons'
-import { Enemy, isBossKind, overlaps, type Projectile } from './entities/enemies'
+import { Enemy, isBossKind, overlaps, ringBurst, type Projectile } from './entities/enemies'
 import { Player, PLAYER_SIZE, type Facing } from './entities/player'
 import { SCREEN_COLS, SCREEN_H, SCREEN_ROWS, SCREEN_W, TILE, TILES, isSolidChar, toTile, type TileChar } from './world/tiles'
 import { screenById, SCREENS, type EnemyKind, type Prop, type Screen } from './world/screens'
@@ -847,6 +847,14 @@ export class World {
         sfx.play('stomp')
         this.shake = SHAKE_FRAMES
       }
+      // Half dead, and it turns. Said once, so he knows the fight changed
+      // under him rather than wondering why it suddenly went wrong.
+      if (enemy.justEnraged) {
+        enemy.justEnraged = false
+        sfx.play('bossFanfare')
+        this.shake = SHAKE_FRAMES
+        this.showMessage(this.words.mechEnraged)
+      }
     }
     if (this.shake > 0) this.shake -= 1
 
@@ -1295,6 +1303,19 @@ export class World {
     const at = enemy.centre()
     const radius = enemy.size / 2 + 4
 
+    // Half dead and furious: a red ring that beats faster than the shield's,
+    // and stays for the rest of the fight. It is the only warning that this
+    // one now vanishes, so it has to be the thing you cannot miss.
+    if (enemy.enraged) {
+      ctx.save()
+      ctx.strokeStyle = Math.floor(this.frame / 4) % 2 === 0 ? '#ff3b30' : '#8f2320'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.arc(at.x, at.y, radius + 2 + (Math.floor(this.frame / 8) % 2), 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.restore()
+    }
+
     if (enemy.isShielded || enemy.blockFlash > 0) {
       const struck = enemy.blockFlash > 0
       ctx.save()
@@ -1359,6 +1380,8 @@ export class World {
     const each = Math.max(1, Math.ceil(parent.hp / 2))
     sfx.play('secret')
     this.shake = SHAKE_FRAMES
+    // It comes apart hard enough to throw scrap. Stand back.
+    this.projectiles.push(...ringBurst(at, 2))
     for (const side of [-1, 1]) {
       const col = Math.max(1, Math.min(SCREEN_COLS - 2, Math.round((at.x + side * 20) / TILE)))
       const row = Math.max(1, Math.min(SCREEN_ROWS - 2, Math.round(at.y / TILE)))
@@ -2666,6 +2689,7 @@ export class World {
           dazed: e.isDazed,
           windingUp: e.isWindingUp,
           half: e.isHalf,
+          enraged: e.enraged,
           sprite: e.sprite,
         })),
       shaking: this.shake > 0,
@@ -2685,6 +2709,12 @@ export class World {
   debugHitBoss(amount: number): void {
     const boss = this.enemies.find((e) => e.isBoss)
     if (boss) this.strike(boss, amount)
+  }
+
+  /** Back to full hearts, for the checks that measure what a fight costs. */
+  debugHeal(): void {
+    this.player.hearts = this.player.maxHearts
+    this.syncSave()
   }
 
   /** Jumps straight to a screen. Used by the debug menu and the end-to-end checks. */

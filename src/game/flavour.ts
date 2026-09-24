@@ -40,6 +40,8 @@ export interface Flavour {
   defeated: string
   /** Said once, the moment the red mech comes apart. Only the ship has one. */
   mechSplit: string
+  /** Said once, when a mech is half dead and stops fighting fair. */
+  mechEnraged: string
   /** The one line said when he walks out of an airlock without his suit. */
   noSuit: string
   suitOn: string
@@ -84,6 +86,7 @@ const LAND: Flavour = {
   // The land has no splitting guardian. Kept so the two tables stay the same
   // shape, rather than making one field optional for the sake of one world.
   mechSplit: 'It breaks in two, and both halves come on.',
+  mechEnraged: 'It is badly hurt, and it stops holding still.',
   noSuit: '',
   suitOn: '',
   suitOff: '',
@@ -126,6 +129,7 @@ const SHIP: Flavour = {
   noItems: 'You have no items to use yet.',
   defeated: 'You have run out of hearts. A medical drone carries you back to the bridge.',
   mechSplit: 'THE MECH SPLITS IN TWO. BOTH HALVES ARE STILL COMING.',
+  mechEnraged: 'WARNING: CORE BREACH. THE MECH IS PHASING — IT WILL NOT STAY PUT.',
   noSuit: 'You forgot to put on your space suit!',
   suitOn: 'You put on your space suit. The helmet seals with a hiss.',
   suitOff: 'Back inside, you hang the space suit up in the airlock.',

@@ -96,11 +96,27 @@ interface Mech {
   fireRate: number
 }
 
+/**
+ * The health here is the reason any of the rest of it matters.
+ *
+ * At the numbers these were cloned from — eighteen to forty-four, the land's
+ * guardians — a boss fight measured *one to three seconds* against the Scythe,
+ * because five damage a swing and a twelve-frame guard between hits is twenty
+ * points a second. Every one of them died before it reached half health, which
+ * means the charge, the split, the shield and the rage had all been written
+ * and none of them were ever seen. A guardian you kill before it does anything
+ * is not an easy fight, it is no fight at all.
+ *
+ * These are set so an unskilled attacker glued to the thing takes eight to
+ * twelve seconds, which puts a child who dodges and comes back at twenty to
+ * thirty — long enough to meet the second phase and have to deal with it.
+ * They are not sponges: nothing here hits harder than it did.
+ */
 const MECHS: Record<'boss1' | 'boss2' | 'boss3' | 'boss4', Mech> = {
-  boss1: { trick: 'charge', hp: 20, speed: 24, damage: 2, fireRate: 0 },
-  boss2: { trick: 'split', hp: 30, speed: 34, damage: 3, fireRate: 70 },
-  boss3: { trick: 'shield', hp: 34, speed: 30, damage: 3, fireRate: 100 },
-  boss4: { trick: 'phase', hp: 46, speed: 40, damage: 3, fireRate: 60 },
+  boss1: { trick: 'charge', hp: 45, speed: 24, damage: 2, fireRate: 0 },
+  boss2: { trick: 'split', hp: 60, speed: 34, damage: 3, fireRate: 70 },
+  boss3: { trick: 'shield', hp: 55, speed: 30, damage: 3, fireRate: 100 },
+  boss4: { trick: 'phase', hp: 80, speed: 40, damage: 3, fireRate: 60 },
 }
 
 function mechFor(kind: EnemyKind, look: EnemyLook): Mech | undefined {
@@ -125,6 +141,59 @@ const DAZED = 74
 const SHIELD_OPEN = 58
 /** How far off it has to be to bother charging, rather than simply shoving. */
 const CHARGE_REACH = 44
+
+/**
+ * What happens to a mech once it is half dead.
+ *
+ * Every one of them turns at the halfway mark: quicker on its feet, quicker on
+ * the trigger, and — the part that matters — it stops holding still to be hit.
+ * An enraged mech vanishes and comes back somewhere else, so the second half of
+ * every fight is a different fight from the first.
+ *
+ * It is deliberately only the second half. A nine-year-old needs the first half
+ * to learn what the thing does; springing all of it on him at the door would
+ * just be a wall. And none of it raises the damage a bolt does — the fight gets
+ * busier, not more punishing.
+ */
+const ENRAGE_SPEED = 1.3
+const ENRAGE_FIRE = 0.6
+/** Frames between an enraged mech's disappearances. */
+const RAGE_BLINK = [110, 190] as const
+/** Bolts in a ring, and how fast they leave. Slow enough to walk out of. */
+const RING_BOLTS = 8
+const RING_SPEED = 58
+
+/**
+ * A ring of bolts thrown out from a point, evenly spaced.
+ *
+ * Evenly spaced on purpose: the gaps between them widen as they travel, so
+ * backing off is always an answer and there is never a wall of fire with no
+ * way through it. Shared with the world, which throws one when the red mech
+ * comes apart.
+ */
+export function ringBurst(
+  at: { x: number; y: number },
+  damage: number,
+  count: number = RING_BOLTS,
+  spin = 0,
+): Projectile[] {
+  const out: Projectile[] = []
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2 + spin
+    out.push({
+      x: at.x - 4,
+      y: at.y - 4,
+      vx: Math.cos(angle) * RING_SPEED,
+      vy: Math.sin(angle) * RING_SPEED,
+      // A ring always hits for less than a aimed bolt. Eight of them at full
+      // damage is not a fight, it is a corridor with no door.
+      damage: Math.max(1, damage - 1),
+      life: 150,
+      magic: true,
+    })
+  }
+  return out
+}
 
 const ARCHETYPES: Record<EnemyKind, Archetype> = {
   shooter: {
@@ -216,6 +285,11 @@ export class Enemy {
   /** Set the moment a splitter drops past half, and cleared by the world. */
   wantsSplit = false
   private hasSplit = false
+  /** Half dead and twice the trouble. See ENRAGE_SPEED. */
+  enraged = false
+  private hasEnraged = false
+  /** Set on the frame it turns, and cleared by the world, which says so. */
+  justEnraged = false
 
   constructor(
     kind: EnemyKind,
@@ -248,6 +322,9 @@ export class Enemy {
     // A moment of walking before the first wind-up, so the room is not a
     // charge the instant he steps through the door.
     if (this.mech?.trick === 'charge') this.chargeTimer = 70
+    // A half is what the red mech's rage looks like: it does not turn again
+    // later, it turned when it came apart, and it arrives already furious.
+    if (this.isHalf) this.enrage()
   }
 
   /** True while the ice mech's shield is up: nothing can touch it. */
@@ -263,6 +340,30 @@ export class Enemy {
   /** True while it is gathering itself to charge, which is the tell. */
   get isWindingUp(): boolean {
     return this.chargeState === 'wind'
+  }
+
+  /** How fast it actually moves, rage included. */
+  private get moveSpeed(): number {
+    return this.def.speed * (this.enraged ? ENRAGE_SPEED : 1)
+  }
+
+  /** Frames between shots, rage included. */
+  private get fireGap(): number {
+    return Math.max(18, Math.round(this.def.fireRate * (this.enraged ? ENRAGE_FIRE : 1)))
+  }
+
+  /**
+   * Half dead: it stops standing still to be hit.
+   *
+   * The splitter never reaches here — coming apart is its turn, and the two
+   * pieces are born this way instead.
+   */
+  private enrage(): void {
+    if (this.hasEnraged) return
+    this.hasEnraged = true
+    this.enraged = true
+    this.justEnraged = true
+    this.blinkTimer = this.rng.int(50, 90)
   }
 
   get size(): number {
@@ -311,10 +412,16 @@ export class Enemy {
     if (this.isShielded) return false
     this.hp -= amount
     this.hurtTimer = 12
-    // Half dead, and it comes apart. Once only, and never for the pieces.
-    if (this.mech?.trick === 'split' && !this.isHalf && !this.hasSplit && this.hp <= this.def.hp / 2) {
-      this.hasSplit = true
-      this.wantsSplit = true
+    if (this.mech && this.hp > 0 && this.hp <= this.def.hp / 2) {
+      // Half dead, and it comes apart. Once only, and never for the pieces —
+      // which arrive enraged already, so they do not also get a turn of
+      // their own halfway down.
+      if (this.mech.trick === 'split' && !this.isHalf && !this.hasSplit) {
+        this.hasSplit = true
+        this.wantsSplit = true
+      } else if (this.mech.trick !== 'split') {
+        this.enrage()
+      }
     }
     return true
   }
@@ -399,7 +506,7 @@ export class Enemy {
       case 'boss2':
       case 'boss3':
       case 'boss4': {
-        if (this.mech) this.updateMech(step, toGoalX / distance, toGoalY / distance, isBlocked, me, distance)
+        if (this.mech) this.updateMech(step, toGoalX / distance, toGoalY / distance, isBlocked, me, distance, fire)
         // Advances steadily and cannot be out-walked forever.
         else this.step(step, toGoalX / distance, toGoalY / distance, isBlocked)
         break
@@ -413,34 +520,48 @@ export class Enemy {
     if (canShoot) {
       this.cooldown -= 1
       if (this.cooldown <= 0) {
-        this.cooldown = this.def.fireRate
+        this.cooldown = this.fireGap
         // The shield comes down with the shot and stays down for a moment.
         // Firing is the only thing that opens it, which is what makes the
-        // fight a matter of waiting rather than of swinging harder.
-        if (this.mech?.trick === 'shield') this.openTimer = SHIELD_OPEN
+        // fight a matter of waiting rather than of swinging harder. Enraged,
+        // it slams shut sooner, so the window wants watching for.
+        if (this.mech?.trick === 'shield') this.openTimer = this.enraged ? Math.round(SHIELD_OPEN * 0.6) : SHIELD_OPEN
         const speed = this.isBoss ? 78 : 62
-        fire({
-          x: me.x - 4,
-          y: me.y - 4,
-          vx: (toGoalX / distance) * speed,
-          vy: (toGoalY / distance) * speed,
-          damage: this.def.damage,
-          life: 180,
-          magic: this.isBoss || this.shotsPassWalls,
-          throughWalls: this.shotsPassWalls,
-        })
-        // The second boss fires a spread rather than a single bolt.
-        if (this.kind === 'boss2') {
-          for (const angle of [-0.4, 0.4]) {
-            const cos = Math.cos(angle)
-            const sin = Math.sin(angle)
-            const nx = (toGoalX / distance) * cos - (toGoalY / distance) * sin
-            const ny = (toGoalX / distance) * sin + (toGoalY / distance) * cos
-            fire({ x: me.x - 4, y: me.y - 4, vx: nx * speed, vy: ny * speed, damage: this.def.damage, life: 180, magic: true })
-          }
+        const aim = (angle: number): void => {
+          const cos = Math.cos(angle)
+          const sin = Math.sin(angle)
+          const nx = (toGoalX / distance) * cos - (toGoalY / distance) * sin
+          const ny = (toGoalX / distance) * sin + (toGoalY / distance) * cos
+          fire({
+            x: me.x - 4,
+            y: me.y - 4,
+            vx: nx * speed,
+            vy: ny * speed,
+            damage: this.def.damage,
+            life: 180,
+            magic: this.isBoss || this.shotsPassWalls,
+            throughWalls: this.shotsPassWalls,
+          })
         }
+        // Straight at him, plus whatever else this one throws.
+        for (const angle of this.spread()) aim(angle)
       }
     }
+  }
+
+  /**
+   * The angles it fires at, as offsets from straight at him.
+   *
+   * One bolt for almost everything. The red mech has always thrown a fan of
+   * three; enraged, that fan opens to five. The ice mech's rage is a tight
+   * burst of three instead of a single shot — the same bolt, harder to walk
+   * out of, and still with a clear way through.
+   */
+  private spread(): number[] {
+    if (this.kind === 'boss2' && this.mech) return this.enraged ? [-0.7, -0.35, 0, 0.35, 0.7] : [-0.4, 0, 0.4]
+    if (this.mech?.trick === 'shield' && this.enraged) return [-0.22, 0, 0.22]
+    if (this.kind === 'boss2') return [-0.4, 0, 0.4]
+    return [0]
   }
 
   /**
@@ -457,7 +578,22 @@ export class Enemy {
     isBlocked: (x: number, y: number) => boolean,
     me: { x: number; y: number },
     distance: number,
+    fire: (projectile: Projectile) => void,
   ): void {
+    // Enraged, every one of them starts vanishing — the black mech's trick,
+    // handed round once each of them is half dead. Never mid-charge, though:
+    // a charger that teleports out of its own run is not a fight anyone can
+    // read, it is just something that happens to you.
+    if (this.enraged && this.mech?.trick !== 'phase' && this.chargeState === 'stalk') {
+      this.blinkTimer -= 1
+      if (this.blinkPhase > 0) this.blinkPhase -= 1
+      if (this.blinkTimer <= 0) {
+        this.blinkTimer = this.rng.int(RAGE_BLINK[0], RAGE_BLINK[1])
+        this.blinkPhase = 24
+        this.blinkTo(isBlocked, me)
+      }
+    }
+
     switch (this.mech?.trick) {
       case 'charge': {
         this.chargeTimer -= 1
@@ -486,6 +622,10 @@ export class Enemy {
             this.chargeState = 'dazed'
             this.chargeTimer = DAZED
             this.slammed = stopped
+            // Enraged, the impact shakes a ring of scrap off it. The daze is
+            // still the window to hit it — you just have to walk in through
+            // the gaps to use it.
+            if (stopped && this.enraged) for (const p of ringBurst(this.centre(), this.def.damage)) fire(p)
           }
         } else if (this.chargeTimer <= 0) {
           this.chargeState = 'stalk'
@@ -500,8 +640,11 @@ export class Enemy {
         this.blinkTimer -= 1
         if (this.blinkPhase > 0) this.blinkPhase -= 1
         if (this.blinkTimer <= 0) {
-          this.blinkTimer = this.rng.int(150, 240)
+          this.blinkTimer = this.enraged ? this.rng.int(RAGE_BLINK[0], RAGE_BLINK[1]) : this.rng.int(150, 240)
           this.blinkPhase = 24
+          // Enraged, it leaves the spot it vanished from full of bolts. The
+          // lesson is to stop standing where it was the moment it goes.
+          if (this.enraged) for (const p of ringBurst(me, this.def.damage, 6, this.rng.next())) fire(p)
           this.blinkTo(isBlocked, me)
         }
         break
@@ -540,7 +683,7 @@ export class Enemy {
     dy: number,
     isBlocked: (x: number, y: number) => boolean,
   ): void {
-    const speed = this.def.speed * step
+    const speed = this.moveSpeed * step
     const nextX = this.x + dx * speed
     const nextY = this.y + dy * speed
 
