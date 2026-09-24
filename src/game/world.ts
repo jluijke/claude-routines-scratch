@@ -298,6 +298,15 @@ for (const screen of SCREENS) {
 /** How far round him the Scythe's sweep reaches, from his centre. */
 const SCYTHE_RADIUS = 26
 
+/**
+ * How close his centre must come to an edge before he leaves by it.
+ *
+ * A tile, so that it is reached comfortably — see checkEdges for what a
+ * five-pixel version of this did. Exported because tests/doorways.test.ts
+ * proves the arithmetic around it rather than sampling footings and hoping.
+ */
+export const EDGE_MARGIN = TILE
+
 /** How long the room rocks after something heavy lands. */
 const SHAKE_FRAMES = 16
 
@@ -946,7 +955,7 @@ export class World {
     const opened = this.openedTiles()
     const blocked = this.blockedHere()
 
-    this.player.update(step, dx, dy, blocked)
+    this.player.update(step, dx, dy, blocked, this.inVacuum())
     this.clampToScreen()
     // Belt and braces: nothing should ever put him inside a wall, but if
     // something does, he is out of it on the next frame rather than for good.
@@ -1379,15 +1388,31 @@ export class World {
    * just inside where clampToScreen stops the player, so pushing against the
    * border always triggers the change rather than pinning them there.
    */
+  /**
+   * He leaves once his centre is inside the doorway tile.
+   *
+   * This used to ask for his centre to be within five pixels of the very edge
+   * of the screen, and he cannot get there: collision stops his body two
+   * pixels short of the boundary, which puts his furthest centre at 172 with
+   * the door asking for 171. A window one pixel wide, crossed at a pixel a
+   * frame — so whether he got through depended on where his stride happened
+   * to land. Walking straight in from the door he came by worked; arriving on
+   * any other footing left him pressed into the gap, walking on the spot.
+   * "Sometimes it will not let me out" was exactly right, and it was all four
+   * edges in both worlds.
+   *
+   * A tile's width of room instead. His centre being in the border row means
+   * he is standing in the doorway, which is the moment to go — and it is
+   * twelve pixels rather than one, so it cannot be stepped over.
+   */
   private checkEdges(): void {
     const { exits } = this.screen
     const centre = this.player.centre()
-    const margin = 5
 
-    if (centre.y < margin && exits.up) return this.moveScreen(exits.up, 'up')
-    if (centre.y > SCREEN_H - margin && exits.down) return this.moveScreen(exits.down, 'down')
-    if (centre.x < margin && exits.left) return this.moveScreen(exits.left, 'left')
-    if (centre.x > SCREEN_W - margin && exits.right) return this.moveScreen(exits.right, 'right')
+    if (centre.y < EDGE_MARGIN && exits.up) return this.moveScreen(exits.up, 'up')
+    if (centre.y > SCREEN_H - EDGE_MARGIN && exits.down) return this.moveScreen(exits.down, 'down')
+    if (centre.x < EDGE_MARGIN && exits.left) return this.moveScreen(exits.left, 'left')
+    if (centre.x > SCREEN_W - EDGE_MARGIN && exits.right) return this.moveScreen(exits.right, 'right')
   }
 
   private moveScreen(id: string, direction: Facing): void {
@@ -1534,6 +1559,18 @@ export class World {
       this.enemies.push(half)
     }
     this.showMessage(this.words.mechSplit)
+  }
+
+  /**
+   * True out on the rocks, where he is in a suit with nothing to push against.
+   *
+   * Only the rocks. The decks of the ship have gravity — it is a ship — and
+   * the airlocks are the room where that stops being true, so the change is
+   * felt exactly where the fiction says it should be: on the far side of the
+   * outer door.
+   */
+  private inVacuum(): boolean {
+    return this.screen.setting === 'rock'
   }
 
   /** Whether the thing he is swinging is the Scythe: the future's gold. */
@@ -2751,10 +2788,26 @@ export class World {
   }
 
   private drawHeroSprites(ctx: CanvasRenderingContext2D): void {
-
-    const facing = this.player.facing
     const frame = this.player.animationFrame
-    const way = capitalise(facing)
+    const way = capitalise(this.player.facing)
+
+    // Out on the rocks he is never quite still: a slow rise and fall of a
+    // pixel or two, so the suit reads as floating even when he is standing
+    // there doing nothing. The whole hero shifts, blade and all.
+    if (this.inVacuum()) {
+      const bob = Math.sin(this.frame / 26) * 1.6 + Math.sin(this.frame / 11) * 0.5
+      ctx.save()
+      ctx.translate(0, Math.round(bob))
+      this.drawHeroBody(ctx, way, frame)
+      ctx.restore()
+      return
+    }
+    this.drawHeroBody(ctx, way, frame)
+  }
+
+  /** The hero and whatever he is holding, at his own coordinates. */
+  private drawHeroBody(ctx: CanvasRenderingContext2D, way: string, frame: 'A' | 'B'): void {
+    const facing = this.player.facing
 
     // The hero is drawn in the material of the shield he is carrying, and the
     // blade in the material of the sword — so the wooden ones look wooden.
@@ -2971,6 +3024,8 @@ export class World {
           sprite: e.sprite,
         })),
       shaking: this.shake > 0,
+      floating: this.inVacuum(),
+      drift: Number(this.player.driftSpeed().toFixed(2)),
       beaming: this.beaming !== undefined,
       greeter: this.greeter ? { x: Math.round(this.greeter.x), y: Math.round(this.greeter.y) } : undefined,
       drops: this.drops.length,
@@ -3013,6 +3068,12 @@ export class World {
   debugHeal(): void {
     this.player.hearts = this.player.maxHearts
     this.syncSave()
+  }
+
+  /** Drops him at an exact pixel, for the checks that probe edge crossing. */
+  debugPlace(x: number, y: number): void {
+    this.player.x = x
+    this.player.y = y
   }
 
   /** Jumps straight to a screen. Used by the debug menu and the end-to-end checks. */
