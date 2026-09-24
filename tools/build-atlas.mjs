@@ -334,7 +334,7 @@ const dudCount = (level) => bombSpots(level).filter(({ b }) => !b.opens && !b.ga
 /** The key to the pins, above each of the two maps. */
 const legend = `<div class="legend">
     <span><i class="m-lair"></i>The way in to a big monster's cave</span>
-    <span><i class="m-warp"></i>A teleporter pad</span>
+    <span><i class="m-warp"></i>A teleporter pad — only two in the game</span>
     <span><i class="m-bomb"></i>Cracked — a bomb opens it</span>
     <span><i class="m-dud"></i>Cracked, with nothing behind it</span>
     <span><i class="m-candle"></i>Needs the candle</span>
@@ -435,10 +435,12 @@ const html = `<title>Atlas of Both Worlds</title>
   .m-bomb { background: var(--bomb); box-shadow: 0 0 0 1.6px rgba(0,0,0,.75); }
   .m-dud { background: #fff; box-shadow: inset 0 0 0 3px var(--bomb), 0 0 0 1.4px rgba(0,0,0,.55); }
   .m-candle { background: var(--candle); }
-  /* A teleporter: the cyan of the pad in the game, ringed white so it still
-     reads on a hull plate and on grass alike. On a cracked tile it keeps the
-     yellow ring as well, because it is still a charge that opens it. */
-  .m-warp { background: #57d2c6 !important; box-shadow: 0 0 0 1.8px #f6f3e7, 0 0 0 3.2px rgba(0,0,0,.6); }
+  /* A teleporter: pink, because there are two of them in ninety-nine screens
+     and they have to be findable at a glance. The game's own cyan was the
+     first try and it read as one more bomb spot among the hull plating. On a
+     cracked tile the pink keeps the yellow ring, because it is still a charge
+     that opens it. */
+  .m-warp { background: #ff3fc5 !important; box-shadow: 0 0 0 1.8px #f6f3e7, 0 0 0 3.2px rgba(0,0,0,.65); }
   .m-bomb.m-warp { box-shadow: 0 0 0 2.2px var(--bomb), 0 0 0 3.6px rgba(0,0,0,.7); }
   .m-item { background: var(--item); } .m-gate { background: var(--gate); }
   .m-door { background: #cfd6c4; } .m-chest, .m-sealed { background: var(--chest); }
