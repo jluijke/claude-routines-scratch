@@ -1513,54 +1513,69 @@ function suited(sprite: Sprite): Sprite {
   return mapColours(sprite, { g: 'w', G: 'M', h: 'c', s: 'c' })
 }
 
-/** The Arc Staff: a dark rod with an orb of light at the tip. */
-const STAFF_RIGHT = defineSprite(16, 8, [
-  '............kk..',
-  '...........kcck.',
-  '.kMkkkkkkkkkcwck',
-  'kMMkMMMMMMMkcwck',
-  'kMMkMMMMMMMkcwck',
-  '.kMkkkkkkkkkcck.',
-  '............kk..',
-  '................',
+/**
+ * The Scythe: a long steel snath with a wooden peg for a grip, and a dark
+ * hooked blade with the light catching its edge.
+ *
+ * Drawn from the real thing rather than from a wizard's staff, which is what
+ * this used to be — a rod with a glowing orb on the end. The ring of lightning
+ * it throws is still the ring of lightning; it is the sweep of the blade now
+ * rather than something the orb does.
+ */
+const SCYTHE_RIGHT = defineSprite(16, 8, [
+  '..........kkkkk.',
+  '........kkzzzzzk',
+  '......kkzzzzzzzk',
+  '.....kzzzzzzzzk.',
+  '.....kwwwwwwwk..',
+  'kkkkkkkkkkkk....',
+  'kmmmmmmmmmmk....',
+  'kkknnkkkkkkk....',
 ])
 
-const STAFF_DOWN = defineSprite(8, 16, [
-  '..kMMk..',
-  '.kMMMMk.',
-  '..kMMk..',
-  '..kMMk..',
-  '..kMMk..',
-  '..kMMk..',
-  '..kMMk..',
-  '..kMMk..',
-  '..kMMk..',
-  '..kMMk..',
-  '.kkkkkk.',
-  '.kccccck',
-  'kccwwcck',
-  'kccwwcck',
-  '.kcccck.',
-  '..kkkk..',
+const SCYTHE_DOWN = defineSprite(8, 16, [
+  '..kmmk..',
+  '..kmmk..',
+  '..kmmk..',
+  'knnkmmk.',
+  '.kkkmmk.',
+  '..kmmk..',
+  '..kmmk..',
+  '..kmmk..',
+  '..kmmk..',
+  '..kmmk..',
+  '..kmmkk.',
+  '.kzzzzzk',
+  'kzzzzzzk',
+  'kwwwwwk.',
+  '.kkkkk..',
+  '........',
 ])
 
-const STAFF_ICON = S([
-  '............kkk.',
-  '...........kcwck',
-  '..........kcwwck',
-  '.........kMkcck.',
-  '........kMMkkk..',
-  '.......kMMk.....',
-  '......kMMk......',
-  '.....kMMk.......',
-  '....kMMk........',
-  '...kMMk.........',
-  '..kMMk..........',
-  '.kMMk...........',
-  'kMMk............',
-  'kMk.............',
-  'kk..............',
-  '................',
+/**
+ * The one on the shop shelf and in the slot: the whole tool, snath and all.
+ *
+ * Bottom-left to top-right in a long shallow curve, the wooden peg about a
+ * third of the way up, and the blade laid across the top — the shape of the
+ * real thing rather than a sword standing on end.
+ */
+const SCYTHE_ICON = S([
+  '...kkkkkkkk.....',
+  '..kzzzzzzzzk....',
+  '..kzzzzzzzzzk...',
+  '..kwwwwwwwwwk...',
+  '.........kmmk...',
+  '.........kmmk...',
+  '........kmmk....',
+  '........kmmk....',
+  '.......kmmk.....',
+  '.....knnmmk.....',
+  '.....kkkmmk.....',
+  '......kmmk......',
+  '......kmmk......',
+  '.....kmmk.......',
+  '.....kmmk.......',
+  '.....kkk........',
 ])
 
 /** A ship computer: a screen on a stand, always lit. */
@@ -2008,11 +2023,11 @@ const SABER_BASE = {
   Up: flipVertical(SABER_DOWN),
 } as const
 
-const STAFF_BASE = {
-  Right: STAFF_RIGHT,
-  Left: mirror(STAFF_RIGHT),
-  Down: STAFF_DOWN,
-  Up: flipVertical(STAFF_DOWN),
+const SCYTHE_BASE = {
+  Right: SCYTHE_RIGHT,
+  Left: mirror(SCYTHE_RIGHT),
+  Down: SCYTHE_DOWN,
+  Up: flipVertical(SCYTHE_DOWN),
 } as const
 
 function buildVariants(): Variants {
@@ -2021,10 +2036,10 @@ function buildVariants(): Variants {
     const name = tier[0]!.toUpperCase() + tier.slice(1)
     for (const [facing, sprite] of Object.entries(SWORD_BASE)) {
       out[`sword${name}${facing}`] = recolour(sprite, tier)
-      // The golden tier's future is the Arc Staff, which is its own drawing.
+      // The golden tier's future is the Scythe, which is its own drawing.
       out[`swordFuture${name}${facing}`] =
         tier === 'golden'
-          ? STAFF_BASE[facing as keyof typeof STAFF_BASE]
+          ? SCYTHE_BASE[facing as keyof typeof SCYTHE_BASE]
           : saber(SABER_BASE[facing as keyof typeof SABER_BASE], tier)
     }
     for (const [frame, sprite] of Object.entries(HERO_BASE)) {
@@ -2035,7 +2050,7 @@ function buildVariants(): Variants {
     out[`shield${name}`] = recolour(SHIELD, tier)
     out[`shieldFuture${name}`] = recolourFutureShield(SHIELD, tier)
     out[`swordIcon${name}`] = recolour(SWORD_ICON, tier)
-    out[`swordIconFuture${name}`] = tier === 'golden' ? STAFF_ICON : saber(SABER_ICON, tier)
+    out[`swordIconFuture${name}`] = tier === 'golden' ? SCYTHE_ICON : saber(SABER_ICON, tier)
   }
   return out as Variants
 }
@@ -2146,8 +2161,8 @@ export const SPRITES = {
   nanoBlue: mapColours(TUNIC, { g: 'b', G: 'B', d: 'M', y: 'c' }),
   nanoRed: mapColours(TUNIC, { g: 'r', G: 'R', d: 'M', y: 'c' }),
   // The staff as it is drawn beside the hero, so the atlas has it by name.
-  staffRight: STAFF_RIGHT,
-  staffDown: STAFF_DOWN,
+  scytheRight: SCYTHE_RIGHT,
+  scytheDown: SCYTHE_DOWN,
 } as const
 
 export type SpriteName = keyof typeof SPRITES

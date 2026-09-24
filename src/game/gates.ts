@@ -638,10 +638,10 @@ const GATE_LIST: Gate[] = [
     reward: { rupees: 50 },
   },
   {
-    id: 'forge-arc',
+    id: 'forge-scythe',
     kind: 'smith',
-    message: '"The Arc Staff is the last thing this forge will ever print. Show me you deserve it."',
-    openMessage: 'The Arc Staff comes out of the forge with its orb already lit.',
+    message: '"The Scythe is the last thing this forge will ever print. Show me you deserve it."',
+    openMessage: 'The Scythe comes out of the forge, its edge still glowing from the print head.',
     reward: { rupees: 80, heartContainer: true },
   },
   {

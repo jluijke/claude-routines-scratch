@@ -271,8 +271,8 @@ for (const screen of SCREENS) {
   BOSS_ROOMS[screen.level ?? 1].push(screen.id)
 }
 
-/** How far round him the Arc Staff's ring reaches, from his centre. */
-const ARC_RADIUS = 26
+/** How far round him the Scythe's sweep reaches, from his centre. */
+const SCYTHE_RADIUS = 26
 
 /** How long the room rocks after something heavy lands. */
 const SHAKE_FRAMES = 16
@@ -1258,14 +1258,14 @@ export class World {
     const sword = this.player.swordBox()
     const playerBox = { x: this.player.x, y: this.player.y, w: PLAYER_SIZE, h: PLAYER_SIZE }
 
-    // The Arc Staff swings a ring of lightning right round him, so anything
-    // close enough on any side is hit — the one weapon that reaches behind.
-    const arc = sword && this.hasArcStaff() ? this.player.centre() : undefined
+    // The Scythe cuts a ring of lightning right round him, so anything close
+    // enough on any side is hit — the one weapon that reaches behind.
+    const arc = sword && this.hasScythe() ? this.player.centre() : undefined
 
     for (const enemy of [...this.enemies]) {
       const box = enemy.box()
       const at = enemy.centre()
-      const inArc = arc !== undefined && Math.hypot(at.x - arc.x, at.y - arc.y) <= ARC_RADIUS + enemy.size / 2
+      const inArc = arc !== undefined && Math.hypot(at.x - arc.x, at.y - arc.y) <= SCYTHE_RADIUS + enemy.size / 2
 
       if ((sword && overlaps(sword, box)) || inArc) {
         this.strike(enemy, this.player.swordDamage)
@@ -1328,7 +1328,7 @@ export class World {
   /**
    * Every blow that lands on anything, whatever threw it.
    *
-   * Sword, Arc Staff, arrow, bomb and a set of teeth all come through here,
+   * Sword, Scythe, arrow, bomb and a set of teeth all come through here,
    * because the ice mech's shield has to turn all five of them aside. Written
    * out five times over, the sixth way of hitting something — and there will be
    * one — would have gone straight through the shield without anyone noticing.
@@ -1369,8 +1369,8 @@ export class World {
     this.showMessage(this.words.mechSplit)
   }
 
-  /** Whether the thing he is swinging is the Arc Staff: the future's gold. */
-  private hasArcStaff(): boolean {
+  /** Whether the thing he is swinging is the Scythe: the future's gold. */
+  private hasScythe(): boolean {
     return this.level === 2 && this.player.loadout.sword === 'goldenSword'
   }
 
@@ -2468,21 +2468,21 @@ export class World {
     const centreY = this.player.y + PLAYER_SIZE / 2
     const blade = this.bladeSprite(way)
 
-    // The Arc Staff's ring: a circle of light that opens out round him as the
+    // The Scythe's ring: a circle of light that opens out round him as the
     // swing goes, so the all-round hit is something he can see.
-    if (this.hasArcStaff()) {
+    if (this.hasScythe()) {
       const t = 1 - this.player.attackTimer / 14
       ctx.save()
       ctx.globalAlpha = 0.75 * (1 - t) + 0.1
       ctx.strokeStyle = '#c8fff8'
       ctx.lineWidth = 2
       ctx.beginPath()
-      ctx.arc(centreX, centreY, 8 + t * (ARC_RADIUS - 8), 0, Math.PI * 2)
+      ctx.arc(centreX, centreY, 8 + t * (SCYTHE_RADIUS - 8), 0, Math.PI * 2)
       ctx.stroke()
       ctx.strokeStyle = '#57d2c6'
       ctx.lineWidth = 1
       ctx.beginPath()
-      ctx.arc(centreX, centreY, 6 + t * (ARC_RADIUS - 10), 0, Math.PI * 2)
+      ctx.arc(centreX, centreY, 6 + t * (SCYTHE_RADIUS - 10), 0, Math.PI * 2)
       ctx.stroke()
       ctx.restore()
     }

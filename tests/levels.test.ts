@@ -195,7 +195,7 @@ describe('the future in pictures and words', () => {
       expect(item.future.name).not.toBe(item.name)
       expect(item.future.description.length).toBeGreaterThan(10)
     }
-    expect(itemName('goldenSword', 2)).toBe('Arc Staff')
+    expect(itemName('goldenSword', 2)).toBe('Scythe')
     expect(itemName('metalSword', 2)).toMatch(/Lightsaber/)
     expect(itemName('wings', 2)).toBe('Rocketship')
     expect(itemName('animalFood', 2)).toBe('Battery Pack')

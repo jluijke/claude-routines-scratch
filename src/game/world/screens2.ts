@@ -456,7 +456,7 @@ export const AUTHORED_FUTURE: Screen[] = [
         sprite: 'droid',
         col: 12,
         row: 6,
-        talk: 'The forge console prints weapons, for rupees and a steady mind. The Arc Staff is the last thing it makes.',
+        talk: 'The forge console prints weapons, for rupees and a steady mind. The Scythe is the last thing it makes.',
       },
     ],
     spawns: [

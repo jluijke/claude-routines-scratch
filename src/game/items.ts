@@ -122,9 +122,9 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     price: 600,
     description: 'The smith’s masterwork. Few have earned it.',
     future: {
-      name: 'Arc Staff',
-      description: 'The forge’s masterwork. The orb at its tip swings a ring of lightning right round you.',
-      gate: 'forge-arc',
+      name: 'Scythe',
+      description: 'The forge’s masterwork. One sweep of its blade cuts a ring of lightning right round you.',
+      gate: 'forge-scythe',
     },
     power: 5,
     requires: 'bronzeSword',
