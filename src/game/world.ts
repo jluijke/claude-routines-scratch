@@ -20,7 +20,7 @@ import { itemSprite } from './render/icons'
 import { Enemy, isBossKind, overlaps, ringBurst, type Projectile } from './entities/enemies'
 import { Player, PLAYER_SIZE, type Facing } from './entities/player'
 import { SCREEN_COLS, SCREEN_H, SCREEN_ROWS, SCREEN_W, TILE, TILES, isSolidChar, toTile, type TileChar } from './world/tiles'
-import { screenById, SCREENS, type EnemyKind, type Prop, type Screen } from './world/screens'
+import { screenById, SCREENS, type EnemyKind, type Portal, type Prop, type Screen } from './world/screens'
 import { overworldLayout, stepBackFromGate } from './world/analysis'
 import { gateById, type Gate } from './gates'
 import { isTool, ITEMS, itemName, materialOf, TOOL_SLOT, type ItemId } from './items'
@@ -1102,11 +1102,51 @@ export class World {
     }
   }
 
+  /**
+   * A doorway two tiles wide is one door, not half a door.
+   *
+   * Almost every room in the game is left through a gap in its outer wall two
+   * tiles across — `#######..#######` — with the way out authored on one of
+   * the two. Standing on the other and walking into the wall did nothing at
+   * all, which is eighty-four doorways across both worlds, and is why leaving
+   * a room "sometimes" failed depending on which side of the gap he was on.
+   *
+   * So a tile set into the outer wall finds the door belonging to its own
+   * unbroken run of open tiles. Only the outer wall: a hatch in the middle of
+   * a deck must not swallow him from the tile beside it, which is what makes
+   * this narrower than "any neighbouring portal will do".
+   */
+  private doorwayPortal(col: number, row: number): Portal | undefined {
+    const portals = this.screen.portals ?? []
+    const exact = portals.find((p) => p.col === col && p.row === row)
+    if (exact) return exact
+
+    const inWallRow = row === 0 || row === SCREEN_ROWS - 1
+    const inWallCol = col === 0 || col === SCREEN_COLS - 1
+    if (!inWallRow && !inWallCol) return undefined
+
+    const solid = (c: number, r: number): boolean =>
+      isSolidChar(((this.screen.rows[r] ?? '')[c] ?? '#') as TileChar, false)
+
+    return portals.find((p) => {
+      const along = inWallRow && p.row === row ? 'h' : inWallCol && p.col === col ? 'v' : undefined
+      if (!along) return false
+      const from = Math.min(along === 'h' ? p.col : p.row, along === 'h' ? col : row)
+      const to = Math.max(along === 'h' ? p.col : p.row, along === 'h' ? col : row)
+      // Unbroken open floor the whole way, so this really is one doorway.
+      for (let i = from; i <= to; i++) {
+        if (solid(along === 'h' ? i : col, along === 'h' ? row : i)) return false
+      }
+      return true
+    })
+  }
+
   private checkPortals(): void {
     const centre = this.player.centre()
     const { col, row } = toTile(centre.x, centre.y)
+    const standing = this.doorwayPortal(col, row)
     for (const portal of this.screen.portals ?? []) {
-      if (portal.col !== col || portal.row !== row) continue
+      if (portal !== standing) continue
       // A doorway that a barrier still seals cannot be walked through.
       if (this.tileStillSealed(col, row)) return
       // A stairway hidden under a bush stays hidden until the bush is burned.

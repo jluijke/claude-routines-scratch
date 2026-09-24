@@ -23,6 +23,9 @@ const errors = []
 page.on('pageerror', (e) => errors.push(String(e)))
 
 const failures = []
+const wait = (ms) => page.waitForTimeout(ms)
+const world = () => page.evaluate(() => window.zsq.world.debugState())
+const check = (name, ok) => { if (!ok) failures.push(name) }
 
 await page.goto(BASE, { waitUntil: 'networkidle' })
 await page.evaluate(() => localStorage.removeItem('zsq.save'))
@@ -86,6 +89,57 @@ for (const item of CASES) {
   if (tried === 0) failures.push(`${label}: no usable starting positions — the check proves nothing`)
   else if (stuck.length) failures.push(`${label}: stuck at ${stuck.length}/${tried} footings (${stuck.slice(0, 4).join(' ')})`)
   console.log(`${label.padEnd(26)} ${tried - stuck.length}/${tried} crossings`)
+}
+
+// ------------------------------------------ both tiles of an interior door
+// Almost every room in the game is left through a two-tile gap in its outer
+// wall with the door authored on one of the two. Standing on the other and
+// walking into the wall used to do nothing at all — eighty-four doorways
+// across both worlds. Both tiles have to work.
+const ROOMS = [
+  ['bomb-shop', 'village-east'],
+  ['d4-treasury', 'd4-hall'],
+  ['airlock-1', 'ship-corridor-2'],
+  ['airlock-4', 'ship-reactor'],
+  ['ship-smugglers-hold', 'ship-lower-deck'],
+  ['ship-maintenance-bay', 'ship-lab-3'],
+  ['rock-1-vein', 'rock-1-crater'],
+  ['outpost-hold', 'outpost-deck'],
+]
+for (const [room, beyond] of ROOMS) {
+  // The land's rooms are walked in the land, the ship's on the ship: dropping
+  // into a Level 1 cave with the save switched to Level 2 does not place him.
+  const needsShip = !['bomb-shop', 'd4-treasury'].includes(room)
+  await page.evaluate((ship) => {
+    if (ship && window.zsq.state.level !== 2) window.zsq.enterLevel(2)
+    if (!ship && window.zsq.state.level !== 1) window.zsq.enterLevel(1)
+  }, needsShip)
+  await wait(500)
+  for (const col of [7, 8]) {
+    await page.evaluate(([id, c]) => {
+      window.zsq.state.world.invisibleScreens = 99
+      window.zsq.goTo(id, c, 8)
+    }, [room, col])
+    await wait(350)
+    // Some rooms are shops, and arriving opens the counter and pauses the
+    // world. Left up, it pauses every room tested after it too.
+    const leave = page.getByRole('button', { name: /leave the shop|log off/i })
+    if (await leave.count()) {
+      await leave.first().click()
+      await wait(300)
+    }
+    if ((await world()).screen !== room) { failures.push(`${room}: could not be reached to test`); continue }
+    // Held only long enough to reach the doorway, then read at once: keep the
+    // key down and he walks back in through the hatch on the other side.
+    await page.keyboard.down('ArrowDown')
+    let left = false
+    for (let i = 0; i < 8 && !left; i++) {
+      await wait(110)
+      if ((await world()).screen === beyond) left = true
+    }
+    await page.keyboard.up('ArrowDown')
+    check(`${room} lets him out on col ${col}`, left)
+  }
 }
 
 console.log(JSON.stringify({ failures, errors }, null, 2))

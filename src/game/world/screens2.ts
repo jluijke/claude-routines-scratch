@@ -911,8 +911,11 @@ export const AUTHORED_FUTURE: Screen[] = [
   },
 
   // ------------------------------------------------------------- airlocks
-  airlock('airlock-1', 'Airlock One', { to: 'ship-corridor-2', spawnCol: 11, spawnRow: 7 }, { to: 'rock-1-landing', spawnCol: 13, spawnRow: 5 }),
-  airlock('airlock-2', 'Airlock Two', { to: 'ship-cargo-2', spawnCol: 6, spawnRow: 6 }, { to: 'rock-2-landing', spawnCol: 13, spawnRow: 5 }),
+  // He comes out of an airlock walking downwards, so he must not land on the
+  // tile *above* the hatch he came through — one more frame of the same key
+  // and he is straight back inside. Airlocks one and two both did that.
+  airlock('airlock-1', 'Airlock One', { to: 'ship-corridor-2', spawnCol: 11, spawnRow: 9 }, { to: 'rock-1-landing', spawnCol: 13, spawnRow: 5 }),
+  airlock('airlock-2', 'Airlock Two', { to: 'ship-cargo-2', spawnCol: 6, spawnRow: 9 }, { to: 'rock-2-landing', spawnCol: 13, spawnRow: 5 }),
   airlock('airlock-3', 'Airlock Three', { to: 'ship-engine-2', spawnCol: 3, spawnRow: 9 }, { to: 'rock-3-landing', spawnCol: 13, spawnRow: 5 }),
   airlock('airlock-4', 'Airlock Four', { to: 'ship-reactor', spawnCol: 7, spawnRow: 6 }, { to: 'rock-4-landing', spawnCol: 13, spawnRow: 5 }),
 
