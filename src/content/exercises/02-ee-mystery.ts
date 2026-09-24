@@ -25,9 +25,9 @@ export const exercise2: Exercise = {
       { prompt: 'All of these have the /ee/ sound. Put each word with its spelling.' },
     ),
 
-    pat('e2-2', 'ee-sound', 'tree', { choices: ['ee', 'ea'] }),
-    pat('e2-3', 'ee-sound', 'clean', { choices: ['ea', 'ee'] }),
-    pat('e2-4', 'ee-sound', 'lady', { choices: ['y', 'ee'] }),
+    pat('e2-2', 'ee-sound', 'tree'),
+    pat('e2-3', 'ee-sound', 'clean'),
+    pat('e2-4', 'ee-sound', 'lady'),
 
     aud('e2-5', 'ee-sound', 'keep'),
     aud('e2-6', 'ee-sound', 'seat'),

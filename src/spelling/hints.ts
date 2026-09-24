@@ -42,6 +42,8 @@ export function hasAudio(q: Question): boolean {
     q.type === 'sentenceDictation' ||
     q.type === 'missingLetters' ||
     q.type === 'syllableSplit' ||
+    // The typed pattern question says the word; the choosing one does not need to.
+    (q.type === 'missingPattern' && q.inputMode === 'type') ||
     (q.type === 'cloze' && q.speakSentence === true)
   )
 }

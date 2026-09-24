@@ -235,7 +235,14 @@ for (let i = 0; i < 8; i++) {
   if (await page.$('.found-panel')) break
   if (!(await answerOne())) break
 }
-await page.waitForTimeout(900)
+// Waited for rather than slept past. The sack is held up for the length of the
+// discovery animation, which is two seconds — and this used to sleep 900ms and
+// pass anyway, because clicking a choice submitted it and the stray Check that
+// followed burned the rest. The questions are typed now, so answering them is
+// quicker than it was, and the sleep started landing in the middle of the
+// animation. What this check means is "the panel comes up", so that is what it
+// now waits for.
+await page.waitForSelector('.found-panel', { timeout: 10000 }).catch(() => {})
 check('answering them holds the sack up like a treasure', Boolean(await page.$('.found-panel')))
 // Never a curriculum exercise: the forty are the forty.
 check('and it does not count as one of the forty',

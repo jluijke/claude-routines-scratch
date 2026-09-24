@@ -21,8 +21,8 @@ export const exercise23: Exercise = {
       { prompt: 'These all end in the same sound. What is that ending doing to each word?' },
     ),
 
-    pat('e23-2', 'suffix-ous', 'famous', { choices: ['ous', 'us'] }),
-    pat('e23-3', 'suffix-ous', 'nervous', { choices: ['ous', 'us'] }),
+    pat('e23-2', 'suffix-ous', 'famous'),
+    pat('e23-3', 'suffix-ous', 'nervous'),
 
     letters('e23-4', 'suffix-ous', 'jealous', { difficulty: 2 }),
     aud('e23-5', 'suffix-ous', 'joyous'),

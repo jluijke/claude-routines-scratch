@@ -24,8 +24,8 @@ export const exercise16: Exercise = {
       { prompt: 'Every word ends with a /ch/ sound. Listen again to the vowel just before it.' },
     ),
 
-    pat('e16-2', 'tch-ch', 'scratch', { choices: ['tch', 'ch'] }),
-    pat('e16-3', 'tch-ch', 'lunch', { choices: ['ch', 'tch'] }),
+    pat('e16-2', 'tch-ch', 'scratch'),
+    pat('e16-3', 'tch-ch', 'lunch'),
 
     aud('e16-4', 'tch-ch', 'stitch'),
     aud('e16-5', 'tch-ch', 'bench'),

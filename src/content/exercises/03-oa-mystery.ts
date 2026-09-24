@@ -26,8 +26,8 @@ export const exercise3: Exercise = {
       { prompt: 'Every word says /oa/. Sort them by how that sound is spelled.' },
     ),
 
-    pat('e3-2', 'oa-sound', 'soap', { choices: ['oa', 'ow'] }),
-    pat('e3-3', 'oa-sound', 'grow', { choices: ['ow', 'oa'] }),
+    pat('e3-2', 'oa-sound', 'soap'),
+    pat('e3-3', 'oa-sound', 'grow'),
     pat('e3-4', 'oa-sound', 'goat'),
     pat('e3-5', 'oa-sound', 'window', { difficulty: 2 }),
 

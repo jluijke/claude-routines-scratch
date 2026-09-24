@@ -25,8 +25,8 @@ export const exercise15: Exercise = {
       { prompt: 'Every word ends with a /j/ sound. Say the vowel just before it — short, or long?' },
     ),
 
-    pat('e15-2', 'dge-ge', 'judge', { choices: ['dge', 'ge'] }),
-    pat('e15-3', 'dge-ge', 'change', { choices: ['ge', 'dge'] }),
+    pat('e15-2', 'dge-ge', 'judge'),
+    pat('e15-3', 'dge-ge', 'change'),
 
     aud('e15-4', 'dge-ge', 'hedge'),
     aud('e15-5', 'dge-ge', 'page'),

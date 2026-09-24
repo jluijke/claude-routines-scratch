@@ -39,14 +39,24 @@ function answerPosition(question: Question, run = ''): number {
   return shown.indexOf(answer)
 }
 
-/** Share of a set of questions whose answer is the first button, in one run. */
-function leftShare(questions: Question[], run: string): number {
-  return questions.filter((q) => answerPosition(q, run) === 0).length / questions.length
+/** Share of a set of questions whose answer lands on button `at`, pooled over runs. */
+function shareAt(questions: Question[], at: number, runs: number): number {
+  let hits = 0
+  for (let i = 0; i < runs; i++) {
+    for (const q of questions) if (answerPosition(q, `run-${i}`) === at) hits += 1
+  }
+  return hits / (questions.length * runs)
 }
 
 describe('the order the choices are shown in', () => {
-  it('has plenty of choice questions to be wrong about', () => {
-    expect(WITH_CHOICES.length).toBeGreaterThan(80)
+  it('has choice questions to be wrong about, and none of them a coin', () => {
+    expect(WITH_CHOICES.length).toBeGreaterThan(15)
+    // Every one that is left offers three. Two buttons is a coin a child can
+    // play without reading, which is the whole reason the rest were rewritten
+    // into questions he has to write the answer to.
+    for (const q of WITH_CHOICES) {
+      expect((q as { choices?: string[] }).choices).toHaveLength(3)
+    }
   })
 
   it('still offers the right answer, wherever it moves it to', () => {
@@ -59,24 +69,28 @@ describe('the order the choices are shown in', () => {
   })
 
   it('is even-handed across the whole game, run after run', () => {
-    // The fault this replaces sat at 95% on the first button.
-    for (let run = 0; run < 30; run++) {
-      const share = leftShare(WITH_CHOICES, `run-${run}`)
-      expect(share).toBeGreaterThan(0.3)
-      expect(share).toBeLessThan(0.7)
+    // The fault this replaces sat at 95% on the first button. With three
+    // buttons the answer should turn up on each of them about a third of the
+    // time; the band is wide enough for chance and far too tight for a bias.
+    for (let at = 0; at < 3; at++) {
+      const share = shareAt(WITH_CHOICES, at, 60)
+      expect(share).toBeGreaterThan(0.25)
+      expect(share).toBeLessThan(0.42)
     }
   })
 
-  it('is even-handed inside a single grammar rule, which is where he noticed it', () => {
+  it('is even-handed inside a single rule, which is where he noticed it', () => {
     // A sack of animal food draws four questions from one rule, so it is the
-    // per-rule share that a child actually experiences — a set that happened to
-    // sit at 11 of 14 on the left is the same complaint again, quieter.
+    // per-rule spread that a child actually experiences — a set that happened
+    // to sit at 11 of 14 on the left is the same complaint again, quieter.
     for (const rule of GRAMMAR_RULES) {
       const questions = rule.questions.filter((q) => ((q as { choices?: string[] }).choices?.length ?? 0) > 1)
-      const shares = Array.from({ length: 40 }, (_, i) => leftShare(questions, `run-${i}`))
-      const mean = shares.reduce((a, b) => a + b, 0) / shares.length
-      expect(mean).toBeGreaterThan(0.35)
-      expect(mean).toBeLessThan(0.65)
+      if (questions.length === 0) continue
+      for (let at = 0; at < 3; at++) {
+        const share = shareAt(questions, at, 80)
+        expect(share).toBeGreaterThan(0.25)
+        expect(share).toBeLessThan(0.42)
+      }
     }
   })
 

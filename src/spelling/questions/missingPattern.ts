@@ -1,6 +1,7 @@
 import type { MissingPatternQuestion, Response } from '../types'
 import { answerInput, el, onEnter } from '../ui/dom'
 import { patternSpanOf } from '../wordbank'
+import { speakWord, speakWordSlowly } from '../../core/audio/speech'
 import type { QuestionView, RenderContext } from './index'
 import { choiceOrder } from './choices'
 
@@ -8,6 +9,12 @@ import { choiceOrder } from './choices'
  * sn__ — early exercises offer choices, later ones make the child type the
  * whole word. That shift from choosing to recalling is the difficulty ramp
  * described in spec §10.
+ *
+ * The typed form says the word aloud. Without it "tr__" is not a question with
+ * one answer — tray, trip and true all fit — so the frame alone would be
+ * asking him to read a mind rather than spell a word. It is the same bargain
+ * missingLetters makes: the gap shows him *where* to think, the audio tells
+ * him *which* word, and the spelling is still entirely his.
  */
 export function renderMissingPattern(ctx: RenderContext): QuestionView {
   const question = ctx.question as MissingPatternQuestion
@@ -59,10 +66,10 @@ export function renderMissingPattern(ctx: RenderContext): QuestionView {
 
   input.addEventListener('input', ctx.changed)
   onEnter(input, ctx.submit)
-  element.append(
-    el('p', { class: 'q-hint-line' }, ['Work out the missing part, then write the whole word.']),
-    input,
-  )
+  // No hint line under the frame. The prompt above already says "listen, then
+  // write the whole word" and the box says "type the whole word", and a third
+  // saying of it is noise on a screen a nine-year-old has to read.
+  element.append(input)
 
   return {
     element,
@@ -73,5 +80,7 @@ export function renderMissingPattern(ctx: RenderContext): QuestionView {
       element.classList.remove('wrong')
       input.select()
     },
+    replay: (slow) =>
+      slow ? speakWordSlowly(ctx.speech, question.word) : speakWord(ctx.speech, question.word),
   }
 }

@@ -44,10 +44,19 @@ describe('every question is answerable', () => {
     const question = all.find((q) => q.id === id)
     if (!question || question.type !== 'cloze') throw new Error(`${id} is not a cloze`)
 
-    // A gap to fill, choices to fill it from, and the right one among them.
+    // A gap to fill, and something to go in it.
     expect(question.sentence).toContain('___')
-    expect(question.choices?.length ?? 0).toBeGreaterThanOrEqual(2)
-    expect(question.choices).toContain(question.answer)
+    if (question.inputMode === 'select') {
+      // Three at the least. Two is a coin, and he was flipping it rather than
+      // reading — see tests/coinFlips.test.ts.
+      expect(question.choices?.length ?? 0).toBeGreaterThanOrEqual(3)
+      expect(question.choices).toContain(question.answer)
+    } else {
+      // A typed gap has no buttons to be right among, so what has to be there
+      // instead is the prompt naming the word to work from.
+      expect(question.choices).toBeUndefined()
+      expect(question.prompt?.trim().length ?? 0).toBeGreaterThan(0)
+    }
 
     // And the grader agrees, which is what a child actually meets. The wrong
     // choice must be genuinely wrong: several of these differ only by a capital

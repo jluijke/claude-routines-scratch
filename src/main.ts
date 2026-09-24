@@ -420,6 +420,13 @@ function startHalfChallenge(gate: Gate): void {
     // as well made the time budget the binding constraint once exercises came
     // down to six minutes, and a "half exercise" quietly became a third of one.
     targetMinutes: source.targetMinutes,
+    // And said outright, so the clock cannot creep back in. Keeping the minutes
+    // was not enough on its own: a typed question is budgeted at twenty seconds
+    // where one with buttons was fourteen, so when the pattern questions became
+    // typed the scheduler started trimming the queue again — the same fault as
+    // before, arriving from the other direction. Half of an exercise is half of
+    // its questions, whatever they happen to cost.
+    fixedQuestions: half,
     // No concepts to prove: the engine would otherwise top the queue back up
     // with a mastery question for each one, and half an exercise would quietly
     // become most of an exercise. Mastery is the curriculum's job, not the

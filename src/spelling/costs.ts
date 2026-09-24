@@ -22,7 +22,11 @@ export function baseSeconds(q: Question): number {
     case 'missingLetters':
       return 18
     case 'missingPattern':
-      return q.inputMode === 'type' ? 20 : 14
+      // Typed used to be twenty: with no audio, the child had to work out which
+      // word the frame even meant before he could spell it. It says the word
+      // now, which makes it the same job as missingLetters above — a masked
+      // word, heard, written out — so it is priced the same.
+      return q.inputMode === 'type' ? 18 : 14
     case 'wordSort':
       return 10 + q.groups.reduce((sum, g) => sum + g.words.length, 0) * 8
     case 'syllableSplit':

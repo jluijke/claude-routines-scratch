@@ -85,6 +85,21 @@ export const DEFAULT_PROMPTS: Record<QuestionType, string> = {
   visualMemory: 'Look carefully, then spell it from memory.',
 }
 
+/**
+ * The two question types that come in a choosing form and a writing form need
+ * two instructions. "Which spelling completes the word?" over a text box with
+ * no buttons under it is not a small infelicity: it is the screen telling the
+ * child to do something the screen does not let him do.
+ */
+const TYPED_PROMPTS: Partial<Record<QuestionType, string>> = {
+  missingPattern: 'Listen, then write the whole word.',
+  cloze: 'Write the word that fits the sentence.',
+}
+
 export function promptFor(question: Question): string {
+  if (question.inputMode === 'type') {
+    const typed = TYPED_PROMPTS[question.type]
+    if (typed) return question.prompt ?? typed
+  }
   return question.prompt ?? DEFAULT_PROMPTS[question.type]
 }

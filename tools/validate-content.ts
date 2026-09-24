@@ -169,10 +169,29 @@ function checkQuestion(question: Question, where: string): void {
   }
   // A gap in a sentence with a text box under it is a guessing game, not a
   // spelling task: "I lost both of my house ___" takes keys, but it takes plenty
-  // of other words too. A cloze has to offer the words to choose between, which
-  // is what makes there/their/they're a real question.
-  if (question.type === 'cloze' && (question.choices?.length ?? 0) < 2) {
-    fail(`${where}: cloze "${question.id}" has no choices to pick from, so it is a guess rather than a spelling question`)
+  // of other words too. Something has to pin the gap down to one word.
+  //
+  // Buttons are one way and used to be the only way — but two buttons pin it
+  // down so hard that a child can answer without reading, which is how he was
+  // playing them. So a typed gap is allowed now, on the condition that its
+  // prompt says what to write: "Write the past tense of \"win\"", "Write the
+  // word that means in this place". That is the same constraint the buttons
+  // provided, minus the coin.
+  if (question.type === 'cloze') {
+    const offered = question.choices?.length ?? 0
+    if (offered === 0 && (question.prompt?.trim().length ?? 0) === 0) {
+      fail(`${where}: cloze "${question.id}" has neither choices nor a prompt saying what to write, so it is a guess rather than a spelling question`)
+    }
+    if (offered === 1) {
+      fail(`${where}: cloze "${question.id}" offers a single choice, which answers itself`)
+    }
+  }
+
+  // Two of anything is a coin. He worked out long before we did that clicking
+  // one of two pays half the time for no reading at all, and four of them buy a
+  // sack of animal food. Three at the very least, or make him write it.
+  if ((question.type === 'cloze' || question.type === 'missingPattern') && question.choices?.length === 2) {
+    fail(`${where}: "${question.id}" offers a choice of two, which a child can flip a coin on — give it three or make it typed`)
   }
   if (question.type === 'cloze' && question.choices && !question.choices.includes(question.answer)) {
     fail(`${where}: question "${question.id}" offers choices that do not include "${question.answer}"`)
