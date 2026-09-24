@@ -42,6 +42,9 @@ export interface Flavour {
   mechSplit: string
   /** Said once, when a mech is half dead and stops fighting fair. */
   mechEnraged: string
+  /** Stepping onto a teleporter pad, and standing up at the other end. */
+  teleportGo: string
+  teleportArrive: string
   /** The one line said when he walks out of an airlock without his suit. */
   noSuit: string
   suitOn: string
@@ -87,6 +90,8 @@ const LAND: Flavour = {
   // shape, rather than making one field optional for the sake of one world.
   mechSplit: 'It breaks in two, and both halves come on.',
   mechEnraged: 'It is badly hurt, and it stops holding still.',
+  teleportGo: 'The light takes you apart.',
+  teleportArrive: 'You are somewhere else, and all of you arrived.',
   noSuit: '',
   suitOn: '',
   suitOff: '',
@@ -130,6 +135,8 @@ const SHIP: Flavour = {
   defeated: 'You have run out of hearts. A medical drone carries you back to the bridge.',
   mechSplit: 'THE MECH SPLITS IN TWO. BOTH HALVES ARE STILL COMING.',
   mechEnraged: 'WARNING: CORE BREACH. THE MECH IS PHASING — IT WILL NOT STAY PUT.',
+  teleportGo: 'The light takes you apart.',
+  teleportArrive: 'You are somewhere else, and all of you arrived.',
   noSuit: 'You forgot to put on your space suit!',
   suitOn: 'You put on your space suit. The helmet seals with a hiss.',
   suitOff: 'Back inside, you hang the space suit up in the airlock.',

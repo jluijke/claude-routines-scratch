@@ -198,6 +198,10 @@ export function unmarkedDoors(screens: readonly Screen[] = SCREENS): string[] {
       const def = TILES[char]
       if (def?.cracked || def?.bush) continue
       if (portal.requires) continue
+      // A teleporter draws its own pad — a lit ring on whatever it is standing
+      // on — the same way a launch pad does, so the tile under it is allowed
+      // to be plain floor.
+      if (portal.teleporter) continue
       if (isInterior && portal.row >= SCREEN_ROWS - 2) continue
       problems.push(
         `${screen.id}: the door to "${portal.to}" at ${portal.col},${portal.row} sits on plain "${char}" and draws nothing`,

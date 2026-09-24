@@ -286,6 +286,7 @@ function handleGate(gate: Gate): void {
     onAccept: () => {
       if (gate.challenge === 'intro') return startShortChallenge(gate, INTRO_CANDLE)
       if (gate.challenge === 'half') return startHalfChallenge(gate)
+      if (gate.challenge === 'five') return startFiveChallenge(gate)
       if (isReview) return startReviewChallenge(gate)
       if (!up) {
         showNotice(root, 'You have finished every exercise there is. This door opens for you anyway.', () => {
@@ -373,6 +374,36 @@ function startExercise(exercise: Exercise, gate?: Gate): void {
  * exercise finished, so the words are ones he has met, and it never records a
  * completion: the forty are the forty.
  */
+/**
+ * Exactly five questions, from what he has already been taught.
+ *
+ * The chest in the quiet square is meant to be a kindness rather than a
+ * lesson, so this asks a fixed, small, visible number and no more — no rule to
+ * read first, no mastery top-up, nothing that could quietly turn five into
+ * eleven the way an ordinary exercise can.
+ */
+function startFiveChallenge(gate: Gate): void {
+  const learned = EXERCISES.filter((e) => state.spelling.completedExercises.includes(e.id))
+  const source = learned[learned.length - 1] ?? EXERCISES[0]
+  if (!source) return
+
+  startShortChallenge(gate, {
+    ...source,
+    title: 'Five words',
+    targetMinutes: source.targetMinutes,
+    concepts: [],
+    activities: [
+      ...source.activities.filter((q) => q.novel || q.masteryRequired),
+      ...source.activities.filter((q) => !q.novel && !q.masteryRequired),
+    ].slice(0, 5),
+    ruleReveal: {
+      title: source.ruleReveal.title,
+      text: source.ruleReveal.text,
+      examples: source.ruleReveal.examples.slice(0, 2),
+    },
+  })
+}
+
 function startHalfChallenge(gate: Gate): void {
   const learned = EXERCISES.filter((e) => state.spelling.completedExercises.includes(e.id))
   const source = learned[learned.length - 1] ?? EXERCISES[0]

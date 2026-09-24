@@ -102,6 +102,8 @@ export function roughen(screen: Screen): Screen {
   // And only where the border is something that grows. A ship's hull is built
   // straight; the rocks outside it are as ragged as any wood.
   if (screen.setting === 'ship' || screen.setting === 'airlock') return screen
+  // And not where the author asked for it to be left alone.
+  if (screen.tidy) return screen
 
   const rng = new Rng(`trees-${screen.id}`)
   const keep = protectedTiles(screen)

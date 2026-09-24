@@ -53,8 +53,11 @@ export interface Gate {
    *            should cost something without costing a whole lesson.
    *  'grammar' — a grammar rule explained first, then four questions on it.
    *            What a sack of animal food costs.
+   *  'five'  — exactly five questions, and no rule to read first. The price of
+   *            the chest in the quiet square, which is meant to be a small
+   *            kindness rather than a lesson.
    */
-  challenge?: 'intro' | 'half' | 'grammar'
+  challenge?: 'intro' | 'half' | 'grammar' | 'five'
 }
 
 const GATE_LIST: Gate[] = [
@@ -569,6 +572,17 @@ const GATE_LIST: Gate[] = [
   },
 
   // --- reached by blowing a wall open --------------------------------------
+  {
+    id: 'haven-chest',
+    kind: 'chest',
+    message:
+      'A chest on the step of a house that has not been built yet, and will be rubble ' +
+      'long before you were born. It is not locked. It is only shut.',
+    openMessage: 'A hundred rupees, and a smell of woodsmoke that is a thousand years old.',
+    reward: { rupees: 100 },
+    optional: true,
+    challenge: 'five',
+  },
   {
     id: 'bomb-shop',
     kind: 'shop',

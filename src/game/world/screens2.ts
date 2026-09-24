@@ -577,6 +577,22 @@ export const AUTHORED_FUTURE: Screen[] = [
       'TTTTTTTTTTTTTTTT',
     ],
     exits: { left: 'ship-corridor-2', up: 'ship-lab-2' },
+    // The one clue to the teleporter one screen up. Without it a child would
+    // have to bomb a wall he has no reason to look at twice — the same job the
+    // bomb seller does for the boulder on the forest path.
+    props: [
+      {
+        sprite: 'scribe',
+        col: 3,
+        row: 8,
+        talk:
+          'The ship engineer looks up from a dead panel. "You are the one off the rocks? ' +
+          'Then listen. The old crew sealed something in the lab above this one — a pad, ' +
+          'a gate, they never agreed what to call it. It is behind a plate that is cracked ' +
+          'right through. If you have a charge to spare, look along the back wall up there. ' +
+          'I would not go through it myself. But you are not me."',
+      },
+    ],
     gates: [
       { gateId: 'ship-lab-seal-2', col: 7, row: 2, guards: 'up', opens: [{ col: 7, row: 2 }, { col: 8, row: 2 }] },
       { gateId: 'ship-lab-chest', col: 12, row: 8 },
@@ -593,7 +609,7 @@ export const AUTHORED_FUTURE: Screen[] = [
     ...SHIP,
     rows: [
       'TTTTTTTTTTTTTTTT',
-      'T..RR......RR..T',
+      'T..RR......XR..T',
       'T............TTT',
       'T............=..',
       'T............TTT',
@@ -605,6 +621,12 @@ export const AUTHORED_FUTURE: Screen[] = [
       'TTTTTTT..TTTTTTT',
     ],
     exits: { down: 'ship-lab-1', right: 'ship-lab-3' },
+    // One of the four plates along the back wall is cracked, and behind it is
+    // the thing the crew sealed up: a pad that still has somewhere to send
+    // him. The engineer a screen below says to look for it.
+    portals: [
+      { col: 11, row: 1, to: 'haven-square', spawnCol: 8, spawnRow: 6, teleporter: true },
+    ],
     gates: [
       { gateId: 'ship-lab-seal-3', col: 13, row: 3, guards: 'right', opens: [{ col: 13, row: 3 }] },
     ],

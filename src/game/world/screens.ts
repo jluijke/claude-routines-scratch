@@ -73,6 +73,15 @@ export interface Portal {
    * the end of him — the one door in the game that kills rather than refuses.
    */
   needsSuit?: boolean
+  /**
+   * A pad that takes him apart and puts him back together somewhere else.
+   *
+   * Drawn as a lit ring rather than a doorway, and stepping on it plays the
+   * whole dissolve rather than the usual cut between screens. There are two in
+   * the game and they are the ends of the same wire: one behind a bulkhead in
+   * Laboratory Two, one in the corner of the old square it leads to.
+   */
+  teleporter?: boolean
 }
 
 /**
@@ -132,6 +141,14 @@ export interface Screen {
   level?: 2
   /** Level 2 only: what the place is made of. */
   setting?: Setting
+  /**
+   * Leave this screen exactly as authored — no trees grown in round the edge.
+   *
+   * For the one place that is meant to look tended rather than wild. Run
+   * through the usual scenery pass, the quiet square came out a thicket with a
+   * fountain in it, which is the opposite of what it is for.
+   */
+  tidy?: boolean
 }
 
 const AUTHORED: Screen[] = [
@@ -1798,6 +1815,66 @@ const AUTHORED: Screen[] = [
       },
     ],
     gates: [{ gateId: 'bomb-shop', col: 7, row: 4 }],
+  },
+
+  // ------------------------------------------------------------- the haven
+  /**
+   * A square in the old world, a thousand years before the ship.
+   *
+   * Reached only through the teleporter behind the cracked plate in Laboratory
+   * Two, and the only way out is the pad it leaves him standing on. Nothing in
+   * here can hurt him: no monsters, no barriers on the way in or out, no edges
+   * to wander off. It is the one place in either world that is simply kind.
+   *
+   * It counts as Level 2 — it is a side trip, not a way home, so he keeps the
+   * ship's pack and the ship's names for everything in it. Everything he can
+   * *see* is the old world, though, right down to the music, because that is
+   * the whole point of the room.
+   */
+  {
+    id: 'haven-square',
+    name: 'A Quiet Square',
+    region: 'Haven',
+    level: 2,
+    tidy: true,
+    rows: [
+      'TTTTTTTTTTTTTTTT',
+      'T..TT......TT..T',
+      'T..............T',
+      'T.....,...,....T',
+      'T......SS......T',
+      'T.....SSSS.....T',
+      'T......SS......T',
+      'T.....,...,....T',
+      'T..............T',
+      'T..............T',
+      'TTTTTTTTTTTTTTTT',
+    ],
+    // Sealed on all four sides. The pad is the door.
+    exits: {},
+    portals: [
+      { col: 13, row: 2, to: 'ship-lab-2', spawnCol: 11, spawnRow: 2, teleporter: true },
+    ],
+    gates: [{ gateId: 'haven-chest', col: 2, row: 2 }],
+    props: [
+      {
+        sprite: 'scribe',
+        col: 4,
+        row: 8,
+        talk:
+          '"You came out of the air," she says, not at all frightened. "Are you from the ' +
+          'after? What is it like — do we manage it? Is there still a village?" She waits, ' +
+          'and then laughs at herself. "Do not tell me. I would rather find out the slow way."',
+      },
+      {
+        sprite: 'rabbitA',
+        col: 11,
+        row: 8,
+        talk:
+          'The old rabbit pushes its head under your hand, the way it always did. ' +
+          'It does not care where you have been.',
+      },
+    ],
   },
 ]
 

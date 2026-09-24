@@ -120,6 +120,30 @@ interface Burst {
  * mid-air reopens with him safe on the far shore, and there is no moment when
  * the save could disagree with itself.
  */
+/**
+ * Being taken apart in one place and put back together in another.
+ *
+ * Two halves with a white frame between them. On the way out the rings fall
+ * inward, the motes are drawn up out of him, and he thins until there is
+ * nothing left standing there; then the screen changes under the flash and the
+ * whole thing runs backwards. The world is frozen throughout — he cannot be
+ * hit, cannot walk off, and cannot step back onto the pad he is halfway
+ * through using.
+ */
+interface Teleport {
+  /** Frames left of this half. */
+  frames: number
+  /** Length of this half, so the draw can work out how far through it is. */
+  span: number
+  phase: 'out' | 'in'
+  /** Where he is going. Only set on the way out. */
+  to?: { screen: string; col: number; row: number }
+}
+
+/** Frames each half of a teleport takes. Long enough to be worth watching. */
+const TELEPORT_OUT = 66
+const TELEPORT_IN = 52
+
 interface Flight {
   /** Frames left before he touches down. */
   frames: number
@@ -277,6 +301,19 @@ const SCYTHE_RADIUS = 26
 /** How long the room rocks after something heavy lands. */
 const SHAKE_FRAMES = 16
 
+/** The quiet square, and where its five hearts are laid out. */
+const HAVEN = 'haven-square'
+const HAVEN_HEARTS: readonly [number, number][] = [
+  [5, 3],
+  [11, 3],
+  [4, 6],
+  [11, 6],
+  [8, 9],
+]
+/** How fast the old rabbit comes over, and how close it settles. */
+const GREETER_SPEED = 34
+const GREETER_GAP = 13
+
 /** 'boss3' -> 3. The guardian knows which dungeon it belongs to. */
 function bossLevel(kind: EnemyKind): number {
   const n = Number(kind.replace('boss', ''))
@@ -320,6 +357,16 @@ export class World {
   private shake = 0
   /** Set while he is in the air on the Wings. Nothing else moves meanwhile. */
   private flight: Flight | undefined
+  /** Set while he is being taken apart, and again while he is put back. */
+  private beaming: Teleport | undefined
+  /**
+   * The old rabbit in the quiet square.
+   *
+   * Not the pet system: that one belongs to him and follows him between
+   * screens and worlds. This one lives here, has always lived here, and only
+   * crosses the grass to say hello.
+   */
+  private greeter: { x: number; y: number; hop: number } | undefined
   /**
    * Set from the moment a guardian dies until the sign is dismissed. The world
    * is frozen throughout, and `clearVictory()` is the only way out — anything
@@ -652,8 +699,58 @@ export class World {
     if (remember && !this.save.world.visitedScreens.includes(id)) {
       this.save.world.visitedScreens.push(id)
     }
+    this.dressTheHaven(next)
     music.play(this.trackFor(next))
     if (next.shop) this.callbacks.onShop(next.shop)
+  }
+
+  /**
+   * Five hearts on the grass, laid out fresh every time he comes.
+   *
+   * Deliberately not once-only. The square is a place to go when things have
+   * gone badly, and a sanctuary that heals you the first time and then sits
+   * there empty is not a sanctuary. There is nothing to farm here: the chest
+   * pays once like every other chest, and the only way in costs a charge he
+   * has already spent.
+   */
+  private dressTheHaven(screen: Screen): void {
+    if (screen.id !== HAVEN) return
+    for (const [col, row] of HAVEN_HEARTS) {
+      this.drops.push({
+        kind: 'heart',
+        x: col * TILE + 4,
+        y: row * TILE + 4,
+        // Long enough that they are still there while he reads the signs, and
+        // they are laid out again the moment he walks back in anyway.
+        life: 24 * 60 * 60,
+      })
+    }
+    // The rabbit starts where the screen says and walks over to him itself.
+    this.greeter = { x: 11 * TILE, y: 8 * TILE, hop: 0 }
+  }
+
+  /**
+   * The old rabbit crossing the grass to say hello.
+   *
+   * Hops over, stops a body's width short, and stays there. No collision, no
+   * pathfinding, no wedging: the square is one open lawn and there is nothing
+   * in it to get stuck on, which is the point of the place.
+   */
+  private updateGreeter(step: number): void {
+    const greeter = this.greeter
+    if (!greeter) return
+    const me = this.player.centre()
+    const dx = me.x - (greeter.x + 6)
+    const dy = me.y - (greeter.y + 6)
+    const gap = Math.hypot(dx, dy) || 1
+    if (gap > GREETER_GAP) {
+      greeter.x += (dx / gap) * GREETER_SPEED * step
+      greeter.y += (dy / gap) * GREETER_SPEED * step
+      greeter.hop = (greeter.hop + step * 7) % 2
+    } else {
+      // Settles, and keeps twitching.
+      greeter.hop = (greeter.hop + step * 2) % 2
+    }
   }
 
   /** Key for a tile the child has permanently cleared on this screen. */
@@ -764,6 +861,29 @@ export class World {
       }
       return
     }
+    // Mid-teleport. The screen changes at the seam between the two halves,
+    // under the white frame, so the cut is never seen.
+    if (this.beaming) {
+      this.beaming.frames -= 1
+      if (this.beaming.frames > 0) return
+      const going = this.beaming.to
+      if (going) {
+        this.loadScreen(going.screen)
+        this.player.placeAtTile(going.col, going.row)
+        this.ensureFree()
+        this.input.clearTarget()
+        this.beaming = { frames: TELEPORT_IN, span: TELEPORT_IN, phase: 'in' }
+        this.syncSave()
+        this.callbacks.onChange()
+      } else {
+        // Back on his feet. He lands beside each pad rather than on it, so
+        // there is nothing here to stop him being sent straight back.
+        this.beaming = undefined
+        this.input.clearTarget()
+        this.showMessage(this.words.teleportArrive)
+      }
+      return
+    }
 
     // Time spent actually playing feeds the 50/50 governor.
     this.playAccumulator += step
@@ -859,6 +979,7 @@ export class World {
     if (this.shake > 0) this.shake -= 1
 
     this.resolveCombat()
+    this.updateGreeter(step)
     this.updatePet(step)
     this.updateProjectiles(step)
     this.updateShots(step)
@@ -1008,6 +1129,24 @@ export class World {
         if (left > 0) this.save.inventory[portal.requires] = left
         else delete this.save.inventory[portal.requires]
         this.equipBest()
+      }
+
+      // A teleporter takes him apart where he stands and only loads the far
+      // screen at the seam, halfway through — unlike every other door here,
+      // which cuts on the frame he walks into it.
+      if (portal.teleporter) {
+        this.beaming = {
+          frames: TELEPORT_OUT,
+          span: TELEPORT_OUT,
+          phase: 'out',
+          to: { screen: portal.to, col: portal.spawnCol, row: portal.spawnRow },
+        }
+        this.projectiles = []
+        this.shots = []
+        this.player.invulnerable = Math.max(this.player.invulnerable, TELEPORT_OUT + TELEPORT_IN)
+        sfx.play('wings')
+        this.showMessage(this.words.teleportGo)
+        return
       }
 
       // Everything that changes state happens here, in one frame, exactly as it
@@ -1767,11 +1906,24 @@ export class World {
     drawTiles(ctx, this.screen, opened, this.frame)
     drawBarriers(ctx, this.atlas, this.screen, opened, this.frame)
     this.drawLaunchPads(ctx)
+    this.drawTeleporters(ctx, opened)
 
     for (const prop of this.screen.props ?? []) {
       // The suit stands by the wall until he is wearing it.
       if (prop.locker && this.save.world.suitOn) continue
+      // The rabbit in the quiet square does not stay on its tile — it is drawn
+      // below, wherever it has got to.
+      if (this.greeter && prop.sprite === 'rabbitA') continue
       this.atlas.draw(ctx, prop.sprite, prop.col * TILE, prop.row * TILE)
+    }
+    if (this.greeter) {
+      const lift = Math.round(Math.sin(this.greeter.hop * Math.PI) * 3)
+      this.atlas.draw(
+        ctx,
+        Math.floor(this.frame / 8) % 2 === 0 ? 'rabbitA' : 'rabbitB',
+        Math.round(this.greeter.x),
+        Math.round(this.greeter.y) - lift,
+      )
     }
 
     const pickup = this.screen.pickup
@@ -1845,7 +1997,8 @@ export class World {
 
     this.drawPet(ctx)
 
-    if (this.flight) this.drawFlight(ctx)
+    if (this.beaming) this.drawTeleport(ctx)
+    else if (this.flight) this.drawFlight(ctx)
     else if (this.victory) this.drawVictoryHero(ctx)
     else if (this.discovery) this.drawDiscoveryHero(ctx)
     else this.drawPlayer(ctx)
@@ -1908,6 +2061,126 @@ export class World {
    * the ship's launch pads, a ring of pale stones with a feather turning over
    * it on the land's shores. A pad nobody can see is a pad nobody steps on.
    */
+  /**
+   * The two teleporter pads, drawn where they stand.
+   *
+   * The one on the ship is behind a cracked plate and does not exist until the
+   * plate is blown, so it is only drawn once that tile has been opened — a lit
+   * ring appearing in a wall he has just made a hole in is the whole reveal.
+   */
+  private drawTeleporters(ctx: CanvasRenderingContext2D, opened: ReadonlySet<string>): void {
+    for (const portal of this.screen.portals ?? []) {
+      if (!portal.teleporter) continue
+      const char = ((this.screen.rows[portal.row] ?? '')[portal.col] ?? '.') as TileChar
+      const hidden = TILES[char]?.cracked && !opened.has(`${portal.col},${portal.row}`)
+      if (hidden) continue
+
+      const x = portal.col * TILE
+      const y = portal.row * TILE
+      const t = this.frame / 26
+      // Three rings falling inward, so the eye is pulled to the middle of it.
+      for (let i = 0; i < 3; i++) {
+        const phase = (t + i / 3) % 1
+        ctx.save()
+        ctx.globalAlpha = 0.25 + 0.55 * (1 - phase)
+        ctx.strokeStyle = i === 0 ? '#c8fff8' : '#57d2c6'
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.arc(x + 8, y + 8, 1.5 + phase * 6.5, 0, Math.PI * 2)
+        ctx.stroke()
+        ctx.restore()
+      }
+      // A bright core, and four motes turning round it.
+      ctx.fillStyle = Math.floor(this.frame / 6) % 2 === 0 ? '#f6f3e7' : '#c8fff8'
+      ctx.fillRect(x + 7, y + 7, 2, 2)
+      ctx.fillStyle = '#57d2c6'
+      for (let i = 0; i < 4; i++) {
+        const a = this.frame / 14 + (i * Math.PI) / 2
+        ctx.fillRect(Math.round(x + 8 + Math.cos(a) * 6) - 1, Math.round(y + 8 + Math.sin(a) * 6) - 1, 1, 1)
+      }
+    }
+  }
+
+  /**
+   * Him, coming apart — or going back together.
+   *
+   * Four things at once, all running off the same `t` from 0 to 1, which is
+   * how far through this half of it he is. Reversed on the way in, so the two
+   * halves are the same picture played forwards and backwards.
+   *
+   *  - a shaft of light standing over the tile, brightest at his feet
+   *  - rings on the ground falling inward
+   *  - motes drawn up out of him, spiralling as they rise
+   *  - the hero himself thinning out, with a bright band sweeping up him
+   *
+   * The last few frames of the way out, and the first few of the way in, wash
+   * the whole screen white. That is where the screen behind him changes.
+   */
+  private drawTeleport(ctx: CanvasRenderingContext2D): void {
+    const state = this.beaming
+    if (!state) return
+    const done = 1 - state.frames / state.span
+    const t = state.phase === 'out' ? done : 1 - done
+    const centre = this.player.centre()
+    const footY = this.player.y + PLAYER_SIZE
+
+    ctx.save()
+
+    // The shaft. It narrows and brightens as he goes.
+    const shaftW = 26 * (1 - t) + 4
+    const grad = ctx.createLinearGradient(0, footY, 0, footY - 150)
+    grad.addColorStop(0, `rgba(200, 255, 248, ${0.75 * t + 0.1})`)
+    grad.addColorStop(0.45, `rgba(87, 210, 198, ${0.4 * t})`)
+    grad.addColorStop(1, 'rgba(87, 210, 198, 0)')
+    ctx.fillStyle = grad
+    ctx.fillRect(centre.x - shaftW / 2, footY - 150, shaftW, 150)
+
+    // Rings on the floor, falling in toward his feet.
+    for (let i = 0; i < 4; i++) {
+      const phase = ((this.frame / 22 + i / 4) % 1)
+      const radius = (1 - phase) * 22 * (1 - t * 0.6) + 2
+      ctx.globalAlpha = (1 - phase) * (0.35 + 0.5 * t)
+      ctx.strokeStyle = i % 2 === 0 ? '#c8fff8' : '#57d2c6'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.ellipse(centre.x, footY - 2, radius, radius * 0.42, 0, 0, Math.PI * 2)
+      ctx.stroke()
+    }
+    ctx.globalAlpha = 1
+
+    // Motes lifted out of him. Each one keeps its own angle, so they read as
+    // a spiral rather than as a ring going up.
+    for (let i = 0; i < 16; i++) {
+      const lead = (i / 16 + t * 1.3) % 1
+      const angle = i * 2.1 + this.frame / 9
+      const spin = 9 * (1 - lead)
+      const mx = centre.x + Math.cos(angle) * spin
+      const my = footY - lead * 46
+      ctx.globalAlpha = Math.min(1, (1 - lead) * 1.4) * (t * 0.9 + 0.1)
+      ctx.fillStyle = i % 3 === 0 ? '#f6f3e7' : '#57d2c6'
+      ctx.fillRect(Math.round(mx), Math.round(my), 1 + (i % 2), 1 + (i % 2))
+    }
+    ctx.globalAlpha = 1
+
+    // Him. He fades, and a bright line sweeps up him as he goes.
+    ctx.globalAlpha = Math.max(0, 1 - t * 1.15)
+    this.drawHeroSprites(ctx)
+    ctx.globalAlpha = 1
+    const band = footY - t * (PLAYER_SIZE + 4)
+    ctx.fillStyle = '#f6f3e7'
+    ctx.globalAlpha = 0.85 * Math.sin(Math.min(1, t) * Math.PI)
+    ctx.fillRect(this.player.x - 2, Math.round(band), PLAYER_SIZE + 4, 1)
+    ctx.globalAlpha = 1
+
+    // The wash at the seam, where the world behind him changes.
+    const wash = t > 0.82 ? (t - 0.82) / 0.18 : 0
+    if (wash > 0) {
+      ctx.fillStyle = `rgba(246, 243, 231, ${Math.min(1, wash) * 0.9})`
+      ctx.fillRect(0, 0, SCREEN_W, SCREEN_H)
+    }
+    ctx.restore()
+  }
+
   private drawLaunchPads(ctx: CanvasRenderingContext2D): void {
     for (const portal of this.screen.portals ?? []) {
       if (portal.requires !== 'wings') continue
@@ -2693,6 +2966,14 @@ export class World {
           sprite: e.sprite,
         })),
       shaking: this.shake > 0,
+      beaming: this.beaming !== undefined,
+      greeter: this.greeter ? { x: Math.round(this.greeter.x), y: Math.round(this.greeter.y) } : undefined,
+      drops: this.drops.length,
+      // Tiles blown open on this screen, so a check can prove a plate is still
+      // a plate before the charge and a hole after it.
+      brokenHere: this.save.world.brokenTiles
+        .filter((k) => k.startsWith(`${this.screen.id}:`))
+        .map((k) => k.split(':')[1]),
       defeatedBosses: [...this.save.world.defeatedBosses],
       pendingGate: this.pendingGate?.id,
       paused: this.paused,
@@ -2709,6 +2990,18 @@ export class World {
   debugHitBoss(amount: number): void {
     const boss = this.enemies.find((e) => e.isBoss)
     if (boss) this.strike(boss, amount)
+  }
+
+  /** The screen as played, for the checks that want to read its own props. */
+  currentScreen(): Screen {
+    return this.screen
+  }
+
+  /** Takes hearts off him, for the checks that need him hurt on purpose. */
+  debugHurt(amount: number): void {
+    this.player.hearts = Math.max(1, this.player.hearts - amount)
+    this.syncSave()
+    this.callbacks.onChange()
   }
 
   /** Back to full hearts, for the checks that measure what a fight costs. */

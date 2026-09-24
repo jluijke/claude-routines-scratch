@@ -12,6 +12,7 @@
  * door he ever opened come with him.
  */
 import type { Kit, Level, SaveData } from '../core/save'
+import { screenById } from './world/screens'
 
 /** Where each world starts, and where he wakes up after running out of hearts. */
 export const START_SCREENS: Record<Level, string> = {
@@ -73,7 +74,18 @@ export function switchLevel(save: SaveData, level: Level): void {
   save.spelling.inProgress = undefined
 }
 
-/** Which world a screen id belongs to. Level 2 ids all start the same way. */
+/**
+ * Which world a screen belongs to.
+ *
+ * Asked of the screen itself rather than guessed from its name. The id prefix
+ * was a good enough rule while every Level 2 screen was a bit of spacecraft,
+ * and it stopped being one the moment the quiet square arrived: that screen is
+ * the old world to look at, belongs to Level 2 to play, and is called neither.
+ * Unknown ids still fall back to the prefix, because the checks ask about ids
+ * that no longer exist.
+ */
 export function levelOfScreen(id: string): Level {
+  const screen = screenById(id)
+  if (screen) return screen.level ?? 1
   return /^(ship|airlock|rock|outpost)-/.test(id) ? 2 : 1
 }
