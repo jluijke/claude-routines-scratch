@@ -219,6 +219,19 @@ function drawReview(
 export function buildQueue(params: ScheduleParams): ScheduledQueue {
   const { exercise, concepts, mastery, rng } = params
 
+  // A challenge that promised a number keeps it: no trim, no review, no
+  // shortening. Everything below this line is the ordinary schedule.
+  if (exercise.fixedQuestions !== undefined) {
+    const questions = exercise.activities.slice(0, exercise.fixedQuestions)
+    return {
+      questions,
+      estimatedSeconds: estimateTotalSeconds(questions),
+      breakdown: { current: questions.length, recent: 0, older: 0 },
+      trimmed: 0,
+      shortenedBy: 0,
+    }
+  }
+
   const budgetSeconds = exercise.targetMinutes * 60
   const current = exercise.activities.slice()
 

@@ -10,6 +10,11 @@ import { describe, expect, it } from 'vitest'
 import { screenById, SCREENS } from '../src/game/world/screens'
 import { gateById } from '../src/game/gates'
 import { TILES, type TileChar } from '../src/game/world/tiles'
+import { buildQueue } from '../src/spelling/scheduler'
+import { EXERCISES } from '../src/content/exercises'
+import { CONCEPTS } from '../src/content/concepts'
+import { Rng } from '../src/core/rng'
+import { emptyMasteryStore } from '../src/spelling/mastery'
 
 const haven = screenById('haven-square')!
 const lab = screenById('ship-lab-2')!
@@ -112,5 +117,39 @@ describe('the way there', () => {
   it('is the only pair of teleporters in the game', () => {
     const pads = SCREENS.flatMap((s) => (s.portals ?? []).filter((p) => p.teleporter).map(() => s.id))
     expect(pads.sort()).toEqual(['haven-square', 'ship-lab-2'])
+  })
+})
+
+describe('five words means five', () => {
+  it('hands back exactly what was asked for, with nothing added', () => {
+    // The fault this covers: the chest sliced its activities down to five and
+    // the scheduler put it straight back up to eleven, because a late exercise
+    // id means cumulative review is due. The number is declared now.
+    const source = EXERCISES[EXERCISES.length - 1]!
+    const queue = buildQueue({
+      exercise: {
+        ...source,
+        concepts: [],
+        fixedQuestions: 5,
+        activities: source.activities.slice(0, 5),
+      },
+      concepts: CONCEPTS,
+      mastery: emptyMasteryStore(),
+      rng: new Rng('five'),
+    })
+    expect(queue.questions.length).toBe(5)
+    expect(queue.breakdown).toEqual({ current: 5, recent: 0, older: 0 })
+    expect(queue.trimmed).toBe(0)
+    // And the pacing rule does not quietly take a fifth off it either.
+    expect(queue.shortenedBy).toBe(0)
+  })
+
+  it('leaves an ordinary exercise scheduled as it always was', () => {
+    const source = EXERCISES[EXERCISES.length - 1]!
+    const plain = buildQueue({ exercise: source, concepts: CONCEPTS, mastery: emptyMasteryStore(), rng: new Rng('plain') })
+    // Late exercises get cumulative review; that must not have been switched
+    // off for everyone by the line that switches it off for the chest.
+    expect(plain.breakdown.recent + plain.breakdown.older).toBeGreaterThan(0)
+    expect(plain.questions.length).toBeGreaterThan(5)
   })
 })

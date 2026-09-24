@@ -205,6 +205,20 @@ export interface Exercise {
    */
   reviewConcepts: ConceptId[]
   ruleReveal: RuleReveal
+  /**
+   * Exactly this many questions, and nothing added.
+   *
+   * For the handful of side challenges whose whole promise is a number the
+   * child can see the end of — the chest in the quiet square says five words
+   * and has to mean five. Ordinary exercises leave this off and are scheduled
+   * as usual: trimmed to the budget, topped up with cumulative review, and
+   * shortened by the pacing rule.
+   *
+   * Without it, slicing the activities down to five achieved nothing: the
+   * scheduler saw a late exercise id, decided review was due, and filled the
+   * queue back up to eleven.
+   */
+  fixedQuestions?: number
 }
 
 // ---------------------------------------------------------------------------

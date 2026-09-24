@@ -392,6 +392,9 @@ function startFiveChallenge(gate: Gate): void {
     title: 'Five words',
     targetMinutes: source.targetMinutes,
     concepts: [],
+    // The number in the title is a promise, so the scheduler is told it
+    // outright rather than being left to infer it from a short list.
+    fixedQuestions: 5,
     activities: [
       ...source.activities.filter((q) => q.novel || q.masteryRequired),
       ...source.activities.filter((q) => !q.novel && !q.masteryRequired),
