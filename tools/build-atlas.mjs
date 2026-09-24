@@ -49,7 +49,11 @@ for (const s of world.screens) {
       what: p.toName,
       where: s.name,
       tile: `col ${p.col}, row ${p.row}`,
-      how: p.hidden === 'bomb'
+      how: p.teleporter
+        ? (p.hidden === 'bomb'
+            ? 'Blow the cracked plate with a Plasma Charge, and a teleporter pad is behind it'
+            : 'Step onto the teleporter pad')
+        : p.hidden === 'bomb'
         ? (s.level === 2 ? 'Blow the cracked bulkhead with a Plasma Charge' : 'Bomb the cracked rock')
         : p.hidden === 'candle'
           ? (s.level === 2 ? 'Unscrew the loose panel with the Laser Screwdriver' : 'Burn the bush with the Blue Candle')
@@ -58,7 +62,7 @@ for (const s of world.screens) {
             : p.needsSuit
               ? 'Walk into the locker first: without the suit this door is fatal'
               : `Opens once "${p.guardedBy}" is done`,
-      kind: p.hidden ?? (p.requires ? 'item' : 'gate'),
+      kind: p.teleporter ? 'warp' : p.hidden ?? (p.requires ? 'item' : 'gate'),
       level: s.level,
     })
   }
@@ -175,6 +179,9 @@ const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const charge = (level) => (level === 2 ? 'a Plasma Charge' : 'a bomb')
 const flame = (level) => (level === 2 ? 'the Laser Screwdriver' : 'the Blue Candle')
 
+/** True if a teleporter pad is hiding on this tile. */
+const warpAt = (s, col, row) => s.portals.some((p) => p.teleporter && p.col === col && p.row === row)
+
 /** The hover text on a cracked tile: what it is, and what is behind it. */
 function breakTitle(s, b) {
   const tool = b.needs === 'bomb' ? charge(s.level) : flame(s.level)
@@ -191,7 +198,12 @@ function tile(s, opts = {}) {
   // door and the boulder in front of it do not put two dots on one tile.
   for (const p of s.portals) {
     if (p.hidden) continue
-    marks.push({ col: p.col, row: p.row, cls: p.requires ? 'm-item' : 'm-door', title: `to ${p.toName}` })
+    marks.push({
+      col: p.col,
+      row: p.row,
+      cls: p.teleporter ? 'm-warp' : p.requires ? 'm-item' : 'm-door',
+      title: p.teleporter ? `Teleporter — to ${p.toName}` : `to ${p.toName}`,
+    })
   }
   if (s.treasure) marks.push({ col: s.treasure.col, row: s.treasure.row, cls: 'm-chest', title: `${s.treasure.rupees} rupees` })
   if (s.pickup) marks.push({ col: s.pickup.col, row: s.pickup.row, cls: 'm-pickup', title: s.pickup.itemName })
@@ -206,8 +218,14 @@ function tile(s, opts = {}) {
     marks.push({
       col: b.col,
       row: b.row,
-      cls: b.needs === 'candle' ? 'm-candle' : b.opens || b.gate ? 'm-bomb' : 'm-dud',
-      title: breakTitle(s, b),
+      cls:
+        warpAt(s, b.col, b.row) ? 'm-bomb m-warp'
+        : b.needs === 'candle' ? 'm-candle'
+        : b.opens || b.gate ? 'm-bomb'
+        : 'm-dud',
+      title: warpAt(s, b.col, b.row)
+        ? `${breakTitle(s, b)} — and a teleporter behind it`
+        : breakTitle(s, b),
     })
   }
 
@@ -316,6 +334,7 @@ const dudCount = (level) => bombSpots(level).filter(({ b }) => !b.opens && !b.ga
 /** The key to the pins, above each of the two maps. */
 const legend = `<div class="legend">
     <span><i class="m-lair"></i>The way in to a big monster's cave</span>
+    <span><i class="m-warp"></i>A teleporter pad</span>
     <span><i class="m-bomb"></i>Cracked — a bomb opens it</span>
     <span><i class="m-dud"></i>Cracked, with nothing behind it</span>
     <span><i class="m-candle"></i>Needs the candle</span>
@@ -331,7 +350,7 @@ const clusterHtml = clustersOf(land)
 const shipClusterHtml = clustersOf(ship)
 
 const findingRow = (f) => `<tr>
-      <td><span class="pin ${f.kind === 'bomb' ? 'm-bomb' : f.kind === 'candle' ? 'm-candle' : f.kind === 'item' ? 'm-item' : 'm-gate'}"></span>${esc(f.what)}</td>
+      <td><span class="pin ${f.kind === 'warp' ? 'm-warp' : f.kind === 'bomb' ? 'm-bomb' : f.kind === 'candle' ? 'm-candle' : f.kind === 'item' ? 'm-item' : 'm-gate'}"></span>${esc(f.what)}</td>
       <td>${esc(f.where)}</td>
       <td class="mono">${esc(f.tile)}</td>
       <td>${esc(f.how)}</td>
@@ -416,6 +435,11 @@ const html = `<title>Atlas of Both Worlds</title>
   .m-bomb { background: var(--bomb); box-shadow: 0 0 0 1.6px rgba(0,0,0,.75); }
   .m-dud { background: #fff; box-shadow: inset 0 0 0 3px var(--bomb), 0 0 0 1.4px rgba(0,0,0,.55); }
   .m-candle { background: var(--candle); }
+  /* A teleporter: the cyan of the pad in the game, ringed white so it still
+     reads on a hull plate and on grass alike. On a cracked tile it keeps the
+     yellow ring as well, because it is still a charge that opens it. */
+  .m-warp { background: #57d2c6 !important; box-shadow: 0 0 0 1.8px #f6f3e7, 0 0 0 3.2px rgba(0,0,0,.6); }
+  .m-bomb.m-warp { box-shadow: 0 0 0 2.2px var(--bomb), 0 0 0 3.6px rgba(0,0,0,.7); }
   .m-item { background: var(--item); } .m-gate { background: var(--gate); }
   .m-door { background: #cfd6c4; } .m-chest, .m-sealed { background: var(--chest); }
   /* Ringed white, so a thing lying on the ground is not mistaken for the

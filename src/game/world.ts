@@ -714,7 +714,12 @@ export class World {
    * has already spent.
    */
   private dressTheHaven(screen: Screen): void {
-    if (screen.id !== HAVEN) return
+    if (screen.id !== HAVEN) {
+      // The rabbit belongs to the square and stays in it. Left set, it walked
+      // back through the teleporter with him and turned up on the ship.
+      this.greeter = undefined
+      return
+    }
     for (const [col, row] of HAVEN_HEARTS) {
       this.drops.push({
         kind: 'heart',

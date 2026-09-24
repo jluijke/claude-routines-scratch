@@ -116,6 +116,37 @@ await wait(300)
 const healed = await world()
 check('the hearts on the grass heal him', healed.hearts > hurt.hearts)
 
+// ------------------------------ the chest pays once, the hearts every time
+// Walking into the chest asks for the five words.
+await goTo('haven-square', 2, 3)
+await press('ArrowUp', 500)
+const asking = await world()
+check('the chest asks before it opens', asking.pendingGate === 'haven-chest')
+// The panel's own button, not Escape: Escape leaves the prompt up, the world
+// paused, and every check after this one reading a stale pending gate.
+await page.getByRole('button', { name: /not right now/i }).click()
+await wait(500)
+
+// Take it, the way finishing the five words would.
+await page.evaluate(() => {
+  window.zsq.state.world.openedGates.push('haven-chest')
+  window.zsq.state.player.rupees += 100
+})
+const purse = await page.evaluate(() => window.zsq.state.player.rupees)
+
+// Leave and come back. The hearts are laid out again; the chest is not.
+await goTo('ship-lab-2', 7, 6)
+check('the rabbit stays in the square', (await world()).greeter === undefined)
+await goTo('haven-square', 8, 6)
+const again = await world()
+check('the hearts are laid out again every visit', (again.drops ?? 0) >= 5)
+
+await goTo('haven-square', 2, 3)
+await press('ArrowUp', 600)
+const second = await world()
+check('but the chest does not ask a second time', second.pendingGate === undefined)
+check('and pays nothing more', (await page.evaluate(() => window.zsq.state.player.rupees)) === purse)
+
 // ------------------------------------------------------------ and home again
 await goTo('haven-square', 13, 3)
 await press('ArrowUp', 500)

@@ -92,6 +92,7 @@ const screens = SCREENS.map((screen) => ({
     hidden: hiddenBy(screen.id, portal.col, portal.row),
     requires: portal.requires ? itemName(portal.requires, screen.level ?? 1) : undefined,
     needsSuit: portal.needsSuit ?? false,
+    teleporter: portal.teleporter ?? false,
     consumes: portal.consumes ?? false,
     guardedBy: portal.guardedBy,
   })),
