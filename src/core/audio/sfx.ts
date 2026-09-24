@@ -21,6 +21,8 @@ export type SfxName =
   | 'bossFanfare'
   | 'itemGet'
   | 'bark'
+  | 'shieldBlock'
+  | 'stomp'
 
 interface Tone {
   kind?: 'tone'
@@ -61,6 +63,17 @@ const PATCHES: Record<SfxName, Sound[]> = {
     { freq: 380, at: 0.01, duration: 0.07, type: 'triangle', slideTo: 180, gain: 0.05 },
   ],
   enemyHit: [{ freq: 180, at: 0, duration: 0.1, type: 'sawtooth', slideTo: 70, gain: 0.18 }],
+  // A blade turned aside by a shield: bright, short, and going nowhere, so it
+  // reads as "that did nothing" rather than as a hit.
+  shieldBlock: [
+    { freq: 1400, at: 0, duration: 0.04, type: 'square', slideTo: 1900, gain: 0.12 },
+    { freq: 900, at: 0.04, duration: 0.1, type: 'triangle', slideTo: 1100, gain: 0.08 },
+  ],
+  // Something heavy arriving. Used for the charge that ends in a wall.
+  stomp: [
+    { freq: 90, at: 0, duration: 0.14, type: 'square', slideTo: 40, gain: 0.22 },
+    { freq: 60, at: 0.1, duration: 0.18, type: 'sawtooth', slideTo: 30, gain: 0.14 },
+  ],
   playerHurt: [
     { freq: 320, at: 0, duration: 0.09, type: 'square', slideTo: 160, gain: 0.2 },
     { freq: 160, at: 0.09, duration: 0.16, type: 'square', slideTo: 80, gain: 0.18 },

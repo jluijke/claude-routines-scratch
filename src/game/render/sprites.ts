@@ -1416,6 +1416,64 @@ const MECH_A = defineSprite(32, 32, [
 ])
 
 /**
+ * The mech's second frame: it takes a step.
+ *
+ * The arms drop a row and the legs pull in under the body, so the thing rocks
+ * from side to side as it comes at you. The first frame was the only one there
+ * was, which meant four bosses that stood perfectly still while walking.
+ */
+const MECH_B = defineSprite(32, 32, [
+  '................................',
+  '................................',
+  '...kk......................kk...',
+  '..kmmk....kkkkkkkkkkkk....kmmk..',
+  '..kmmmk..kMMMMMMMMMMMMk..kmmmk..',
+  '...kmmmkkMMMMMMMMMMMMMMkkmmmk...',
+  '....kmmmMMMMrrrrrrrrMMMMmmmk....',
+  '.....kMMMMMMrkkkkkkrMMMMMMk.....',
+  '.....kMMMMMMrkccccKrMMMMMMk.....',
+  '.....kMMMMMMrkccccKrMMMMMMk.....',
+  '.....kMMMMMMrkkkkkkrMMMMMMk.....',
+  '.....kMMMMMMrrrrrrrrMMMMMMk.....',
+  '.....kMMkkkkkkkkkkkkkkkkMMk.....',
+  '......kMkMoMoMoMoMoMoMkMk.......',
+  '......kMkoMoMoMoMoMoMokMk.......',
+  '.......kkkkkkkkkkkkkkkkk........',
+  '......kMMMMMMMMMMMMMMMMMk.......',
+  '.....kMMMMMMMMMMMMMMMMMMMk......',
+  '....kMMMMMMMMMMMMMMMMMMMMMk.....',
+  '...kMMMMMMMMMMMMMMMMMMMMMMMk....',
+  '...kMMMMkkMMMMMMMMMMMMkkMMMMk...',
+  '...kMMMk..kMMMMMMMMMMk..kMMMk...',
+  '...kMMk....kMMMMMMMMk....kMMk...',
+  '...kk.......kMMMMMMk.......kk...',
+  '............kMMMMMMk............',
+  '...........kMMMMMMMMk...........',
+  '...........kMMMkkMMMk...........',
+  '..........kMMMk..kMMMk..........',
+  '..........kMMk....kMMk..........',
+  '..........kkk......kkk..........',
+  '................................',
+  '................................',
+])
+
+/**
+ * The four mechs, one per rock, in the colour of the rock it guards.
+ *
+ * One drawing, four palettes: the Grey is the steel it was drawn in, and the
+ * rest swap the two metal tones for red, ice and near-black. Before this they
+ * were the same sprite four times over, so a child who had beaten one had no
+ * way of telling he was looking at a different machine.
+ */
+const mechColours = (swap: Record<string, string>): [Sprite, Sprite] => [
+  mapColours(MECH_A, swap),
+  mapColours(MECH_B, swap),
+]
+const [MECH_RED_A, MECH_RED_B] = mechColours({ M: 'R', m: 'r' })
+const [MECH_ICE_A, MECH_ICE_B] = mechColours({ M: 'B', m: 'c', r: 'b' })
+const [MECH_BLACK_A, MECH_BLACK_B] = mechColours({ M: 'z', m: 'M' })
+
+/**
  * Half animal, half machine.
  *
  * The animals all face right, head first, so everything from the middle of
@@ -2048,7 +2106,14 @@ export const SPRITES = {
   discB: DISC_B,
   glitchA: GLITCH_A,
   glitchB: GLITCH_B,
-  mechA: MECH_A,
+  mechGreyA: MECH_A,
+  mechGreyB: MECH_B,
+  mechRedA: MECH_RED_A,
+  mechRedB: MECH_RED_B,
+  mechIceA: MECH_ICE_A,
+  mechIceB: MECH_ICE_B,
+  mechBlackA: MECH_BLACK_A,
+  mechBlackB: MECH_BLACK_B,
   cyborgDogA: cyborg(DOG_A),
   cyborgDogB: cyborg(DOG_B),
   cyborgCatA: cyborg(CAT_A),

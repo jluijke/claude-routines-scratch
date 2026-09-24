@@ -38,6 +38,8 @@ export interface Flavour {
   nothingToUse: string
   noItems: string
   defeated: string
+  /** Said once, the moment the red mech comes apart. Only the ship has one. */
+  mechSplit: string
   /** The one line said when he walks out of an airlock without his suit. */
   noSuit: string
   suitOn: string
@@ -79,6 +81,9 @@ const LAND: Flavour = {
   nothingToUse: 'Nothing to use yet. Buy something at the shop.',
   noItems: 'You have no items to use yet.',
   defeated: 'You have run out of hearts. A villager carries you back to the square.',
+  // The land has no splitting guardian. Kept so the two tables stay the same
+  // shape, rather than making one field optional for the sake of one world.
+  mechSplit: 'It breaks in two, and both halves come on.',
   noSuit: '',
   suitOn: '',
   suitOff: '',
@@ -120,6 +125,7 @@ const SHIP: Flavour = {
   nothingToUse: 'Nothing to use yet. Buy something at a computer.',
   noItems: 'You have no items to use yet.',
   defeated: 'You have run out of hearts. A medical drone carries you back to the bridge.',
+  mechSplit: 'THE MECH SPLITS IN TWO. BOTH HALVES ARE STILL COMING.',
   noSuit: 'You forgot to put on your space suit!',
   suitOn: 'You put on your space suit. The helmet seals with a hiss.',
   suitOff: 'Back inside, you hang the space suit up in the airlock.',

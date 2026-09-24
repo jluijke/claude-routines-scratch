@@ -165,7 +165,7 @@ describe('the sky-ship', () => {
 
 describe('the future in pictures and words', () => {
   it('draws every robot, every cyborg, and the hero in his suit', () => {
-    for (const name of ['droneA', 'droneB', 'crusherA', 'crusherB', 'discA', 'discB', 'glitchA', 'glitchB', 'mechA']) {
+    for (const name of ['droneA', 'droneB', 'crusherA', 'crusherB', 'discA', 'discB', 'glitchA', 'glitchB']) {
       expect(SPRITES[name as keyof typeof SPRITES]).toBeDefined()
     }
     for (const pet of PETS) {

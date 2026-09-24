@@ -274,6 +274,9 @@ for (const screen of SCREENS) {
 /** How far round him the Arc Staff's ring reaches, from his centre. */
 const ARC_RADIUS = 26
 
+/** How long the room rocks after something heavy lands. */
+const SHAKE_FRAMES = 16
+
 /** 'boss3' -> 3. The guardian knows which dungeon it belongs to. */
 function bossLevel(kind: EnemyKind): number {
   const n = Number(kind.replace('boss', ''))
@@ -313,6 +316,8 @@ export class World {
   private candleUsedHere = false
   private frame = 0
   private transition = 0
+  /** Frames left of the screen rocking after a heavy landing. */
+  private shake = 0
   /** Set while he is in the air on the Wings. Nothing else moves meanwhile. */
   private flight: Flight | undefined
   /**
@@ -834,7 +839,16 @@ export class World {
     const target = this.unseen() ? { x: SCREEN_W / 2, y: SCREEN_H / 2 } : this.player.centre()
     for (const enemy of this.enemies) {
       enemy.update(step, target, blocked, (p) => this.projectiles.push(p))
+      // A charging mech that has just put itself into a wall. The enemy does
+      // not know what a speaker or a camera is, so the noise and the shake are
+      // collected here instead.
+      if (enemy.slammed) {
+        enemy.slammed = false
+        sfx.play('stomp')
+        this.shake = SHAKE_FRAMES
+      }
     }
+    if (this.shake > 0) this.shake -= 1
 
     this.resolveCombat()
     this.updatePet(step)
@@ -1254,10 +1268,7 @@ export class World {
       const inArc = arc !== undefined && Math.hypot(at.x - arc.x, at.y - arc.y) <= ARC_RADIUS + enemy.size / 2
 
       if ((sword && overlaps(sword, box)) || inArc) {
-        if (enemy.hurt(this.player.swordDamage)) {
-          sfx.play('enemyHit')
-          if (enemy.isDead()) this.defeat(enemy)
-        }
+        this.strike(enemy, this.player.swordDamage)
       }
 
       // Walking through a monster is exactly that, while the potion holds.
@@ -1271,6 +1282,93 @@ export class World {
     }
   }
 
+  /**
+   * The signs a mech wears, so its trick can be seen rather than guessed.
+   *
+   * A nine-year-old cannot fight what he cannot read. The ice mech's shield is
+   * a ring he can watch drop; the charger's daze is stars over its head; a
+   * turned blade flashes white where it was turned. None of it is decoration —
+   * take these away and all three fights become unfair.
+   */
+  private drawMechTells(ctx: CanvasRenderingContext2D, enemy: Enemy): void {
+    if (!enemy.mech) return
+    const at = enemy.centre()
+    const radius = enemy.size / 2 + 4
+
+    if (enemy.isShielded || enemy.blockFlash > 0) {
+      const struck = enemy.blockFlash > 0
+      ctx.save()
+      ctx.strokeStyle = struck ? '#f6f3e7' : '#57d2c6'
+      ctx.lineWidth = struck ? 2 : 1
+      // A shield that is about to drop gives itself away by thinning out.
+      ctx.globalAlpha = struck ? 1 : Math.floor(this.frame / 6) % 2 === 0 ? 0.85 : 0.5
+      ctx.beginPath()
+      ctx.arc(at.x, at.y, radius, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.restore()
+    }
+
+    if (enemy.isDazed) {
+      // Three sparks circling its head, the old shorthand for seeing birds.
+      ctx.save()
+      ctx.fillStyle = '#e8bb2c'
+      for (let i = 0; i < 3; i++) {
+        const angle = this.frame / 9 + (i * Math.PI * 2) / 3
+        ctx.fillRect(
+          Math.round(at.x + Math.cos(angle) * 11) - 1,
+          Math.round(at.y - enemy.size / 2 - 3 + Math.sin(angle) * 3) - 1,
+          2,
+          2,
+        )
+      }
+      ctx.restore()
+    }
+  }
+
+  /**
+   * Every blow that lands on anything, whatever threw it.
+   *
+   * Sword, Arc Staff, arrow, bomb and a set of teeth all come through here,
+   * because the ice mech's shield has to turn all five of them aside. Written
+   * out five times over, the sixth way of hitting something — and there will be
+   * one — would have gone straight through the shield without anyone noticing.
+   */
+  private strike(enemy: Enemy, amount: number): void {
+    if (enemy.isShielded) {
+      if (enemy.deflect()) sfx.play('shieldBlock')
+      return
+    }
+    if (!enemy.hurt(amount)) return
+    sfx.play('enemyHit')
+    // Dead first: a blow big enough to take it past half and past nothing in
+    // one go kills it, rather than splitting a corpse.
+    if (enemy.isDead()) this.defeat(enemy)
+    else if (enemy.wantsSplit) this.splitMech(enemy)
+  }
+
+  /**
+   * The red mech comes apart, and both halves keep coming.
+   *
+   * They share out what was left of it rather than each starting fresh, so the
+   * surprise costs him a moment of panic and not the whole fight over again.
+   */
+  private splitMech(parent: Enemy): void {
+    parent.wantsSplit = false
+    this.enemies = this.enemies.filter((e) => e !== parent)
+    const at = parent.centre()
+    const each = Math.max(1, Math.ceil(parent.hp / 2))
+    sfx.play('secret')
+    this.shake = SHAKE_FRAMES
+    for (const side of [-1, 1]) {
+      const col = Math.max(1, Math.min(SCREEN_COLS - 2, Math.round((at.x + side * 20) / TILE)))
+      const row = Math.max(1, Math.min(SCREEN_ROWS - 2, Math.round(at.y / TILE)))
+      const half = new Enemy(parent.kind, col, row, this.rng.int(1, 1e9), 'robot', { half: true })
+      half.hp = each
+      this.enemies.push(half)
+    }
+    this.showMessage(this.words.mechSplit)
+  }
+
   /** Whether the thing he is swinging is the Arc Staff: the future's gold. */
   private hasArcStaff(): boolean {
     return this.level === 2 && this.player.loadout.sword === 'goldenSword'
@@ -1280,7 +1378,12 @@ export class World {
     this.enemies = this.enemies.filter((e) => e !== enemy)
     const centre = enemy.centre()
 
-    if (enemy.isBoss) {
+    // A split mech is two bosses in one room, and the room is not won until
+    // both halves are down. Without this, killing the first half plays the
+    // fanfare, banks the rock and leaves the other half walking about in it.
+    const stillGuarded = this.enemies.some((e) => e.isBoss)
+
+    if (enemy.isBoss && !stillGuarded) {
       if (!this.save.world.defeatedBosses.includes(this.screen.id)) {
         this.save.world.defeatedBosses.push(this.screen.id)
       }
@@ -1519,10 +1622,7 @@ export class World {
       const box = { x: shot.x, y: shot.y, w: SHOT_SIZE, h: SHOT_SIZE }
       const struck = this.enemies.find((enemy) => overlaps(box, enemy.box()))
       if (struck) {
-        if (struck.hurt(ARROW_DAMAGE)) {
-          sfx.play('enemyHit')
-          if (struck.isDead()) this.defeat(struck)
-        }
+        this.strike(struck, ARROW_DAMAGE)
         continue
       }
       flying.push(shot)
@@ -1580,10 +1680,7 @@ export class World {
     for (const enemy of [...this.enemies]) {
       const centre = enemy.centre()
       if (Math.hypot(centre.x - x, centre.y - y) > 16) continue
-      if (enemy.hurt(1)) {
-        sfx.play('enemyHit')
-        if (enemy.isDead()) this.defeat(enemy)
-      }
+      this.strike(enemy, 1)
     }
   }
 
@@ -1629,10 +1726,7 @@ export class World {
     for (const enemy of [...this.enemies]) {
       const centre = enemy.centre()
       if (Math.hypot(centre.x - x, centre.y - y) > 26) continue
-      if (enemy.hurt(3)) {
-        sfx.play('enemyHit')
-        if (enemy.isDead()) this.defeat(enemy)
-      }
+      this.strike(enemy, 3)
     }
   }
 
@@ -1641,7 +1735,10 @@ export class World {
   private render(): void {
     const ctx = this.ctx
     ctx.save()
-    ctx.translate(0, HUD_H)
+    // The room jolts when something heavy hits a wall. Two pixels, and only
+    // for a moment — enough to feel, not enough to lose the hero in.
+    const jolt = this.shake > 0 ? (Math.floor(this.frame / 2) % 2 === 0 ? 2 : -2) : 0
+    ctx.translate(jolt, HUD_H + (this.shake > 0 ? -jolt : 0))
 
     const opened = this.openedTiles()
     drawTiles(ctx, this.screen, opened, this.frame)
@@ -1679,7 +1776,11 @@ export class World {
     for (const enemy of this.enemies) {
       const flashing = enemy.hurtTimer > 0 && Math.floor(this.frame / 3) % 2 === 0
       const blinking = enemy.isBlinking && Math.floor(this.frame / 2) % 2 === 0
-      if (!flashing && !blinking) this.atlas.draw(ctx, enemy.sprite, enemy.x, enemy.y)
+      // A mech gathering itself to charge judders on the spot. It is the only
+      // warning he gets, and without it the charge is just an unfair death.
+      const brace = enemy.isWindingUp ? (Math.floor(this.frame / 2) % 2 === 0 ? 1 : -1) : 0
+      if (!flashing && !blinking) this.atlas.draw(ctx, enemy.sprite, enemy.x + brace, enemy.y)
+      this.drawMechTells(ctx, enemy)
     }
 
     for (const shot of this.projectiles) {
@@ -2106,10 +2207,7 @@ export class World {
         if (closest <= PET_BITE_RANGE && pet.cooldown === 0) {
           pet.cooldown = PET_BITE_COOLDOWN
           sfx.play('bark')
-          if (quarry.hurt(PET_BITE_DAMAGE)) {
-            sfx.play('enemyHit')
-            if (quarry.isDead()) this.defeat(quarry)
-          }
+          this.strike(quarry, PET_BITE_DAMAGE)
         }
         return
       }
@@ -2558,11 +2656,35 @@ export class World {
       litRadius: this.screen.dark
         ? (this.save.inventory.blueCandle ? LIT_RADIUS : DARK_RADIUS)
         : undefined,
+      // What each mech is doing, so a check can tell a wind-up from a daze and
+      // a raised shield from a dropped one without reading pixels.
+      mechs: this.enemies
+        .filter((e) => e.mech !== undefined)
+        .map((e) => ({
+          trick: e.mech?.trick,
+          shielded: e.isShielded,
+          dazed: e.isDazed,
+          windingUp: e.isWindingUp,
+          half: e.isHalf,
+          sprite: e.sprite,
+        })),
+      shaking: this.shake > 0,
+      defeatedBosses: [...this.save.world.defeatedBosses],
       pendingGate: this.pendingGate?.id,
       paused: this.paused,
       /** Whatever the message bar is showing, so a check can read it. */
       message: this.message,
     }
+  }
+
+  /**
+   * Hits the boss in the room for the checks, through the same path a sword
+   * would — shield, split and all. Swinging an actual sword from a script is
+   * a test of the keyboard, not of the fight.
+   */
+  debugHitBoss(amount: number): void {
+    const boss = this.enemies.find((e) => e.isBoss)
+    if (boss) this.strike(boss, amount)
   }
 
   /** Jumps straight to a screen. Used by the debug menu and the end-to-end checks. */

@@ -59,11 +59,72 @@ const ROBOT_SPRITES: Record<EnemyKind, [SpriteName, SpriteName]> = {
   chaser: ['crusherA', 'crusherB'],
   flyer: ['discA', 'discB'],
   caster: ['glitchA', 'glitchB'],
-  boss1: ['mechA', 'mechA'],
-  boss2: ['mechA', 'mechA'],
-  boss3: ['mechA', 'mechA'],
-  boss4: ['mechA', 'mechA'],
+  boss1: ['mechGreyA', 'mechGreyB'],
+  boss2: ['mechRedA', 'mechRedB'],
+  boss3: ['mechIceA', 'mechIceB'],
+  boss4: ['mechBlackA', 'mechBlackB'],
 }
+
+/**
+ * The four mechs of the rocks, and the one thing each of them does.
+ *
+ * The land's guardians all fight the same way — walk at him, fire a bolt — and
+ * for a long time the ship's did too, because they were the same four objects
+ * with a different sprite. Four identical fights is three fights wasted, and it
+ * is why the second half of the game felt thinner than the first.
+ *
+ * So each mech gets one idea, and only one, which is how the machines this is
+ * drawn after did it:
+ *
+ * - **charge** winds up, slams across the room, and knocks itself silly on the
+ *   far wall. It never shoots. The whole fight is reading the wind-up.
+ * - **split** breaks in two when it is half dead, and both halves are still
+ *   coming.
+ * - **shield** cannot be hurt at all until it fires — the shield drops for a
+ *   moment with the shot, and that moment is the fight.
+ * - **phase** blinks out and reappears somewhere else, the way the ship's
+ *   glitches do. Nothing else in the game teleports at you.
+ */
+export type MechTrick = 'charge' | 'split' | 'shield' | 'phase'
+
+interface Mech {
+  trick: MechTrick
+  hp: number
+  speed: number
+  damage: number
+  /** 0 for the charger: its whole threat is its body. */
+  fireRate: number
+}
+
+const MECHS: Record<'boss1' | 'boss2' | 'boss3' | 'boss4', Mech> = {
+  boss1: { trick: 'charge', hp: 20, speed: 24, damage: 2, fireRate: 0 },
+  boss2: { trick: 'split', hp: 30, speed: 34, damage: 3, fireRate: 70 },
+  boss3: { trick: 'shield', hp: 34, speed: 30, damage: 3, fireRate: 100 },
+  boss4: { trick: 'phase', hp: 46, speed: 40, damage: 3, fireRate: 60 },
+}
+
+function mechFor(kind: EnemyKind, look: EnemyLook): Mech | undefined {
+  if (look !== 'robot') return undefined
+  return MECHS[kind as keyof typeof MECHS]
+}
+
+/**
+ * How fast the charger crosses the room, against its stalking speed.
+ *
+ * It stalks at 24 and charges at seven and a half times that, which is about
+ * three times the hero's walk. At the first value it tried this was 3.6, and
+ * the charge ran out of frames in the middle of the room and never reached a
+ * wall — so it never slammed, never dazed, and the fight had no opening in it
+ * at all.
+ */
+const CHARGE_SPEED = 7.5
+/** Frames it stands and shakes before it comes, and frames it is dazed after. */
+const WIND_UP = 46
+const DAZED = 74
+/** Frames the ice mech's shield stays down after it fires. */
+const SHIELD_OPEN = 58
+/** How far off it has to be to bother charging, rather than simply shoving. */
+const CHARGE_REACH = 44
 
 const ARCHETYPES: Record<EnemyKind, Archetype> = {
   shooter: {
@@ -134,15 +195,74 @@ export class Enemy {
   private baitX = 0
   private baitY = 0
 
-  constructor(kind: EnemyKind, col: number, row: number, seed: number, look: EnemyLook = 'monster') {
+  /** Which of the four rock mechs this is, if it is one at all. */
+  readonly mech: Mech | undefined
+  /** True for the two pieces a split mech leaves behind. */
+  readonly isHalf: boolean
+  /** Where the charger is in its wind up, run and daze. */
+  private chargeState: 'stalk' | 'wind' | 'run' | 'dazed' = 'stalk'
+  private chargeTimer = 0
+  private runX = 0
+  private runY = 0
+  /**
+   * Set on the frame a charge ends against a wall, and cleared by the world,
+   * which owns the noise and the shake. The enemy does not know about either.
+   */
+  slammed = false
+  /** Counts down while the ice mech's shield is out of the way. */
+  private openTimer = 0
+  /** Lit for a few frames when a blow is turned aside, so it reads as a block. */
+  blockFlash = 0
+  /** Set the moment a splitter drops past half, and cleared by the world. */
+  wantsSplit = false
+  private hasSplit = false
+
+  constructor(
+    kind: EnemyKind,
+    col: number,
+    row: number,
+    seed: number,
+    look: EnemyLook = 'monster',
+    options: { half?: boolean } = {},
+  ) {
     this.kind = kind
     this.look = look
-    this.def = ARCHETYPES[kind]
+    this.isHalf = options.half === true
+    this.mech = mechFor(kind, look)
+    // A mech overrides the guardian's numbers it was cloned from; a half is
+    // smaller and softer again, so two of them are a fight rather than twice
+    // the fight he had just nearly won.
+    const base = ARCHETYPES[kind]
+    const merged = this.mech ? { ...base, ...this.mech } : base
+    this.def = this.isHalf
+      ? { ...merged, hp: Math.ceil(merged.hp / 2), size: Math.round(merged.size * 0.62) }
+      : merged
     this.x = col * TILE + (TILE - this.def.size) / 2
     this.y = row * TILE + (TILE - this.def.size) / 2
     this.hp = this.def.hp
     this.rng = new Rng(seed)
     this.cooldown = this.def.fireRate > 0 ? this.rng.int(30, this.def.fireRate) : 0
+    // The phasing mech blinks on the caster's clock, but sooner the first time
+    // so that it shows him the trick early rather than after a long plain walk.
+    if (this.mech?.trick === 'phase') this.blinkTimer = 120
+    // A moment of walking before the first wind-up, so the room is not a
+    // charge the instant he steps through the door.
+    if (this.mech?.trick === 'charge') this.chargeTimer = 70
+  }
+
+  /** True while the ice mech's shield is up: nothing can touch it. */
+  get isShielded(): boolean {
+    return this.mech?.trick === 'shield' && this.openTimer <= 0
+  }
+
+  /** True while the charger is dazed against the wall — the window to hit it. */
+  get isDazed(): boolean {
+    return this.chargeState === 'dazed'
+  }
+
+  /** True while it is gathering itself to charge, which is the tell. */
+  get isWindingUp(): boolean {
+    return this.chargeState === 'wind'
   }
 
   get size(): number {
@@ -187,8 +307,25 @@ export class Enemy {
     if (this.hurtTimer > 0) return false
     // Mid-blink it is not really there to hit.
     if (this.blinkPhase > 12) return false
+    // Behind its shield it takes nothing at all, however hard he swings.
+    if (this.isShielded) return false
     this.hp -= amount
     this.hurtTimer = 12
+    // Half dead, and it comes apart. Once only, and never for the pieces.
+    if (this.mech?.trick === 'split' && !this.isHalf && !this.hasSplit && this.hp <= this.def.hp / 2) {
+      this.hasSplit = true
+      this.wantsSplit = true
+    }
+    return true
+  }
+
+  /**
+   * A blow the shield turned aside. True once per swing rather than once per
+   * frame, so the clang does not come out as a machine gun.
+   */
+  deflect(): boolean {
+    if (this.blockFlash > 0) return false
+    this.blockFlash = 16
     return true
   }
 
@@ -205,6 +342,8 @@ export class Enemy {
     this.phase += 1
     if (this.hurtTimer > 0) this.hurtTimer -= 1
     if (this.baitTimer > 0) this.baitTimer -= 1
+    if (this.blockFlash > 0) this.blockFlash -= 1
+    if (this.openTimer > 0) this.openTimer -= 1
 
     const goal = this.baitTimer > 0 ? { x: this.baitX, y: this.baitY } : target
     const me = this.centre()
@@ -260,16 +399,25 @@ export class Enemy {
       case 'boss2':
       case 'boss3':
       case 'boss4': {
+        if (this.mech) this.updateMech(step, toGoalX / distance, toGoalY / distance, isBlocked, me, distance)
         // Advances steadily and cannot be out-walked forever.
-        this.step(step, toGoalX / distance, toGoalY / distance, isBlocked)
+        else this.step(step, toGoalX / distance, toGoalY / distance, isBlocked)
         break
       }
     }
 
-    if (this.def.fireRate > 0) {
+    // A charger has no gun, and a mech winding up or picking itself off the
+    // floor is in no state to use one.
+    const canShoot =
+      this.def.fireRate > 0 && (this.mech === undefined || this.chargeState === 'stalk')
+    if (canShoot) {
       this.cooldown -= 1
       if (this.cooldown <= 0) {
         this.cooldown = this.def.fireRate
+        // The shield comes down with the shot and stays down for a moment.
+        // Firing is the only thing that opens it, which is what makes the
+        // fight a matter of waiting rather than of swinging harder.
+        if (this.mech?.trick === 'shield') this.openTimer = SHIELD_OPEN
         const speed = this.isBoss ? 78 : 62
         fire({
           x: me.x - 4,
@@ -291,6 +439,75 @@ export class Enemy {
             fire({ x: me.x - 4, y: me.y - 4, vx: nx * speed, vy: ny * speed, damage: this.def.damage, life: 180, magic: true })
           }
         }
+      }
+    }
+  }
+
+  /**
+   * How a mech moves, which is the only part of it that differs by rock.
+   *
+   * Everything here is deliberately slow and legible: a child has to be able
+   * to see the wind-up coming and *decide* to get out of the way. A fight he
+   * loses without knowing why teaches him nothing.
+   */
+  private updateMech(
+    step: number,
+    dx: number,
+    dy: number,
+    isBlocked: (x: number, y: number) => boolean,
+    me: { x: number; y: number },
+    distance: number,
+  ): void {
+    switch (this.mech?.trick) {
+      case 'charge': {
+        this.chargeTimer -= 1
+        if (this.chargeState === 'stalk') {
+          this.step(step, dx, dy, isBlocked)
+          // Only from across the room: charging at someone standing next to it
+          // would be a shove, not a charge he can read and dodge.
+          if (this.chargeTimer <= 0 && distance > CHARGE_REACH) {
+            this.chargeState = 'wind'
+            this.chargeTimer = WIND_UP
+            // The direction is locked in *now*, at the start of the wind-up,
+            // so stepping aside during it actually works.
+            this.runX = dx
+            this.runY = dy
+          }
+        } else if (this.chargeState === 'wind') {
+          if (this.chargeTimer <= 0) {
+            this.chargeState = 'run'
+            this.chargeTimer = 80
+          }
+        } else if (this.chargeState === 'run') {
+          const before = { x: this.x, y: this.y }
+          this.step(step * CHARGE_SPEED, this.runX, this.runY, isBlocked)
+          const stopped = Math.hypot(this.x - before.x, this.y - before.y) < 0.4
+          if (stopped || this.chargeTimer <= 0) {
+            this.chargeState = 'dazed'
+            this.chargeTimer = DAZED
+            this.slammed = stopped
+          }
+        } else if (this.chargeTimer <= 0) {
+          this.chargeState = 'stalk'
+          this.chargeTimer = this.rng.int(50, 90)
+        }
+        break
+      }
+      case 'phase': {
+        // Walks at him like the rest, and every so often is simply somewhere
+        // else. The blink itself is the caster's, borrowed whole.
+        this.step(step, dx, dy, isBlocked)
+        this.blinkTimer -= 1
+        if (this.blinkPhase > 0) this.blinkPhase -= 1
+        if (this.blinkTimer <= 0) {
+          this.blinkTimer = this.rng.int(150, 240)
+          this.blinkPhase = 24
+          this.blinkTo(isBlocked, me)
+        }
+        break
+      }
+      default: {
+        this.step(step, dx, dy, isBlocked)
       }
     }
   }
