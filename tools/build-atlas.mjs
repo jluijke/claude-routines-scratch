@@ -370,6 +370,30 @@ const findingRows = findings.filter((f) => f.level === 1).map(findingRow).join('
 const shipFindingRows = findings.filter((f) => f.level === 2).map(findingRow).join('\n')
 const cityFindingRows = findings.filter((f) => f.level === 3).map(findingRow).join('\n')
 
+/** The stations, in line order, each with its screens; then the lairs and the plazas up their stairs. */
+const stationOrder = ['59st', 'union', 'astor', '2av', 'w4', 'christopher', 'canal', 'cityhall', 'atlantic', 'brighton']
+const subwayClusterHtml = [
+  ...stationOrder.map((key) => {
+    const members = city.filter((s) => s.id.startsWith(`nyc-sub-${key}-`))
+    const platform = members.find((s) => s.id.endsWith('-platform'))
+    return { region: platform ? platform.name.replace(' Platform', '') : key, members: [...members].sort((a, b) => (a.id.endsWith('-mezz') ? -1 : b.id.endsWith('-mezz') ? 1 : a.id.endsWith('-platform') ? 1 : -1)) }
+  }),
+  { region: 'The train', members: city.filter((s) => s.id === 'nyc-train-car') },
+]
+  .map(
+    (c) => `<section class="cluster">
+      <h3>${esc(c.region)}</h3>
+      <div class="strip">${c.members.map((s) => tile(s, { small: true })).join('')}</div>
+    </section>`,
+  )
+  .join('\n')
+const lairIds = ['nyc-trump-green', 'nyc-columbus-park', 'nyc-boardwalk', 'nyc-atlantic-terminal', 'nyc-union-square', 'nyc-times-square']
+const lairClusterHtml = `<section class="cluster"><h3>Up the stairs, and out of the purple car</h3><div class="strip">${lairIds
+  .map((id) => byId.get(id))
+  .filter(Boolean)
+  .map((s) => tile(s, { small: true }))
+  .join('')}</div></section>`
+
 const html = `<title>Atlas of Both Worlds</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -595,18 +619,26 @@ const html = `<title>Atlas of Both Worlds</title>
   ${shipClusterHtml}
 
   <h2>Level 3 · The Village</h2>
-  <p class="note">New York, now: the West Village west of Sixth Avenue, the East Village and Alphabet City east of Broadway, Washington Square in the middle and Tompkins Square at the far end. Nine blocks across, three deep, laid out exactly as they connect. Streets run across a square, avenues run up one, and where they meet there is a crosswalk. He arrives in Washington Square with nothing; the knife is on a bench by the fountain. The two police tapes either side of the square are the first spellings. <b>This is stage one of the city</b>: the streets and the shops. The traffic, the subway, the guns and the three guardians are still to come.</p>
+  <p class="note">New York, now: the West Village west of Sixth Avenue, the East Village and Alphabet City east of Broadway, Washington Square in the middle and Tompkins Square at the far end. Nine blocks across, three deep, laid out exactly as they connect. Streets run across a square, avenues run up one, and where they meet there is a crosswalk with a walking man. He arrives in Washington Square with nothing; the knife is on a bench by the fountain. The square and the four blocks round it are a pocket: the only ways out are the two police tapes, west on Sixth Avenue and east on Broadway, and each is a spelling. The cars kill two hearts a hit; wait for the little man. Four stairways with a green globe go down to the subway.</p>
   ${legend}
   <div class="board">
     <div class="grid city">${blockCells}</div>
   </div>
 
   <h2>Level 3 · Inside</h2>
-  <p class="note">The shops, the pet shop, and the community garden on Avenue B. Every shop door is under an awning; walk into it. The newsstand on Sheridan Square sells the Street Map, which is the only way to get one. The pawn shop (We Buy Gold) is the hidden trader; the hardware store on Christopher Street is the smith, and it wants a spelling before it sells the box hammer.</p>
+  <p class="note">The shops, the pet shop, and the community garden on Avenue B. Every shop door is under an awning; walk into it. The newsstand on Sheridan Square sells the Street Map, which is the only way to get one. The pawn shop (We Buy Gold) is the hidden trader; the hardware store on Christopher Street is the smith, and it wants a spelling before it sells the box hammer, the pistol or the rifle. Flowers by Rosa, on West 4th, sells love bombs.</p>
   ${cityClusterHtml}
 
+  <h2>Level 3 · The subway</h2>
+  <p class="note">One line, the V. Every station is three screens deep: the mezzanine with the booth and the turnstiles (three words from any finished exercise, every time he comes down — the spelling is the fare), a passage, and the platform with the train at it. Walk onto the train and it asks which way. Uptown from the Village is Union Square and, at the top of the line, 59th Street, where Trump has a putting green. Downtown is Canal Street (Xi, in Columbus Park), then Brooklyn: Atlantic Avenue and its chest, and Brighton Beach, where Putin is on the boardwalk. Between Canal Street and Atlantic Avenue the train stops at City Hall, which the map does not print until he has been: a haven with five hearts every visit, a strongbox, and the rabbit. The subway map is free on the West 4th mezzanine, before the turnstile; M underground opens it.</p>
+  ${subwayClusterHtml}
+
+  <h2>Level 3 · The guardians</h2>
+  <p class="note">Nothing he can swing, shoot or blow up touches Trump, Putin or Xi. Love bombs do: Rosa sells them at Flowers by Rosa on West 4th, twelve dollars each, thrown with X. Twelve on Trump, sixteen on Putin, twenty on Xi, and each one lands pinker than the last. The knife, the box hammer (which shakes the street and stuns whatever is beside it), the pistol (six shots, short reach), the rifle (three, the whole screen) and the machine gun (three bullets a press, from the bow's slot) are for the rats, pigeons, alligators and steam wraiths.</p>
+  ${lairClusterHtml}
+
   <h2>Level 3 · What you cannot find by walking</h2>
-  <p class="note">The city keeps its secrets behind boarded-up doors (firecrackers) and padlocked dumpsters (bolt cutters). None of the boarded doors lead anywhere yet.</p>
+  <p class="note">The purple car on Fifth Avenue goes where it likes: somewhere in the Village, or Times Square, which it is the only way to and from, and where somebody has dropped a wallet. A firecracker beside a hydrant blows the cap off. Pigeons fly up when he walks at them. The city's other secrets are behind boarded-up doors (firecrackers) and padlocked dumpsters (bolt cutters).</p>
   <div class="scroller">
     <table>
       <thead><tr><th>Leads to</th><th>On this screen</th><th>Tile</th><th>How it opens</th></tr></thead>
