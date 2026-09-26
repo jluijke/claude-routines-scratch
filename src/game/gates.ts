@@ -1095,7 +1095,8 @@ const GATE_LIST: Gate[] = [
     ['59st', 'The turnstile at 59th Street. Gold-plated, for some reason. It wants three words like any other.'],
     ['canal', 'The turnstile at Canal Street. Someone has stuck a lucky cat on it. THREE WORDS, says the screen, in two languages.'],
     ['atlantic', 'The turnstile at Atlantic Avenue. Brooklyn does not care where you are from. Three words.'],
-    ['brighton', 'The last turnstile on the line, at Brighton Beach. Sand in the reader. Three words, and it clunks.'],
+    ['brighton', 'The turnstile at Brighton Beach. Sand in the reader. Three words, and it clunks.'],
+    ['coney', 'The last turnstile on the line, at Coney Island. It smells of hot dogs. Three words.'],
   ].map(([key, message]) => ({
     id: `nyc-turnstile-${key}`,
     kind: 'turnstile' as const,

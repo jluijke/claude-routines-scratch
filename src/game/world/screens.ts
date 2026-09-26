@@ -51,6 +51,12 @@ export interface Prop {
   locker?: boolean
   /** Furniture he cannot walk through — a canister, a crate. Does nothing else. */
   solid?: boolean
+  /** A busker: while he is in earshot, the music is the busker's tune. */
+  busker?: boolean
+  /** Only there once every one of these boss rooms has been won. */
+  after?: string[]
+  /** Drawn loved: tinted pink, the way a guardian ends. */
+  pink?: boolean
 }
 
 export type ShopKind = 'village' | 'secret' | 'smith' | 'castaway' | 'pets' | 'florist'

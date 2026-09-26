@@ -47,6 +47,7 @@ export const STOPS: readonly Stop[] = [
   { id: 'nyc-sub-cityhall-platform', name: 'City Hall', short: 'CITY HALL', secret: true },
   { id: 'nyc-sub-atlantic-platform', name: 'Atlantic Avenue', short: 'ATLANTIC AV' },
   { id: 'nyc-sub-brighton-platform', name: 'Brighton Beach', short: 'BRIGHTON BEACH' },
+  { id: 'nyc-sub-coney-platform', name: 'Coney Island – Stillwell Avenue', short: 'CONEY ISLAND' },
 ]
 
 /** Which stop a platform screen is, or -1 for anywhere that is not one. */
@@ -65,6 +66,8 @@ export interface Ride {
   phase: 'moving' | 'doors'
   /** Frames left in this phase. */
   frames: number
+  /** Stops covered per leg: 1 on the local, 2 on the express. */
+  step?: 1 | 2
 }
 
 /** Five seconds in the tunnel, six with the doors open. */
@@ -73,18 +76,39 @@ export const DOORS_FRAMES = 360
 /** The car lurches every two seconds, and he is shoved a little. */
 export const LURCH_EVERY = 120
 
+export interface Directions {
+  uptown?: Stop
+  downtown?: Stop
+  /** The express skips a stop, so it is only offered where there is one to skip. */
+  expressUptown?: Stop
+  expressDowntown?: Stop
+}
+
 /** Where he can go from a stop. The ends of the line offer one way only. */
-export function directionsFrom(index: number): { uptown?: Stop; downtown?: Stop } {
+export function directionsFrom(index: number): Directions {
   const uptown = STOPS[index - 1]
   const downtown = STOPS[index + 1]
+  const expressUptown = STOPS[index - 2]
+  const expressDowntown = STOPS[index + 2]
   return {
     ...(uptown ? { uptown } : {}),
     ...(downtown ? { downtown } : {}),
+    ...(expressUptown ? { expressUptown } : {}),
+    ...(expressDowntown ? { expressDowntown } : {}),
   }
 }
 
-export function beginRide(index: number, dir: RideDirection): Ride {
-  return { index, dir, phase: 'moving', frames: MOVING_FRAMES }
+export function beginRide(index: number, dir: RideDirection, express = false): Ride {
+  return { index, dir, phase: 'moving', frames: MOVING_FRAMES, step: express ? 2 : 1 }
+}
+
+/**
+ * The stop the next leg ends at. The express goes two stops, or as far as the
+ * line goes: from the stop next to the end it runs to the end and no further.
+ */
+function legEnd(ride: Ride): number {
+  const target = ride.index + ride.dir * (ride.step ?? 1)
+  return Math.max(0, Math.min(STOPS.length - 1, target))
 }
 
 export type RideEvent = 'arrive' | 'depart'
@@ -98,7 +122,7 @@ export function tickRide(ride: Ride): { ride: Ride; event?: RideEvent } {
   const frames = ride.frames - 1
   if (frames > 0) return { ride: { ...ride, frames } }
   if (ride.phase === 'moving') {
-    return { ride: { ...ride, index: ride.index + ride.dir, phase: 'doors', frames: DOORS_FRAMES }, event: 'arrive' }
+    return { ride: { ...ride, index: legEnd(ride), phase: 'doors', frames: DOORS_FRAMES }, event: 'arrive' }
   }
   const atEnd = STOPS[ride.index + ride.dir] === undefined
   const dir: RideDirection = atEnd ? (ride.dir === 1 ? -1 : 1) : ride.dir
@@ -107,7 +131,7 @@ export function tickRide(ride: Ride): { ride: Ride; event?: RideEvent } {
 
 /** The stop the train is heading for, or standing at. */
 export function nextStop(ride: Ride): Stop {
-  const index = ride.phase === 'doors' ? ride.index : ride.index + ride.dir
+  const index = ride.phase === 'doors' ? ride.index : legEnd(ride)
   return STOPS[index] ?? (STOPS[ride.index] as Stop)
 }
 
@@ -115,7 +139,7 @@ export function nextStop(ride: Ride): Stop {
 export function rideProgress(ride: Ride): number {
   if (ride.phase === 'doors') return ride.index
   const travelled = 1 - ride.frames / MOVING_FRAMES
-  return ride.index + ride.dir * travelled
+  return ride.index + (legEnd(ride) - ride.index) * travelled
 }
 
 export function isUnderground(setting: string | undefined): boolean {
@@ -133,4 +157,27 @@ export function stationIndex(screenId: string): number {
 export function stationsVisited(visited: readonly string[]): string[] {
   const seen = new Set(visited.map(stationIndex).filter((i) => i >= 0))
   return STOPS.filter((_, i) => seen.has(i)).map((s) => s.id)
+}
+
+/**
+ * The express that runs through without stopping, on the far track.
+ *
+ * It comes every so often; for the last two seconds before it does, the
+ * signal at the tunnel mouth goes red and a headlight grows in the dark, so
+ * a child who has climbed down onto the tracks has a fair warning and time
+ * to climb back. `expressPhase` says where in its cycle the clock is.
+ */
+export const EXPRESS_EVERY = 900
+export const EXPRESS_WARNING = 120
+export const EXPRESS_PASSING = 70
+
+export type ExpressPhase = 'quiet' | 'warning' | 'passing'
+
+export function expressPhase(frame: number): { phase: ExpressPhase; t: number } {
+  const at = frame % EXPRESS_EVERY
+  const passStart = EXPRESS_EVERY - EXPRESS_PASSING
+  const warnStart = passStart - EXPRESS_WARNING
+  if (at >= passStart) return { phase: 'passing', t: (at - passStart) / EXPRESS_PASSING }
+  if (at >= warnStart) return { phase: 'warning', t: (at - warnStart) / EXPRESS_WARNING }
+  return { phase: 'quiet', t: 0 }
 }

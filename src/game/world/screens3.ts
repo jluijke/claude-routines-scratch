@@ -909,6 +909,12 @@ const PASSAGE_ROWS = [
   '######....######',
 ]
 
+/**
+ * The platform. The local stands at it with its doors open; it is shorter
+ * than the platform, so at either end the pit shows — and the pit can be
+ * climbed down into. The far track is where the express comes through
+ * without stopping, and the third rail is live the whole length of both.
+ */
 const PLATFORM_ROWS = [
   '######....######',
   '######....######',
@@ -916,8 +922,8 @@ const PLATFORM_ROWS = [
   '..R....R....R...',
   '................',
   'SSSSSSSSSSSSSSSS',
-  'BBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBB',
+  '~~BBBBBBBBBBBB~~',
+  '~~BBBBBBBBBBBB~~',
   '~~~~~~~~~~~~~~~~',
   'D~~~~~~~~~~~~~~D',
   '################',
@@ -1055,7 +1061,10 @@ const SUBWAY: Screen[] = [
     booth: 'End of the line, kid. The square is up the stairs. Coming back down costs the same three words.',
     passage: {
       set: ['3,3=,', '12,3=,', '3,6=,', '12,6=,'],
-      props: [{ sprite: 'scribe', col: 8, row: 5, talk: 'Busiest station in the city, and you found it on a quiet day.' }],
+      props: [
+        { sprite: 'scribe', col: 8, row: 5, talk: 'Busiest station in the city, and you found it on a quiet day.' },
+        { sprite: 'busker', col: 4, row: 3, busker: true, talk: 'He plays the saxophone with his eyes shut. There is a hat by his feet with three dollars and a button in it.' },
+      ],
       spawns: [{ kind: 'chaser', col: 4, row: 5 }, { kind: 'flyer', col: 11, row: 4 }],
     },
   }),
@@ -1081,8 +1090,11 @@ const SUBWAY: Screen[] = [
     booth: 'Brooklyn. Yes, you crossed the river. No, you did not feel it. Three words.',
     passage: {
       set: ['3,3=,', '12,6=,'],
-      props: [{ sprite: 'pigeonA', col: 9, row: 4 }],
-      spawns: [{ kind: 'chaser', col: 4, row: 5 }, { kind: 'shooter', col: 11, row: 4 }],
+      props: [
+        { sprite: 'pigeonA', col: 9, row: 4 },
+        { sprite: 'busker', col: 11, row: 6, busker: true, talk: 'A different saxophone, the same eyes shut. Brooklyn has its own buskers, he says, and they are better.' },
+      ],
+      spawns: [{ kind: 'chaser', col: 4, row: 5 }, { kind: 'shooter', col: 11, row: 3 }],
     },
   }),
   ...station({
@@ -1097,6 +1109,62 @@ const SUBWAY: Screen[] = [
       spawns: [{ kind: 'flyer', col: 5, row: 4 }, { kind: 'flyer', col: 10, row: 5 }],
     },
   }),
+  // The end of the line, the far end: Coney Island.
+  ...station({
+    key: 'coney',
+    name: 'Coney Island',
+    short: 'CONEY ISLAND',
+    street: 'nyc-coney-island',
+    streetSpawn: [7, 8],
+    booth: 'Coney Island, Stillwell Avenue. End of the line, and the best one. The Wonder Wheel is up the stairs.',
+    passage: {
+      set: ['3,3=,', '12,6=,'],
+      props: [{ sprite: 'pigeonB', col: 10, row: 4 }],
+      spawns: [{ kind: 'flyer', col: 5, row: 5 }],
+    },
+  }),
+  // Up the stairs at the end of the line. The Wonder Wheel turns over the
+  // beach; once all three of them have been loved, they are here, riding it,
+  // pink, and very sorry.
+  {
+    id: 'nyc-coney-island',
+    name: 'Coney Island',
+    region: 'Coney Island',
+    ...PARK,
+    rows: [
+      '~~~~~~~~~~~~~~~~',
+      '~~~~~~~~~~~~~~~~',
+      'SSSSSSSSSSSSSSSS',
+      'T.........###..T',
+      'T.........###..T',
+      'T.........###..T',
+      'T..............T',
+      'T..............T',
+      'T..............T',
+      'TTTTTTT^TTTTTTTT',
+      'TTTTTTTTTTTTTTTT',
+    ],
+    exits: {},
+    portals: [{ col: 7, row: 9, to: 'nyc-sub-coney-mezz', spawnCol: 7, spawnRow: 3 }],
+    treasure: {
+      id: 'nyc-coney-chest',
+      col: 14,
+      row: 8,
+      rupees: 120,
+      message: 'A box under the hot dog stand, with a note: FOR WHOEVER GETS TO THE END OF THE LINE.',
+    },
+    props: [
+      { sprite: 'wonderWheel', col: 10, row: 3 },
+      { sprite: 'scribe', col: 13, row: 7, talk: 'The Wonder Wheel. A hundred years old and still going round. If you loved all three of them, they would come here. Everybody does.' },
+      { sprite: 'guardianGold', col: 1, row: 5, pink: true, after: ['nyc-trump-green', 'nyc-columbus-park', 'nyc-boardwalk'],
+        talk: 'Trump, pink to the ears: "Eleven times on the Wonder Wheel. Best wheel. Tremendous. Thank you for all the love. Really."' },
+      { sprite: 'guardianGrey', col: 4, row: 5, pink: true, after: ['nyc-trump-green', 'nyc-columbus-park', 'nyc-boardwalk'],
+        talk: 'Putin, holding a paper plate: "I am sorry about the boardwalk. Would you like a pierogi? They are very good. I bought extra."' },
+      { sprite: 'guardianDark', col: 7, row: 5, pink: true, after: ['nyc-trump-green', 'nyc-columbus-park', 'nyc-boardwalk'],
+        talk: 'Xi, feeding a pigeon: "The pigeons and I have made peace. Also, you spell very well. Keep going."' },
+    ],
+    spawns: [{ kind: 'flyer', col: 3, row: 7 }],
+  },
   // The three lairs, and a plaza. Each is up its station's stairs, and the
   // stairs are the only way in or out.
   {

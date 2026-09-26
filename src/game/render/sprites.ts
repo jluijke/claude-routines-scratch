@@ -2820,6 +2820,71 @@ const WRAITH_B = S([
   '................',
 ])
 
+/** A busker in a black hat, eyes shut, playing a gold saxophone. */
+const BUSKER = S([
+  '.....kkkkkk.....',
+  '....kzzzzzzk....',
+  '...kkkkkkkkkk...',
+  '....kssssssk....',
+  '....kskkkksk....',
+  '....ksssssskyk..',
+  '.....kssssk.kyk.',
+  '....kzzzzzzkyyk.',
+  '...kzzzzzzzkyk..',
+  '...kzzsyzzzkyk..',
+  '...kzzzsyyyyyk..',
+  '...kzzzzzkyyyk..',
+  '....kzzzzzkkk...',
+  '.....kkkkkk.....',
+  '.....kz..zk.....',
+  '.....kk..kk.....',
+])
+
+/**
+ * The Wonder Wheel, against the sky: a ring of cars on spokes, on a steel
+ * stand. Worked out rather than drawn, because a circle of forty-eight
+ * pixels drawn by hand comes out a potato.
+ */
+const WONDER_WHEEL = defineSprite(48, 48, (() => {
+  const grid: string[][] = Array.from({ length: 48 }, () => Array.from({ length: 48 }, () => 'L'))
+  const put = (x: number, y: number, c: string): void => {
+    const row = grid[Math.round(y)]
+    if (row && x >= 0 && x < 48) row[Math.round(x)] = c
+  }
+  const cx = 24
+  const cy = 21
+  // The spokes, then the rim, then the cars on it.
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2
+    for (let r = 0; r <= 18; r += 0.5) put(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 'M')
+  }
+  for (let a = 0; a < Math.PI * 2; a += 0.01) {
+    put(cx + Math.cos(a) * 18, cy + Math.sin(a) * 18, 'k')
+    put(cx + Math.cos(a) * 17, cy + Math.sin(a) * 17, 'w')
+    put(cx + Math.cos(a) * 10, cy + Math.sin(a) * 10, 'm')
+  }
+  const colours = ['r', 'b', 'y', 'g', 'i', 'o', 'c', 'p']
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2
+    const x = cx + Math.cos(a) * 19
+    const y = cy + Math.sin(a) * 19 + 2
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) put(x + dx, y + dy, colours[i % colours.length] as string)
+    put(x, y - 2, 'k')
+  }
+  // The hub, and the stand going down to the boardwalk.
+  for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) put(cx + dx, cy + dy, 'k')
+  put(cx, cy, 'y')
+  for (let y = cy; y < 47; y++) {
+    const spread = (y - cy) * 0.55
+    put(cx - spread, y, 'M')
+    put(cx + spread, y, 'M')
+    put(cx - spread - 1, y, 'k')
+    put(cx + spread + 1, y, 'k')
+  }
+  for (let x = 6; x < 42; x++) put(x, 47, 'k')
+  return grid.map((row) => row.join(''))
+})())
+
 /** What comes off a guardian who is being loved: little hearts, two sizes. */
 const HEART_BIG = S8([
   '.kk.kk..',
@@ -2992,6 +3057,8 @@ export const SPRITES = {
   bulletUp: flipVertical(BULLET_DOWN),
   sprayA: SPRAY_A,
   sprayB: SPRAY_B,
+  busker: BUSKER,
+  wonderWheel: WONDER_WHEEL,
   ratA: RAT_A,
   ratB: RAT_B,
   gatorA: GATOR_A,

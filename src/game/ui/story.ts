@@ -127,7 +127,9 @@ export const CITY_SAVED: Omit<StoryOptions, 'onContinue'> = {
       'ship is sailing between the stars. And right now, in the middle, eight million ' +
       'people are getting on with it. All three because of someone who could spell.',
     'The ring hums, ready to take you anywhere you like. Or stay a while. There is a ' +
-      'whole city to walk, and nothing left in it that wants to hurt you.',
+      'whole city to walk, and nothing left in it that wants to hurt you. The three of ' +
+      'them have gone to Coney Island, at the very end of the line. They are riding the ' +
+      'Wonder Wheel, and they would like to say sorry.',
   ],
   onwardLabel: 'Back to the city →',
 }

@@ -113,7 +113,7 @@ check('and the lair is remembered', (await page.evaluate(() => window.zsq.state.
 check('and the HUD counts dollars', (await world()).level === 3)
 
 // ------------------------------------------------------------ the line
-check('the line has ten stops', (await page.evaluate(() => window.zsq.screens.filter((sc) => sc.setting === 'platform' && sc.id.endsWith('-platform')).length)) === 10)
+check('the line has eleven stops', (await page.evaluate(() => window.zsq.screens.filter((sc) => sc.setting === 'platform' && sc.id.endsWith('-platform')).length)) === 11)
 
 console.log(JSON.stringify({ failures, errors }, null, 2))
 for (const f of failures) console.log('  FAILED:', f)

@@ -123,13 +123,15 @@ export function showNotice(root: HTMLElement, text: string, onClose?: () => void
 export interface RideChoice {
   /** -1 uptown, +1 downtown. */
   dir: -1 | 1
+  /** The express: two stops a leg, and the one between is skipped. */
+  express?: boolean
   label: string
 }
 
 export interface RidePromptOptions {
   station: string
   choices: RideChoice[]
-  onChoose: (dir: -1 | 1) => void
+  onChoose: (dir: -1 | 1, express: boolean) => void
   onDecline: () => void
 }
 
@@ -142,8 +144,8 @@ export function showRidePrompt(root: HTMLElement, options: RidePromptOptions): (
   const buttons = options.choices.map((choice) =>
     button(choice.label, () => {
       close()
-      options.onChoose(choice.dir)
-    }, { class: 'btn btn-primary btn-large' }),
+      options.onChoose(choice.dir, choice.express === true)
+    }, { class: choice.express ? 'btn btn-large btn-express' : 'btn btn-primary btn-large' }),
   )
   const decline = button('Stay on the platform', () => {
     close()

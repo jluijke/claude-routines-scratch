@@ -13,7 +13,7 @@
  * adjusted without a tracker.
  */
 
-export type TrackName = 'title' | 'overworld' | 'dungeon' | 'cave' | 'boss' | 'shop' | 'ship' | 'rock' | 'mech' | 'subway'
+export type TrackName = 'title' | 'overworld' | 'dungeon' | 'cave' | 'boss' | 'shop' | 'ship' | 'rock' | 'mech' | 'subway' | 'busker'
 
 interface Voice {
   steps: string[]
@@ -498,7 +498,57 @@ const SUBWAY: Track = {
   ],
 }
 
+/**
+ * The busker's saxophone: slow, swung, a little blue. A triangle under a
+ * sawtooth reads as a reed at these sizes, and the walking bass is what
+ * makes it sound like the subway at eleven at night.
+ */
+const BUSKER: Track = {
+  tempo: 92,
+  voices: [
+    {
+      type: 'sawtooth',
+      gain: 0.028,
+      steps: [
+        'D5', '-', 'F5', '.', 'G5', '-', 'G#5', 'A5',
+        '-', '-', '.', 'G5', 'F5', '-', 'D5', '.',
+        'C5', '-', 'D5', '.', 'F5', '-', 'D5', 'C5',
+        'A4', '-', '-', '-', '.', '.', '.', '.',
+        'D5', '-', 'F5', '.', 'G5', '-', 'A5', 'C6',
+        'A5', '-', 'G5', '.', 'F5', '-', 'G5', '.',
+        'F5', '-', 'D5', '-', 'C5', '-', 'A4', '-',
+        'D5', '-', '-', '-', '.', '.', '.', '.',
+      ],
+    },
+    {
+      type: 'triangle',
+      gain: 0.07,
+      steps: [
+        'D2', '.', 'F2', '.', 'G2', '.', 'A2', '.',
+        'D2', '.', 'C2', '.', 'A1', '.', 'C2', '.',
+        'G1', '.', 'A1', '.', 'A#1', '.', 'B1', '.',
+        'C2', '.', 'D2', '.', 'E2', '.', 'A1', '.',
+        'D2', '.', 'F2', '.', 'G2', '.', 'A2', '.',
+        'A#1', '.', 'C2', '.', 'D2', '.', 'F2', '.',
+        'G1', '.', 'A1', '.', 'C2', '.', 'A1', '.',
+        'D2', '.', 'A1', '.', 'D2', '-', '-', '.',
+      ],
+    },
+  ],
+  drums: [
+    '.', '.', 'x', '.', '.', '.', 'x', '.',
+    '.', '.', 'x', '.', '.', '.', 'x', 'x',
+    '.', '.', 'x', '.', '.', '.', 'x', '.',
+    '.', '.', 'x', '.', '.', '.', 'x', 'x',
+    '.', '.', 'x', '.', '.', '.', 'x', '.',
+    '.', '.', 'x', '.', '.', '.', 'x', 'x',
+    '.', '.', 'x', '.', '.', '.', 'x', '.',
+    '.', '.', 'x', '.', '.', '.', '.', '.',
+  ],
+}
+
 const TRACKS: Record<TrackName, Track> = {
+  busker: BUSKER,
   subway: SUBWAY,
   title: TITLE,
   overworld: OVERWORLD,

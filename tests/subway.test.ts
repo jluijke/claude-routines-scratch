@@ -27,6 +27,9 @@ import {
   stopIndex,
   tickRide,
   TRAIN_CAR,
+  EXPRESS_EVERY,
+  EXPRESS_WARNING,
+  expressPhase,
   type Ride,
 } from '../src/game/world/subway'
 import { splitLabel } from '../src/game/render/map'
@@ -38,15 +41,16 @@ const screen = (id: string) => {
 }
 
 describe('the line', () => {
-  it('runs through ten stops, every one of them a platform', () => {
-    expect(STOPS.length).toBe(10)
+  it('runs through eleven stops, every one of them a platform', () => {
+    expect(STOPS.length).toBe(11)
     for (const stop of STOPS) {
       const platform = screen(stop.id)
       expect(platform.setting).toBe('platform')
       expect(platform.level).toBe(3)
-      // The train stands at it: two rows of car over the tracks.
-      expect(platform.rows[6]).toBe('BBBBBBBBBBBBBBBB')
-      expect(platform.rows[7]).toBe('BBBBBBBBBBBBBBBB')
+      // The train stands at it: two rows of car over the tracks, shorter
+      // than the platform, so the pit shows at either end.
+      expect(platform.rows[6]).toBe('~~BBBBBBBBBBBB~~')
+      expect(platform.rows[7]).toBe('~~BBBBBBBBBBBB~~')
       expect(platform.rows[8]?.startsWith('~')).toBe(true)
     }
     expect(stopIndex('nyc-sub-w4-platform')).toBe(4)
@@ -54,8 +58,8 @@ describe('the line', () => {
   })
 
   it('offers both ways from the middle and one way from each end', () => {
-    expect(Object.keys(directionsFrom(0))).toEqual(['downtown'])
-    expect(Object.keys(directionsFrom(STOPS.length - 1))).toEqual(['uptown'])
+    expect(Object.keys(directionsFrom(0))).toEqual(['downtown', 'expressDowntown'])
+    expect(Object.keys(directionsFrom(STOPS.length - 1))).toEqual(['uptown', 'expressUptown'])
     const middle = directionsFrom(2)
     expect(middle.uptown?.id).toBe(STOPS[1]?.id)
     expect(middle.downtown?.id).toBe(STOPS[3]?.id)
@@ -80,7 +84,7 @@ describe('the line', () => {
 })
 
 describe('the stations', () => {
-  const keys = ['59st', 'union', 'astor', '2av', 'w4', 'christopher', 'canal', 'atlantic', 'brighton']
+  const keys = ['59st', 'union', 'astor', '2av', 'w4', 'christopher', 'canal', 'atlantic', 'brighton', 'coney']
 
   it('are each three screens deep: mezzanine, passage, platform', () => {
     for (const key of keys) {
@@ -135,7 +139,7 @@ describe('the stations', () => {
   it('are not on the street map, and the far ends are only reached by train', () => {
     const { cells } = overworldLayout(START_SCREENS[3])
     for (const id of cells.keys()) expect(id.startsWith('nyc-sub-')).toBe(false)
-    for (const id of ['nyc-union-square', 'nyc-trump-green', 'nyc-columbus-park', 'nyc-atlantic-terminal', 'nyc-boardwalk']) {
+    for (const id of ['nyc-union-square', 'nyc-trump-green', 'nyc-columbus-park', 'nyc-atlantic-terminal', 'nyc-boardwalk', 'nyc-coney-island']) {
       expect(cells.has(id)).toBe(false)
       expect(screen(id).exits).toEqual({})
     }
@@ -228,5 +232,80 @@ describe('the ride', () => {
     expect(car.exits).toEqual({})
     expect(car.portals ?? []).toEqual([])
     expect(car.rows[9]).toBe('####HH####HH####')
+  })
+})
+
+describe('the express', () => {
+  it('is offered only where there is a stop to skip', () => {
+    const middle = directionsFrom(4)
+    expect(middle.expressUptown?.id).toBe(STOPS[2]?.id)
+    expect(middle.expressDowntown?.id).toBe(STOPS[6]?.id)
+    expect(directionsFrom(1).expressUptown).toBeUndefined()
+    expect(directionsFrom(STOPS.length - 2).expressDowntown).toBeUndefined()
+  })
+
+  it('goes two stops a leg, and the doors do not open at the one between', () => {
+    let ride = beginRide(4, 1, true)
+    expect(nextStop(ride).id).toBe(STOPS[6]?.id)
+    const arrivals: number[] = []
+    for (let f = 0; f < MOVING_FRAMES + DOORS_FRAMES + MOVING_FRAMES; f++) {
+      const step = tickRide(ride)
+      ride = step.ride
+      if (step.event === 'arrive') arrivals.push(ride.index)
+    }
+    expect(arrivals).toEqual([6, 8])
+  })
+
+  it('runs to the end of the line and no further, then turns round', () => {
+    let ride = beginRide(STOPS.length - 2, 1, true)
+    expect(nextStop(ride).id).toBe(STOPS[STOPS.length - 1]?.id)
+    for (let f = 0; f < MOVING_FRAMES; f++) ride = tickRide(ride).ride
+    expect(ride.index).toBe(STOPS.length - 1)
+    for (let f = 0; f < DOORS_FRAMES; f++) ride = tickRide(ride).ride
+    expect(ride.dir).toBe(-1)
+    expect(nextStop(ride).id).toBe(STOPS[STOPS.length - 3]?.id)
+  })
+
+  it('draws its progress over the two stops it covers', () => {
+    const ride = { ...beginRide(4, 1, true), frames: MOVING_FRAMES / 2 }
+    expect(rideProgress(ride)).toBeCloseTo(5)
+  })
+
+  it('comes through the far track with two seconds of warning first', () => {
+    const phases = new Set<string>()
+    let warningFrames = 0
+    for (let f = 0; f < EXPRESS_EVERY; f++) {
+      const { phase } = expressPhase(f)
+      phases.add(phase)
+      if (phase === 'warning') warningFrames += 1
+    }
+    expect(phases).toEqual(new Set(['quiet', 'warning', 'passing']))
+    expect(warningFrames).toBe(EXPRESS_WARNING)
+    expect(EXPRESS_WARNING).toBeGreaterThanOrEqual(120)
+  })
+})
+
+describe('Coney Island', () => {
+  it('is the end of the line, with the Wonder Wheel and a chest up the stairs', () => {
+    expect(STOPS[STOPS.length - 1]?.id).toBe('nyc-sub-coney-platform')
+    const coney = screen('nyc-coney-island')
+    expect(coney.props?.some((p) => p.sprite === 'wonderWheel')).toBe(true)
+    expect(coney.treasure).toBeDefined()
+  })
+
+  it('has the three of them waiting, but only once all three have been loved', () => {
+    const coney = screen('nyc-coney-island')
+    const guardians = (coney.props ?? []).filter((p) => p.after)
+    expect(guardians.map((p) => p.sprite).sort()).toEqual(['guardianDark', 'guardianGold', 'guardianGrey'])
+    for (const g of guardians) {
+      expect(g.pink).toBe(true)
+      expect(g.after?.sort()).toEqual(['nyc-boardwalk', 'nyc-columbus-park', 'nyc-trump-green'])
+      expect(g.talk?.length ?? 0).toBeGreaterThan(20)
+    }
+  })
+
+  it('and there are buskers in two of the passages', () => {
+    const buskers = SCREENS.flatMap((s) => (s.props ?? []).filter((p) => p.busker).map(() => s.id))
+    expect(buskers.sort()).toEqual(['nyc-sub-atlantic-passage', 'nyc-sub-union-passage'])
   })
 })

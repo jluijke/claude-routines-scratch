@@ -55,6 +55,7 @@ import {
   beginRide,
   directionsFrom,
   DOORS_FRAMES,
+  expressPhase,
   isUnderground,
   LURCH_EVERY,
   nextStop,
@@ -65,6 +66,7 @@ import {
   stopIndex,
   tickRide,
   TRAIN_CAR,
+  type Directions,
   type Ride,
   type RideDirection,
   type Stop,
@@ -102,7 +104,7 @@ export interface WorldCallbacks {
   /** He stepped onto a sack of animal food. Ask, then run the four questions. */
   onFoodOffer: () => void
   /** He stepped onto the train. Ask which way, or let him step off again. */
-  onBoard: (offer: { station: Stop; uptown?: Stop; downtown?: Stop }) => void
+  onBoard: (offer: { station: Stop } & Directions) => void
 }
 
 interface Drop {
@@ -211,6 +213,10 @@ const PURPLE_RIDES: readonly [string, number, number][] = [
   ['nyc-avenue-b-south', 6, 3],
   ['nyc-fifth-ave', 5, 3],
 ]
+
+/** How long the express is, in pixels, and how close a busker has to be to hear. */
+const EXPRESS_LENGTH = 112
+const BUSKER_EARSHOT = 56
 
 /** How long the hydrant sprays, and how often it knocks a rat about. */
 const SPRAY_FRAMES = 300
@@ -488,6 +494,10 @@ export class World {
   private scared = new Map<number, number>()
   /** Pigeons he is standing beside. One flies up when he arrives, not while he stays. */
   private besidePigeon = new Set<number>()
+  /** In earshot of a busker, so the music is his. */
+  private nearBusker = false
+  /** He has been told about the third rail on this screen. */
+  private warnedTracks = false
   /**
    * Tiles a barrier still stands on. Solid, whatever is drawn under them: a
    * keeper in a field was a prompt he could decline and then walk through,
@@ -797,6 +807,8 @@ export class World {
     this.spray = undefined
     this.scared.clear()
     this.besidePigeon.clear()
+    this.nearBusker = false
+    this.warnedTracks = false
     // Anywhere but the car, and the ride is over — a teleport, a respawn.
     if (id !== TRAIN_CAR) this.ride = undefined
     this.screen = next
@@ -1130,6 +1142,8 @@ export class World {
     this.checkBoarding()
     this.checkEdges()
     this.updateTraffic(step)
+    this.updateTracks()
+    this.updateBusker()
     this.updateRide()
 
     // While a potion holds, nothing has a fix on him: the monsters steer for
@@ -1192,6 +1206,8 @@ export class World {
     if (this.solidProps.has(`${col},${row}`)) return true
     if (this.sealed.has(`${col},${row}`)) return true
     const char = ((this.screen.rows[row] ?? '')[col] ?? '#') as TileChar
+    // On a platform the pit can be climbed down into. It is not a good idea.
+    if (char === '~' && this.screen.setting === 'platform') return false
     return isSolidChar(char, canCrossWater)
   }
 
@@ -1203,7 +1219,7 @@ export class World {
   private checkBumps(): void {
     const ahead = this.pointAhead(this.player.centre(), this.player.facing, 8)
     const { col, row } = toTile(ahead.x, ahead.y)
-    const prop = (this.screen.props ?? []).find(
+    const prop = this.visibleProps().find(
       (p) => (p.terminal || p.locker) && p.col === col && p.row === row,
     )
     if (!prop) {
@@ -1297,16 +1313,16 @@ export class World {
   }
 
   /** He chose a direction: the doors close and the tunnel starts going past. */
-  startRide(dir: RideDirection): void {
+  startRide(dir: RideDirection, express = false): void {
     const index = stopIndex(this.screen.id)
     this.pendingBoard = false
     if (index < 0) return
     this.loadScreen(TRAIN_CAR)
     this.player.placeAtTile(7, 5)
-    this.ride = beginRide(index, dir)
+    this.ride = beginRide(index, dir, express)
     sfx.play('gateOpen')
     this.showMessage(
-      `The doors close. This is ${dir < 0 ? 'an uptown' : 'a downtown'} V train. Next stop, ${nextStop(this.ride).name}.`,
+      `The doors close. This is ${dir < 0 ? 'an uptown' : 'a downtown'} V ${express ? 'express' : 'train'}. Next stop, ${nextStop(this.ride).name}.`,
       260,
     )
     this.ensureFree()
@@ -1323,6 +1339,114 @@ export class World {
     this.player.placeAtTile(col, 4)
     this.ensureFree()
     this.input.clearTarget()
+  }
+
+  /** A platform with its tracks: every stop has one, the mezzanines do not. */
+  private onPlatform(): boolean {
+    return this.screen.setting === 'platform' && stopIndex(this.screen.id) >= 0
+  }
+
+  /** Where the express is, while it is passing: its left edge, in pixels. */
+  private expressX(): number | undefined {
+    const { phase, t } = expressPhase(this.frame)
+    if (phase !== 'passing') return undefined
+    return -EXPRESS_LENGTH + t * (SCREEN_W + EXPRESS_LENGTH * 2)
+  }
+
+  /**
+   * Down in the pit. The third rail costs a heart every time the hurt flash
+   * wears off, and the express comes through the far track every fifteen
+   * seconds: two seconds of red light and a growing headlight, then three
+   * hearts and a hard shove back up onto the platform if he is still there.
+   */
+  private updateTracks(): void {
+    if (!this.onPlatform()) return
+    const centre = this.player.centre()
+    const { col, row } = toTile(centre.x, centre.y)
+    const onTrack = ((this.screen.rows[row] ?? '')[col] ?? '.') === '~'
+    if (onTrack && this.player.hurt(1, centre.x, centre.y + 16)) {
+      sfx.play('playerHurt')
+      this.bursts.push({ x: centre.x - 8, y: centre.y - 4, life: 16, kind: 'flame' })
+      this.showMessage('ZAP. That is the third rail. Get back up on the platform.', 160)
+      this.warnedTracks = true
+      this.callbacks.onChange()
+    }
+    const { phase } = expressPhase(this.frame)
+    if (phase === 'warning' && row >= 8 && !this.warnedTracks) {
+      this.warnedTracks = true
+      this.showMessage('The rails are singing. Something is coming through. GET UP.', 140)
+    }
+    if (phase === 'quiet') this.warnedTracks = false
+    const x = this.expressX()
+    if (x === undefined) return
+    const train = { x, y: 8 * TILE, w: EXPRESS_LENGTH, h: 2 * TILE }
+    const body = { x: this.player.x + BODY_INSET, y: this.player.y + BODY_INSET, w: PLAYER_SIZE - BODY_INSET * 2, h: PLAYER_SIZE - BODY_INSET * 2 }
+    if (overlaps(body, train)) {
+      this.player.invulnerable = 0
+      if (this.player.hurt(3, x + EXPRESS_LENGTH / 2, 12 * TILE)) {
+        sfx.play('stomp')
+        this.shake = SHAKE_FRAMES
+        this.player.placeAtTile(Math.max(1, Math.min(14, col)), 4)
+        this.ensureFree()
+        this.showMessage('The express goes by an inch from your nose, and the wind of it throws you back up onto the platform.', 220)
+        this.callbacks.onChange()
+      }
+    }
+    for (const enemy of [...this.enemies]) {
+      if (enemy.isBoss || !overlaps(enemy.box(), train)) continue
+      this.strike(enemy, 50)
+    }
+  }
+
+  /** The props that are there: some only turn up once the guardians have been loved. */
+  private visibleProps(): Prop[] {
+    const won = this.save.world.defeatedBosses
+    return (this.screen.props ?? []).filter((p) => !p.after || p.after.every((id) => won.includes(id)))
+  }
+
+  /** Near a busker, his tune; walk away and the station's comes back. */
+  private updateBusker(): void {
+    const me = this.player.centre()
+    const near = this.visibleProps().some(
+      (p) => p.busker && Math.hypot(me.x - (p.col * TILE + 8), me.y - (p.row * TILE + 8)) <= BUSKER_EARSHOT,
+    )
+    if (near === this.nearBusker) return
+    this.nearBusker = near
+    music.play(near ? 'busker' : this.trackFor(this.screen))
+  }
+
+  /** The express: its headlight growing in the tunnel mouth, then the train itself. */
+  private drawExpress(ctx: CanvasRenderingContext2D): void {
+    if (!this.onPlatform()) return
+    const { phase, t } = expressPhase(this.frame)
+    if (phase === 'warning') {
+      const r = 2 + t * 10
+      ctx.save()
+      ctx.globalAlpha = 0.35 + t * 0.5
+      ctx.fillStyle = '#fff6c2'
+      ctx.beginPath()
+      ctx.arc(8, 9 * TILE + 8, r, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+      return
+    }
+    const x = this.expressX()
+    if (x === undefined) return
+    const y = 8 * TILE + 2
+    const h = 2 * TILE - 4
+    ctx.fillStyle = '#12131a'
+    ctx.fillRect(x - 1, y - 1, EXPRESS_LENGTH + 2, h + 2)
+    ctx.fillStyle = '#c6c8c4'
+    ctx.fillRect(x, y, EXPRESS_LENGTH, h)
+    ctx.fillStyle = '#26304a'
+    for (let wx = x + 6; wx < x + EXPRESS_LENGTH - 8; wx += 12) ctx.fillRect(wx, y + 4, 7, 8)
+    ctx.fillStyle = '#e2883a'
+    ctx.fillRect(x, y + h - 6, EXPRESS_LENGTH, 2)
+    // A red diamond on the front: the express.
+    ctx.fillStyle = '#d5433f'
+    ctx.fillRect(x + EXPRESS_LENGTH - 8, y + 10, 5, 5)
+    ctx.fillStyle = '#fff6c2'
+    ctx.fillRect(x + EXPRESS_LENGTH - 3, y + 18, 3, 3)
   }
 
   /**
@@ -2421,7 +2545,7 @@ export class World {
   /** Pigeons on the sidewalk fly up when he walks at them, and come back down. */
   private updatePigeons(): void {
     const me = this.player.centre()
-    for (const [index, prop] of (this.screen.props ?? []).entries()) {
+    for (const [index, prop] of this.visibleProps().entries()) {
       if (prop.sprite !== 'pigeonA' && prop.sprite !== 'pigeonB') continue
       const up = this.scared.get(index)
       if (up !== undefined) {
@@ -2591,7 +2715,7 @@ export class World {
     this.drawTeleporters(ctx, opened)
     this.traffic?.draw(ctx, this.atlas, this.frame)
 
-    for (const [index, prop] of (this.screen.props ?? []).entries()) {
+    for (const [index, prop] of this.visibleProps().entries()) {
       // The suit stands by the wall until he is wearing it.
       if (prop.locker && this.save.world.suitOn) continue
       // The rabbit in the quiet square does not stay on its tile — it is drawn
@@ -2606,8 +2730,10 @@ export class World {
         this.atlas.draw(ctx, flap, prop.col * TILE + Math.round((1 - t) * 6), prop.row * TILE - lift)
         continue
       }
-      this.atlas.draw(ctx, prop.sprite, prop.col * TILE, prop.row * TILE)
+      if (prop.pink) this.drawTinted(ctx, prop.sprite, prop.col * TILE, prop.row * TILE, 'rgba(255,111,181,0.55)')
+      else this.atlas.draw(ctx, prop.sprite, prop.col * TILE, prop.row * TILE)
     }
+    this.drawExpress(ctx)
     if (this.spray) {
       // The arc, its left edge on the hydrant, spilling over the two tiles
       // beside it; two frames, so the drops move.
@@ -3477,8 +3603,20 @@ export class World {
       this.atlas.draw(ctx, sprite, x, y)
       return
     }
-    // Draw it alone on a scratch canvas, tint only its own pixels, then lay
-    // it into the room: tinting in place would have pinked the park too.
+    const tint =
+      enemy.blockFlash > 0
+        ? `rgba(255,255,255,${Math.min(0.8, enemy.blockFlash / 20)})`
+        : `rgba(255,111,181,${0.15 + pink * 0.6})`
+    this.drawTinted(ctx, sprite, x, y, tint)
+  }
+
+  /**
+   * A sprite with a colour laid over its own pixels only. Drawn alone on a
+   * scratch canvas and then into the room: tinting in place would have
+   * pinked the park too.
+   */
+  private drawTinted(ctx: CanvasRenderingContext2D, sprite: SpriteName, x: number, y: number, tint: string): void {
+    const size = this.atlas.size(sprite)
     const scratch = this.tintCanvas ?? (this.tintCanvas = document.createElement('canvas'))
     if (scratch.width !== size.w || scratch.height !== size.h) {
       scratch.width = size.w
@@ -3491,11 +3629,7 @@ export class World {
     this.atlas.draw(sctx, sprite, 0, 0)
     sctx.save()
     sctx.globalCompositeOperation = 'source-atop'
-    if (enemy.blockFlash > 0) {
-      sctx.fillStyle = `rgba(255,255,255,${Math.min(0.8, enemy.blockFlash / 20)})`
-    } else {
-      sctx.fillStyle = `rgba(255,111,181,${0.15 + pink * 0.6})`
-    }
+    sctx.fillStyle = tint
     sctx.fillRect(0, 0, size.w, size.h)
     sctx.restore()
     ctx.drawImage(scratch, x, y)
@@ -3596,11 +3730,9 @@ export class World {
    */
   private drawNearbyTalk(ctx: CanvasRenderingContext2D): void {
     const centre = this.player.centre()
-    for (const prop of this.screen.props ?? []) {
+    for (const prop of this.visibleProps()) {
       if (!prop.talk) continue
-      const dx = centre.x - (prop.col * TILE + TILE / 2)
-      const dy = centre.y - (prop.row * TILE + TILE / 2)
-      if (Math.hypot(dx, dy) > TALK_RADIUS) continue
+      if (!this.inEarshot(prop, centre)) continue
       drawSpeech(ctx, prop, prop.talk, SCREEN_W)
       return
     }
@@ -3674,13 +3806,23 @@ export class World {
   /** What a nearby villager is currently saying, if anyone is. For the checks. */
   talkingProp(): string | undefined {
     const centre = this.player.centre()
-    for (const prop of this.screen.props ?? []) {
+    for (const prop of this.visibleProps()) {
       if (!prop.talk) continue
-      const dx = centre.x - (prop.col * TILE + TILE / 2)
-      const dy = centre.y - (prop.row * TILE + TILE / 2)
-      if (Math.hypot(dx, dy) <= TALK_RADIUS) return prop.talk
+      if (this.inEarshot(prop, centre)) return prop.talk
     }
     return undefined
+  }
+
+  /**
+   * Close enough to talk. Measured from the middle of the sprite, and out to
+   * its edge: a guardian is three tiles across, and one that only spoke when
+   * he stood at its top-left corner might as well not have spoken at all.
+   */
+  private inEarshot(prop: Prop, centre: { x: number; y: number }): boolean {
+    const size = this.atlas.size(prop.sprite)
+    const dx = centre.x - (prop.col * TILE + size.w / 2)
+    const dy = centre.y - (prop.row * TILE + size.h / 2)
+    return Math.hypot(dx, dy) <= TALK_RADIUS + Math.max(0, Math.max(size.w, size.h) / 2 - TILE / 2)
   }
 
   /** True if the hero's body overlaps something solid. Used by the checks. */
@@ -3735,6 +3877,9 @@ export class World {
       guardians: this.enemies.filter((e) => e.isGuardian).map((e) => ({ kind: e.kind, hp: e.hp, loved: Number(e.loved.toFixed(2)) })),
       loveBombs: this.save.inventory.loveBomb ?? 0,
       spray: this.spray ? { ...this.spray } : undefined,
+      express: this.onPlatform() ? expressPhase(this.frame).phase : undefined,
+      nearBusker: this.nearBusker,
+      props: this.visibleProps().map((p) => p.sprite),
       scaredPigeons: this.scared.size,
       guardianAt: (() => {
         const g = this.enemies.find((e) => e.isGuardian)

@@ -977,3 +977,5 @@ tr.mastery-unseen { opacity: 0.55; }
 /* The train's direction prompt: a button a way, stacked so both read whole. */
 .ride-actions { flex-wrap: wrap; justify-content: center; }
 .ride-actions .btn-primary { min-width: 12rem; }
+/* The express buttons: the red diamond of an express, so the two kinds read apart. */
+.btn-express { background: #8f2320; color: #f6f3e7; border-color: #d5433f; }

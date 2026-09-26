@@ -196,9 +196,15 @@ function enterWorld(): void {
         choices: [
           ...(offer.uptown ? [{ dir: -1 as const, label: `Uptown to ${nextStopName(offer.uptown)}` }] : []),
           ...(offer.downtown ? [{ dir: 1 as const, label: `Downtown to ${nextStopName(offer.downtown)}` }] : []),
+          ...(offer.expressUptown
+            ? [{ dir: -1 as const, express: true, label: `Express uptown to ${nextStopName(offer.expressUptown)}` }]
+            : []),
+          ...(offer.expressDowntown
+            ? [{ dir: 1 as const, express: true, label: `Express downtown to ${nextStopName(offer.expressDowntown)}` }]
+            : []),
         ],
-        onChoose: (dir) => {
-          world?.startRide(dir)
+        onChoose: (dir, express) => {
+          world?.startRide(dir, express)
           world?.setPaused(false)
         },
         onDecline: () => {
