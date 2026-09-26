@@ -570,6 +570,7 @@ function startFoodChallenge(): void {
     root,
     { title: rule.title, text: rule.text, examples: rule.examples, questions: GRAMMAR_QUESTIONS },
     () => runFoodQuestions(challenge),
+    speech,
   )
 }
 

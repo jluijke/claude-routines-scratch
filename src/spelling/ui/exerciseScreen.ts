@@ -301,7 +301,7 @@ export function mountExerciseScreen(
       return
     }
     clear(screen)
-    showRuleReveal(screen, engine.exercise, () => options.onComplete(engine.exercise))
+    showRuleReveal(screen, engine.exercise, () => options.onComplete(engine.exercise), speech)
   }
 
   return {
