@@ -147,7 +147,7 @@ function street(block: Block): Screen {
  * two for the lettered avenues. A neighbour left or right means a cross
  * street, with the crosswalks either side of it.
  */
-function avenue(block: Block, lanes: 2 | 4 = 4): Screen {
+function avenue(block: Block, lanes: 2 | 4 = 4, oneWay?: 'up' | 'down'): Screen {
   const exits = exitsOf(block.id)
   const roadL = lanes === 4 ? 6 : 7
   const roadR = lanes === 4 ? 9 : 8
@@ -188,11 +188,12 @@ function avenue(block: Block, lanes: 2 | 4 = 4): Screen {
     col: move(g.col),
     ...(g.opens ? { opens: g.opens.map((o) => ({ ...o, col: move(o.col) })) } : {}),
   }))
-  return finish(
+  const screen = finish(
     { ...block, spawns, portals, props, gates, set: [] },
     exits,
     apply(rows, [...set, ...own]),
   )
+  return oneWay ? { ...screen, traffic: { oneWay } } : screen
 }
 
 function finish(block: Block, exits: Exits, rows: string[]): Screen {
@@ -269,30 +270,27 @@ const BLOCKS: Screen[] = [
     name: 'Sixth Avenue & 8th',
     region: WEST,
     set: ['5,8=,', '10,1=*', '5,3=p'],
-    props: [{ sprite: 'taxi', col: 6, row: 8, solid: true }],
     spawns: rats([5, 1], [10, 9]),
-  }),
+  }, 4, 'up'),
   avenue({
     id: 'nyc-sixth-ave',
     name: 'Sixth Avenue & 4th',
     region: WEST,
     set: ['10,8=,', '5,1=*', '10,1=^'],
     props: [
-      { sprite: 'taxiLeft', col: 8, row: 1, solid: true },
       { sprite: 'scribe', col: 10, row: 8, talk: 'Sixth Avenue. Four lanes and nobody slows down. Wait for the little man.' },
     ],
     spawns: rats([5, 8], [10, 2]),
     // Police tape across the cross street, on the square's side.
     gates: [{ gateId: 'nyc-sixth-ave-tape', col: 11, row: 4, opens: [{ col: 11, row: 4 }, { col: 11, row: 5 }] }],
-  }),
+  }, 4, 'up'),
   avenue({
     id: 'nyc-sixth-ave-south',
     name: 'Sixth Avenue & Bleecker',
     region: WEST,
     set: ['5,9=,', '10,2=*', '5,8=,'],
-    props: [{ sprite: 'taxi', col: 6, row: 2, solid: true }],
     spawns: rats([5, 2], [10, 9]),
-  }),
+  }, 4, 'up'),
 
   // --- the blocks beside the square ----------------------------------------
   street({
@@ -338,7 +336,7 @@ const BLOCKS: Screen[] = [
       { sprite: 'scribe', col: 10, row: 2, talk: 'Fifth Avenue runs all the way up the island. Not today, though — see the barriers.' },
     ],
     spawns: rats([5, 8], [10, 9]),
-  }),
+  }, 4, 'down'),
   street({
     id: 'nyc-washington-south',
     name: 'Washington Square South',
@@ -359,29 +357,26 @@ const BLOCKS: Screen[] = [
     region: EAST,
     set: ['5,8=^', '10,2=,', '10,8=*', '5,9=p'],
     props: [
-      { sprite: 'taxiLeft', col: 8, row: 8, solid: true },
       { sprite: 'scribe', col: 5, row: 2, talk: 'The cube used to turn if you pushed it. The subway is down those stairs — when they open it.' },
     ],
     spawns: rats([5, 8], [10, 1]),
-  }),
+  }, 4, 'down'),
   avenue({
     id: 'nyc-broadway',
     name: 'Broadway & 4th',
     region: EAST,
     set: ['5,8=,', '10,8=,', '5,1=*'],
-    props: [{ sprite: 'taxi', col: 6, row: 9, solid: true }],
     spawns: rats([5, 2], [10, 8]),
     // Police tape across the cross street, on the square's side.
     gates: [{ gateId: 'nyc-broadway-tape', col: 4, row: 4, opens: [{ col: 4, row: 4 }, { col: 4, row: 5 }] }],
-  }),
+  }, 4, 'down'),
   avenue({
     id: 'nyc-broadway-south',
     name: 'Broadway & Bleecker',
     region: EAST,
     set: ['5,2=,', '10,9=*', '5,8=p'],
-    props: [{ sprite: 'taxiLeft', col: 8, row: 2, solid: true }],
     spawns: rats([5, 9], [10, 2]),
-  }),
+  }, 4, 'down'),
 
   // --- the East Village ----------------------------------------------------
   street({
@@ -419,9 +414,8 @@ const BLOCKS: Screen[] = [
     name: 'Second Avenue & 7th',
     region: EAST,
     set: ['5,8=,', '10,1=*', '5,1=p'],
-    props: [{ sprite: 'taxi', col: 6, row: 8, solid: true }],
     spawns: rats([5, 2], [10, 9]),
-  }),
+  }, 4, 'down'),
   avenue({
     id: 'nyc-second-ave',
     name: 'Second Avenue & 4th',
@@ -429,19 +423,17 @@ const BLOCKS: Screen[] = [
     set: ['11,2=H', '5,8=,', '10,8=*', '5,9=^'],
     portals: [door(11, 2, 'nyc-bodega')],
     props: [
-      { sprite: 'taxiLeft', col: 8, row: 1, solid: true },
       { sprite: 'scribe', col: 5, row: 8, talk: "Ray's is the one with the cat in the window. Best sandwich in the Village, and the cat agrees." },
     ],
     spawns: rats([5, 1], [10, 9]),
-  }),
+  }, 4, 'down'),
   avenue({
     id: 'nyc-second-ave-south',
     name: 'Second Avenue & Houston',
     region: EAST,
     set: ['5,2=,', '10,9=,', '5,7=*'],
-    props: [{ sprite: 'taxi', col: 6, row: 9, solid: true }],
     spawns: rats([5, 9], [10, 1]),
-  }),
+  }, 4, 'down'),
 
   // --- Alphabet City ---------------------------------------------------------
   avenue(
@@ -451,12 +443,12 @@ const BLOCKS: Screen[] = [
       region: EAST,
       set: ['5,2=,', '10,1=*', '5,9=^', '10,8=,'],
       props: [
-        { sprite: 'taxiLeft', col: 7, row: 8, solid: true },
         { sprite: 'pigeonA', col: 10, row: 2 },
       ],
       spawns: rats([5, 8], [10, 2]),
     },
     2,
+    'up',
   ),
   avenue(
     {
@@ -464,10 +456,10 @@ const BLOCKS: Screen[] = [
       name: 'Avenue A & 4th',
       region: EAST,
       set: ['5,8=,', '10,2=*', '10,9=p'],
-      props: [{ sprite: 'taxi', col: 7, row: 2, solid: true }],
       spawns: rats([5, 2], [10, 8]),
     },
     2,
+    'up',
   ),
   avenue(
     {
@@ -479,6 +471,7 @@ const BLOCKS: Screen[] = [
       spawns: rats([5, 9], [10, 8]),
     },
     2,
+    'down',
   ),
   avenue(
     {
@@ -491,6 +484,7 @@ const BLOCKS: Screen[] = [
       spawns: rats([5, 2], [10, 8]),
     },
     2,
+    'down',
   ),
   avenue(
     {
@@ -502,6 +496,7 @@ const BLOCKS: Screen[] = [
       spawns: rats([5, 8], [10, 2]),
     },
     2,
+    'down',
   ),
 ]
 

@@ -18,7 +18,7 @@ import { drawWorldMap } from './render/map'
 import { drawBarriers, drawDarkness, drawGlimmers, drawSpeech, drawTiles, themeFor, visibleTile } from './render/world'
 import { itemSprite } from './render/icons'
 import { Enemy, isBossKind, overlaps, ringBurst, type Projectile } from './entities/enemies'
-import { Player, PLAYER_SIZE, type Facing } from './entities/player'
+import { Player, PLAYER_SIZE, type Facing, BODY_INSET } from './entities/player'
 import { SCREEN_COLS, SCREEN_H, SCREEN_ROWS, SCREEN_W, TILE, TILES, isSolidChar, toTile, type TileChar } from './world/tiles'
 import { screenById, SCREENS, type EnemyKind, type Portal, type Prop, type Screen } from './world/screens'
 import { overworldLayout, stepBackFromGate } from './world/analysis'
@@ -26,6 +26,7 @@ import { gateById, type Gate } from './gates'
 import { isTool, ITEMS, itemName, materialOf, TOOL_SLOT, type ItemId } from './items'
 import { dropMultiplier, opensFreely } from './pacing'
 import type { Level, SaveData } from '../core/save'
+import { Traffic, greenAxis } from './traffic'
 import { hopOffset, petByKind, petFrames } from './pets'
 import type { ShopKind } from './ui/shop'
 import { TOTAL_EXERCISES } from '../content/exercises'
@@ -384,6 +385,8 @@ export class World {
   private victory: Victory | undefined
   /** True while he is reading the map. The world holds still underneath. */
   private mapOpen = false
+  /** The cars, on a Level 3 street. Nowhere else has any. */
+  private traffic: Traffic | undefined
   /** Set from the moment he picks something up until the sign is dismissed. */
   private discovery: Discovery | undefined
   /** The animal, on the screens it comes to. */
@@ -675,6 +678,7 @@ export class World {
     this.discovery = undefined
     this.mapOpen = false
     this.bumping = undefined
+    this.traffic = next.setting === 'street' ? new Traffic(next, this.rng) : undefined
     this.solidProps = new Set(
       (next.props ?? []).filter((p) => p.terminal || p.locker || p.solid).map((p) => `${p.col},${p.row}`),
     )
@@ -967,6 +971,7 @@ export class World {
     this.checkFood()
     this.checkPortals()
     this.checkEdges()
+    this.updateTraffic(step)
 
     // While a potion holds, nothing has a fix on him: the monsters steer for
     // the middle of the room and shoot at where he is not.
@@ -1467,6 +1472,38 @@ export class World {
     this.ensureFree()
     this.input.clearTarget()
     this.callbacks.onChange()
+  }
+
+  // ----------------------------------------------------------------- traffic
+
+  /**
+   * The cars move, and anything standing in a lane finds out. A car costs him
+   * two hearts and a shove, and the potion is no help: a cab does not need to
+   * see you. A rat in the road is a rat no longer.
+   */
+  private updateTraffic(step: number): void {
+    if (!this.traffic) return
+    this.traffic.update(step, this.frame)
+    const touches = (
+      a: { x: number; y: number; w: number; h: number },
+      b: { x: number; y: number; w: number; h: number },
+    ): boolean => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
+    const body = {
+      x: this.player.x + BODY_INSET,
+      y: this.player.y + BODY_INSET,
+      w: PLAYER_SIZE - BODY_INSET * 2,
+      h: PLAYER_SIZE - BODY_INSET * 2,
+    }
+    for (const box of this.traffic.boxes()) {
+      if (touches(body, box) && this.player.hurt(2, box.x + box.w / 2, box.y + box.h / 2)) {
+        sfx.play('playerHurt')
+        this.showMessage('A cab! Wait for the walking man before you cross.', 150)
+      }
+      for (const enemy of this.enemies) {
+        if (isBossKind(enemy.kind)) continue
+        if (touches({ x: enemy.x + 1, y: enemy.y + 1, w: 14, h: 14 }, box) && enemy.hurt(50)) sfx.play('enemyHit')
+      }
+    }
   }
 
   // ------------------------------------------------------------------ combat
@@ -1989,6 +2026,7 @@ export class World {
     drawBarriers(ctx, this.atlas, this.screen, opened, this.frame)
     this.drawLaunchPads(ctx)
     this.drawTeleporters(ctx, opened)
+    this.traffic?.draw(ctx, this.atlas, this.frame)
 
     for (const prop of this.screen.props ?? []) {
       // The suit stands by the wall until he is wearing it.
@@ -3002,6 +3040,12 @@ export class World {
       flying: this.flight !== undefined,
       mapOpen: this.mapOpen,
       discovering: this.discovery !== undefined,
+      traffic: this.traffic
+        ? {
+            cars: this.traffic.cars.map((c) => ({ axis: c.lane.axis, at: c.lane.at, pos: Math.round(c.pos), dir: c.lane.dir })),
+            green: greenAxis(this.frame),
+          }
+        : undefined,
       pet: this.pet
         ? {
             kind: this.save.world.pet,

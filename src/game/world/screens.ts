@@ -148,6 +148,11 @@ export interface Screen {
    */
   mosaic?: string
   /**
+   * Level 3 streets: how the cars run. A street is two-way unless told;
+   * most avenues are one-way, and the tiles cannot say which way.
+   */
+  traffic?: { oneWay?: 'up' | 'down' }
+  /**
    * Leave this screen exactly as authored — no trees grown in round the edge.
    *
    * For the one place that is meant to look tended rather than wild. Run

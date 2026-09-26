@@ -104,6 +104,20 @@ export function flipVertical(sprite: Sprite): Sprite {
   return { width: sprite.width, height: sprite.height, rows: [...sprite.rows].reverse() }
 }
 
+/**
+ * Turns a sprite a quarter turn clockwise, so a car drawn nose-right can
+ * drive down an avenue: its top row becomes its right column.
+ */
+export function rotateCW(sprite: Sprite): Sprite {
+  const rows: string[] = []
+  for (let y = 0; y < sprite.width; y++) {
+    let line = ''
+    for (let x = 0; x < sprite.height; x++) line += sprite.rows[sprite.height - 1 - x]?.[y] ?? '.'
+    rows.push(line)
+  }
+  return { width: sprite.height, height: sprite.width, rows }
+}
+
 /** Mirrors a sprite horizontally, so left-facing art is free. */
 export function mirror(sprite: Sprite): Sprite {
   return {
@@ -2092,9 +2106,23 @@ const CAR_ROWS = (body: string, trim: string) =>
   ] as const
 
 const TAXI = defineSprite(24, 16, CAR_ROWS('y', 'k'))
+const CAR_WHITE = defineSprite(24, 16, CAR_ROWS('w', 'x'))
+const CAR_BLUE = defineSprite(24, 16, CAR_ROWS('b', 'B'))
+const CAR_RED = defineSprite(24, 16, CAR_ROWS('r', 'R'))
+const CAR_GREY = defineSprite(24, 16, CAR_ROWS('m', 'M'))
 
 /** The one purple car. Walk into it when it stops, and it drives you somewhere. */
 const PURPLE_CAR = defineSprite(24, 16, CAR_ROWS('p', 'P'))
+
+/** A car in all four directions: nose right as drawn, and turned from there. */
+function fourWays<N extends string>(name: N, sprite: Sprite): Record<`${N}Right` | `${N}Left` | `${N}Down` | `${N}Up`, Sprite> {
+  return {
+    [`${name}Right`]: sprite,
+    [`${name}Left`]: mirror(sprite),
+    [`${name}Down`]: rotateCW(sprite),
+    [`${name}Up`]: rotateCW(mirror(sprite)),
+  } as Record<`${N}Right` | `${N}Left` | `${N}Down` | `${N}Up`, Sprite>
+}
 
 const PIGEON_A = S([
   '................',
@@ -2559,9 +2587,13 @@ export const SPRITES = {
 
   // --- the city -----------------------------------------------------------
   taxi: TAXI,
-  taxiLeft: mirror(TAXI),
+  ...fourWays('taxi', TAXI),
+  ...fourWays('carWhite', CAR_WHITE),
+  ...fourWays('carBlue', CAR_BLUE),
+  ...fourWays('carRed', CAR_RED),
+  ...fourWays('carGrey', CAR_GREY),
   purpleCar: PURPLE_CAR,
-  purpleCarLeft: mirror(PURPLE_CAR),
+  ...fourWays('purpleCar', PURPLE_CAR),
   pigeonA: PIGEON_A,
   pigeonB: PIGEON_B,
   hammerRight: HAMMER_RIGHT,
