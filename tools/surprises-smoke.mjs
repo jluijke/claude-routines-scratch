@@ -60,7 +60,8 @@ for (let n = 0; n < 4; n++) {
 check('the car does not always go to the same place', rides.size >= 2)
 // Times Square is reached only by the car; force the dice by trying until it lands there.
 let atTimes = false
-for (let n = 0; n < 12 && !atTimes; n++) {
+// Seven places it might go, so forty tries miss it about once in five hundred runs.
+for (let n = 0; n < 40 && !atTimes; n++) {
   await page.evaluate(() => window.zsq.world.teleport('nyc-fifth-ave', 5, 3))
   await wait(700)
   await walk('ArrowUp', 500)

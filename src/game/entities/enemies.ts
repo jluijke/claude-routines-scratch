@@ -70,6 +70,21 @@ const CREATURE_SPRITES: Record<EnemyKind, [SpriteName, SpriteName]> = {
   boss4: ['guardianDark', 'guardianDark'],
 }
 
+/**
+ * City rats. The land's chaser runs at him from anywhere on the screen at two
+ * thirds of his walking speed and takes two hearts a bite, which on a street
+ * with two of them and traffic besides was more than a nine-year-old could
+ * steer round. A rat in the city is slower by a long way, bites for one,
+ * minds its own business until he comes within a few tiles, and after a
+ * bite it scurries off for a moment rather than biting again.
+ */
+const RAT_SPEED = 26
+const RAT_DAMAGE = 1
+/** How close he has to come before a rat takes an interest, in pixels. */
+export const RAT_NOTICE = 5 * TILE
+/** How long a rat runs off for after it has bitten him. */
+export const RAT_RETREAT = 75
+
 /** Who the three guardians are, by the boss slot they sit in. */
 export const GUARDIAN_NAMES: Partial<Record<EnemyKind, string>> = {
   boss1: 'Trump',
@@ -274,6 +289,8 @@ export class Enemy {
   hurtTimer = 0
   /** Frames it stands stunned, after the box hammer lands near it. */
   stunned = 0
+  /** Frames it runs away from him for, after a bite. */
+  private retreatTimer = 0
   private cooldown: number
   private dirX = 0
   private dirY = 1
@@ -338,7 +355,12 @@ export class Enemy {
     // smaller and softer again, so two of them are a fight rather than twice
     // the fight he had just nearly won.
     const base = ARCHETYPES[kind]
-    const merged = this.mech ? { ...base, ...this.mech } : base
+    const rat = look === 'creature' && kind === 'chaser'
+    const merged = this.mech
+      ? { ...base, ...this.mech }
+      : rat
+        ? { ...base, speed: RAT_SPEED, damage: RAT_DAMAGE }
+        : base
     this.def = this.isHalf
       ? { ...merged, hp: Math.ceil(merged.hp / 2), size: Math.round(merged.size * 0.62) }
       : merged
@@ -358,6 +380,24 @@ export class Enemy {
     // A half is what the red mech's rage looks like: it does not turn again
     // later, it turned when it came apart, and it arrives already furious.
     if (this.isHalf) this.enrage()
+  }
+
+  /** Ambles in one direction for a while, then picks another. */
+  private wander(step: number, isBlocked: (x: number, y: number) => boolean): void {
+    this.turnTimer -= 1
+    if (this.turnTimer <= 0) {
+      this.turnTimer = this.rng.int(50, 120)
+      const options: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+      const chosen = this.rng.pick(options) ?? [0, 1]
+      this.dirX = chosen[0]
+      this.dirY = chosen[1]
+    }
+    this.step(step * 0.6, this.dirX, this.dirY, isBlocked)
+  }
+
+  /** Runs off for a moment. A rat that has just bitten him does not stay to bite again. */
+  retreat(frames = RAT_RETREAT): void {
+    this.retreatTimer = Math.max(this.retreatTimer, frames)
   }
 
   /** True while the ice mech's shield is up: nothing can touch it. */
@@ -523,6 +563,16 @@ export class Enemy {
         break
       }
       case 'chaser': {
+        if (this.retreatTimer > 0) {
+          this.retreatTimer -= 1
+          this.step(step, -toGoalX / distance, -toGoalY / distance, isBlocked)
+          break
+        }
+        // A city rat potters about until he is close, then comes for him.
+        if (this.look === 'creature' && this.baitTimer <= 0 && distance > RAT_NOTICE) {
+          this.wander(step, isBlocked)
+          break
+        }
         this.step(step, toGoalX / distance, toGoalY / distance, isBlocked)
         break
       }

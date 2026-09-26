@@ -389,6 +389,13 @@ const SCYTHE_RADIUS = 26
  */
 export const EDGE_MARGIN = TILE
 
+/**
+ * Arriving on a screen: nothing small is allowed closer than this, and
+ * everything holds still for this long while he looks around.
+ */
+const ARRIVAL_CLEARANCE = 5 * TILE
+const ARRIVAL_GRACE = 45
+
 /** How long the room rocks after something heavy lands. */
 const SHAKE_FRAMES = 16
 
@@ -1055,6 +1062,7 @@ export class World {
         this.loadScreen(going.screen)
         this.player.placeAtTile(going.col, going.row)
         this.ensureFree()
+        this.settleArrival()
         this.input.clearTarget()
         this.beaming = { frames: TELEPORT_IN, span: TELEPORT_IN, phase: 'in' }
         this.syncSave()
@@ -1493,6 +1501,7 @@ export class World {
     this.player.placeAtTile(7, 4)
     this.boardingDeclined = true
     this.ensureFree()
+    this.settleArrival()
     this.input.clearTarget()
     this.syncSave()
     this.callbacks.onChange()
@@ -1636,6 +1645,7 @@ export class World {
       this.loadScreen(portal.to)
       this.player.placeAtTile(portal.spawnCol, portal.spawnRow)
       this.ensureFree()
+      this.settleArrival()
       this.input.clearTarget()
       this.callbacks.onChange()
       if (flying) this.beginFlight(portal.spawnCol)
@@ -1888,9 +1898,81 @@ export class World {
       case 'left': this.player.x = SCREEN_W - margin - PLAYER_SIZE; break
       case 'right': this.player.x = margin; break
     }
+    this.stepOntoSidewalk(direction)
     this.ensureFree()
+    this.settleArrival()
     this.input.clearTarget()
     this.callbacks.onChange()
+  }
+
+  /**
+   * Crossing into a new block, he comes out on the sidewalk, never in the
+   * road. Walking along a street and over the edge used to put him in the
+   * next block's traffic lane, a car's length from a taxi. He is moved along
+   * the edge he came in by to the nearest bit of sidewalk.
+   */
+  private stepOntoSidewalk(direction: Facing): void {
+    if (this.screen.setting !== 'street') return
+    const road = (col: number, row: number): boolean => {
+      const char = (this.screen.rows[row] ?? '')[col] ?? '#'
+      return char === 'B' || char === 'S'
+    }
+    const sidewalk = (col: number, row: number): boolean =>
+      ((this.screen.rows[row] ?? '')[col] ?? '#') === '.' && !this.sealed.has(`${col},${row}`)
+    const centre = this.player.centre()
+    const here = toTile(centre.x, centre.y)
+    if (!road(here.col, here.row)) return
+    const along = direction === 'left' || direction === 'right' ? 'row' : 'col'
+    let best: number | undefined
+    const limit = along === 'row' ? SCREEN_ROWS : SCREEN_COLS
+    for (let i = 0; i < limit; i++) {
+      const ok = along === 'row' ? sidewalk(here.col, i) : sidewalk(i, here.row)
+      if (!ok) continue
+      const from = along === 'row' ? here.row : here.col
+      if (best === undefined || Math.abs(i - from) < Math.abs(best - from)) best = i
+    }
+    if (best === undefined) return
+    const inset = (TILE - PLAYER_SIZE) / 2
+    if (along === 'row') this.player.y = best * TILE + inset
+    else this.player.x = best * TILE + inset
+  }
+
+  /**
+   * He has just arrived somewhere. Nothing is allowed to be waiting on top of
+   * him: any small monster closer than a few tiles is moved to the nearest
+   * open spot far enough away — off the road, where there is a road — and
+   * everything holds still for a moment while he gets his bearings.
+   */
+  private settleArrival(): void {
+    const me = this.player.centre()
+    const street = this.screen.setting === 'street'
+    for (const enemy of this.enemies) {
+      if (enemy.isBoss) continue
+      enemy.stunned = Math.max(enemy.stunned, ARRIVAL_GRACE)
+      const at = enemy.centre()
+      if (Math.hypot(at.x - me.x, at.y - me.y) >= ARRIVAL_CLEARANCE) continue
+      let best: { x: number; y: number; d: number } | undefined
+      for (let row = 0; row < SCREEN_ROWS; row++) {
+        for (let col = 0; col < SCREEN_COLS; col++) {
+          const char = (this.screen.rows[row] ?? '')[col] ?? '#'
+          if (street && (char === 'B' || char === 'S')) continue
+          const cx = col * TILE + TILE / 2
+          const cy = row * TILE + TILE / 2
+          if (Math.hypot(cx - me.x, cy - me.y) < ARRIVAL_CLEARANCE) continue
+          const x = col * TILE + (TILE - enemy.size) / 2
+          const y = row * TILE + (TILE - enemy.size) / 2
+          if (this.isSolidAt(cx, cy, this.openedTiles(), false)) continue
+          if (this.isSolidAt(x + 1, y + 1, this.openedTiles(), false)) continue
+          if (this.isSolidAt(x + enemy.size - 1, y + enemy.size - 1, this.openedTiles(), false)) continue
+          const d = Math.hypot(cx - at.x, cy - at.y)
+          if (!best || d < best.d) best = { x, y, d }
+        }
+      }
+      if (best) {
+        enemy.x = best.x
+        enemy.y = best.y
+      }
+    }
   }
 
   // ----------------------------------------------------------------- traffic
@@ -1949,6 +2031,9 @@ export class World {
         const centre = enemy.centre()
         if (this.player.hurt(enemy.def.damage, centre.x, centre.y)) {
           sfx.play('playerHurt')
+          // A city rat that has bitten him runs off, rather than standing
+          // on him until the hurt flash wears off and biting again.
+          if (enemy.look === 'creature' && enemy.kind === 'chaser') enemy.retreat()
           this.callbacks.onChange()
         }
       }
@@ -3874,6 +3959,10 @@ export class World {
       hammerBlows: this.hammerBlows,
       magazine: this.magazine ? { ...this.magazine } : undefined,
       stunned: this.enemies.filter((e) => e.stunned > 0).length,
+      enemyCentres: this.enemies.filter((e) => !e.isBoss).map((e) => {
+        const c = e.centre()
+        return { x: Math.round(c.x), y: Math.round(c.y) }
+      }),
       guardians: this.enemies.filter((e) => e.isGuardian).map((e) => ({ kind: e.kind, hp: e.hp, loved: Number(e.loved.toFixed(2)) })),
       loveBombs: this.save.inventory.loveBomb ?? 0,
       spray: this.spray ? { ...this.spray } : undefined,
@@ -3993,6 +4082,8 @@ export class World {
     this.loadScreen(screenId)
     this.player.placeAtTile(col, row)
     this.ensureFree()
+    // No settleArrival here: this is the checks' and the debug menu's way of
+    // putting him somewhere exact, often right beside a monster on purpose.
     this.input.clearTarget()
     this.syncSave()
     this.callbacks.onChange()
@@ -4006,6 +4097,7 @@ export class World {
     this.loadScreen(START_SCREENS[this.level])
     this.player.placeAtTile(7, 5)
     this.ensureFree()
+    this.settleArrival()
     this.syncSave()
     this.callbacks.onChange()
   }
