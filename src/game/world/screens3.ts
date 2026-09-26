@@ -17,6 +17,7 @@
  * east, Washington Square in the middle, Tompkins Square at the far end.
  */
 import type { Prop, Screen, Portal, Spawn, GatePlacement } from './screens'
+import { TRAIN_CAR } from './subway'
 
 const STREET = { level: 3, setting: 'street', tidy: true } as const
 const PARK = { level: 3, setting: 'park', tidy: true } as const
@@ -225,6 +226,10 @@ function door(col: number, row: number, to: string): Portal {
 function wayOut(to: string, spawnCol: number, spawnRow: number): Portal {
   return { col: 7, row: 9, to, spawnCol, spawnRow }
 }
+/** Subway stairs on the street, down to a station's mezzanine. */
+function stairsDown(col: number, row: number, station: string): Portal {
+  return { col, row, to: `nyc-sub-${station}-mezz`, spawnCol: 7, spawnRow: 3 }
+}
 
 // ---------------------------------------------------------------- the blocks
 
@@ -247,7 +252,7 @@ const BLOCKS: Screen[] = [
     name: 'Sheridan Square',
     region: WEST,
     set: ['4,2=H', '2,6=^', '11,3=,', '13,6=*', '9,3=p'],
-    portals: [door(4, 2, 'nyc-newsstand')],
+    portals: [door(4, 2, 'nyc-newsstand'), stairsDown(2, 6, 'christopher')],
     props: [
       { sprite: 'scribe', col: 12, row: 3, talk: 'The newsstand sells a map of the Village. Forty dollars. Worth it, the first week.' },
       { sprite: 'pigeonA', col: 6, row: 6 },
@@ -277,10 +282,11 @@ const BLOCKS: Screen[] = [
     name: 'Sixth Avenue & 4th',
     region: WEST,
     set: ['10,8=,', '5,1=*', '10,1=^'],
+    portals: [stairsDown(10, 1, 'w4')],
     props: [
       { sprite: 'scribe', col: 10, row: 8, talk: 'Sixth Avenue. Four lanes and nobody slows down. Wait for the little man.' },
     ],
-    spawns: rats([5, 8], [10, 2]),
+    spawns: rats([5, 8], [10, 7]),
     // Police tape across the cross street, on the square's side.
     gates: [{ gateId: 'nyc-sixth-ave-tape', col: 11, row: 4, opens: [{ col: 11, row: 4 }, { col: 11, row: 5 }] }],
   }, 4, 'up'),
@@ -330,7 +336,7 @@ const BLOCKS: Screen[] = [
     id: 'nyc-fifth-ave',
     name: 'Fifth Avenue',
     region: SQUARE,
-    set: ['5,8=,', '10,8=*', '5,2=^'],
+    set: ['5,8=,', '10,8=*', '5,2=,'],
     props: [
       { sprite: 'purpleCar', col: 6, row: 1, solid: true },
       { sprite: 'scribe', col: 10, row: 2, talk: 'Fifth Avenue runs all the way up the island. Not today, though — see the barriers.' },
@@ -356,10 +362,11 @@ const BLOCKS: Screen[] = [
     name: 'Astor Place',
     region: EAST,
     set: ['5,8=^', '10,2=,', '10,8=*', '5,9=p'],
+    portals: [stairsDown(5, 8, 'astor')],
     props: [
-      { sprite: 'scribe', col: 5, row: 2, talk: 'The cube used to turn if you pushed it. The subway is down those stairs — when they open it.' },
+      { sprite: 'scribe', col: 5, row: 2, talk: 'The cube used to turn if you pushed it. The subway is down those stairs. Three words at the turnstile and you ride.' },
     ],
-    spawns: rats([5, 8], [10, 1]),
+    spawns: rats([5, 3], [10, 1]),
   }, 4, 'down'),
   avenue({
     id: 'nyc-broadway',
@@ -420,7 +427,7 @@ const BLOCKS: Screen[] = [
     id: 'nyc-second-ave',
     name: 'Second Avenue & 4th',
     region: EAST,
-    set: ['11,2=H', '5,8=,', '10,8=*', '5,9=^'],
+    set: ['11,2=H', '5,8=,', '10,8=*', '5,9=,'],
     portals: [door(11, 2, 'nyc-bodega')],
     props: [
       { sprite: 'scribe', col: 5, row: 8, talk: "Ray's is the one with the cat in the window. Best sandwich in the Village, and the cat agrees." },
@@ -431,8 +438,10 @@ const BLOCKS: Screen[] = [
     id: 'nyc-second-ave-south',
     name: 'Second Avenue & Houston',
     region: EAST,
-    set: ['5,2=,', '10,9=,', '5,7=*'],
-    spawns: rats([5, 9], [10, 1]),
+    set: ['5,2=,', '10,9=,', '5,7=*', '5,9=^'],
+    portals: [stairsDown(5, 9, '2av')],
+    props: [{ sprite: 'scribe', col: 10, row: 2, talk: 'Second Avenue station. The F used to stop here. Now it is the V, and it goes where it likes.' }],
+    spawns: rats([5, 3], [10, 1]),
   }, 4, 'down'),
 
   // --- Alphabet City ---------------------------------------------------------
@@ -441,7 +450,7 @@ const BLOCKS: Screen[] = [
       id: 'nyc-avenue-a',
       name: 'Avenue A & 7th',
       region: EAST,
-      set: ['5,2=,', '10,1=*', '5,9=^', '10,8=,'],
+      set: ['5,2=,', '10,1=*', '5,9=,', '10,8=,'],
       props: [
         { sprite: 'pigeonA', col: 10, row: 2 },
       ],
@@ -802,7 +811,263 @@ const INTERIORS: Screen[] = [
   },
 ]
 
-export const AUTHORED_CITY: Screen[] = [...BLOCKS, ...PARKS, ...INTERIORS]
+// ---------------------------------------------------------------- the subway
+
+/**
+ * Every station is three screens deep: the mezzanine at the foot of the
+ * street stairs, with the booth and the turnstiles; a tiled passage; and the
+ * platform, with the train standing at it. The turnstiles are a barrier that
+ * asks three words every time he comes down — the spelling is the fare — and
+ * the platform is a whole screen further on, so the fare is paid well before
+ * the train. Union Square has no stairs to the Village: it is the end of the
+ * line, and the only way to it is to ride.
+ */
+const PLATFORM = { level: 3, setting: 'platform', tidy: true } as const
+const TRAIN = { level: 3, setting: 'train', tidy: true } as const
+const SUBWAY_REGION = 'The Subway'
+
+interface Station {
+  key: string
+  name: string
+  /** What fits in the mosaic band. */
+  short: string
+  /** Where the stairs come out, and where he stands when they do. */
+  street: string
+  streetSpawn: [number, number]
+  /** What the attendant in the booth says. */
+  booth: string
+  passage?: { set?: string[]; props?: Prop[]; spawns?: Spawn[] }
+  pickup?: Screen['pickup']
+}
+
+const MEZZ_ROWS = [
+  '################',
+  '################',
+  '#......^.......#',
+  '#..............#',
+  '#..............#',
+  '#..............#',
+  '#####====#######',
+  '#..............#',
+  '#..............#',
+  '#..............#',
+  '######....######',
+]
+
+const PASSAGE_ROWS = [
+  '######....######',
+  '######....######',
+  '######....######',
+  '###..........###',
+  '###..........###',
+  '###..........###',
+  '###..........###',
+  '######....######',
+  '######....######',
+  '######....######',
+  '######....######',
+]
+
+const PLATFORM_ROWS = [
+  '######....######',
+  '######....######',
+  '................',
+  '..R....R....R...',
+  '................',
+  'SSSSSSSSSSSSSSSS',
+  'BBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBB',
+  '~~~~~~~~~~~~~~~~',
+  'D~~~~~~~~~~~~~~D',
+  '################',
+]
+
+function station(s: Station): Screen[] {
+  const mezz = `nyc-sub-${s.key}-mezz`
+  const passage = `nyc-sub-${s.key}-passage`
+  const platform = `nyc-sub-${s.key}-platform`
+  return [
+    {
+      id: mezz,
+      name: `${s.name} Station`,
+      region: SUBWAY_REGION,
+      ...PLATFORM,
+      mosaic: s.short,
+      rows: MEZZ_ROWS,
+      exits: { down: passage },
+      portals: [{ col: 7, row: 2, to: s.street, spawnCol: s.streetSpawn[0], spawnRow: s.streetSpawn[1] }],
+      gates: [
+        {
+          gateId: `nyc-turnstile-${s.key}`,
+          col: 5,
+          row: 6,
+          opens: [5, 6, 7, 8].map((col) => ({ col, row: 6 })),
+          guards: 'down',
+        },
+      ],
+      props: [{ sprite: 'scribe', col: 2, row: 3, talk: s.booth }],
+      ...(s.pickup ? { pickup: s.pickup } : {}),
+    },
+    {
+      id: passage,
+      name: `${s.name} Passage`,
+      region: SUBWAY_REGION,
+      ...PLATFORM,
+      mosaic: s.short,
+      rows: apply(PASSAGE_ROWS, s.passage?.set ?? []),
+      exits: { up: mezz, down: platform },
+      ...(s.passage?.props ? { props: s.passage.props } : {}),
+      spawns: s.passage?.spawns ?? [{ kind: 'chaser', col: 4, row: 4 }],
+    },
+    {
+      id: platform,
+      name: `${s.name} Platform`,
+      region: SUBWAY_REGION,
+      ...PLATFORM,
+      mosaic: s.short,
+      rows: PLATFORM_ROWS,
+      exits: { up: passage },
+      spawns: rats([1, 4], [14, 4]),
+    },
+  ]
+}
+
+const SUBWAY: Screen[] = [
+  ...station({
+    key: 'christopher',
+    name: 'Christopher Street',
+    short: 'CHRISTOPHER ST',
+    street: 'nyc-sheridan-square',
+    streetSpawn: [3, 6],
+    booth: 'No card, no swipe. Three words at the turnstile and you are through. That is the fare now.',
+    passage: {
+      set: ['3,3=,', '12,6=,'],
+      props: [{ sprite: 'pigeonA', col: 8, row: 5 }],
+    },
+  }),
+  ...station({
+    key: 'w4',
+    name: 'West 4th Street',
+    short: 'W 4 ST',
+    street: 'nyc-sixth-ave',
+    streetSpawn: [10, 2],
+    booth: 'Take a map, they are free. The line is the V. Uptown to Union Square, downtown to Christopher Street.',
+    pickup: {
+      id: 'nyc-w4-subway-map',
+      col: 3,
+      row: 4,
+      item: 'subwayMap',
+      message: 'A subway map, folded eight times. Every stop on the V, and you will know which one you are at. Press M underground.',
+    },
+    passage: {
+      set: ['3,6=,'],
+      props: [
+        { sprite: 'scribe', col: 12, row: 4, talk: 'SHOWTIME! What time is it? SHOWTIME. Mind your head, mind the poles, and enjoy the show.' },
+      ],
+      spawns: [{ kind: 'chaser', col: 5, row: 5 }],
+    },
+  }),
+  ...station({
+    key: 'astor',
+    name: 'Astor Place',
+    short: 'ASTOR PL',
+    street: 'nyc-astor-place',
+    streetSpawn: [5, 7],
+    booth: 'Beavers on the wall. Astor made his money in beaver fur. Three words and go on through.',
+    passage: {
+      set: ['12,3=,'],
+      props: [{ sprite: 'pigeonB', col: 4, row: 6 }],
+      spawns: [{ kind: 'chaser', col: 10, row: 5 }, { kind: 'chaser', col: 5, row: 4 }],
+    },
+  }),
+  ...station({
+    key: '2av',
+    name: 'Second Avenue',
+    short: '2 AV',
+    street: 'nyc-second-ave-south',
+    streetSpawn: [5, 8],
+    booth: 'Last stop in Manhattan on this line, one day. Today it is just a stop. Three words.',
+    passage: {
+      set: ['3,4=,', '12,4=,'],
+    },
+  }),
+  ...station({
+    key: 'union',
+    name: 'Union Square',
+    short: '14 ST-UNION SQ',
+    street: 'nyc-union-square',
+    streetSpawn: [7, 8],
+    booth: 'End of the line, kid. The square is up the stairs. Coming back down costs the same three words.',
+    passage: {
+      set: ['3,3=,', '12,3=,', '3,6=,', '12,6=,'],
+      props: [{ sprite: 'scribe', col: 8, row: 5, talk: 'Busiest station in the city, and you found it on a quiet day.' }],
+      spawns: [{ kind: 'chaser', col: 4, row: 5 }, { kind: 'flyer', col: 11, row: 4 }],
+    },
+  }),
+  // Up the stairs at the end of the line: a square he cannot walk to, with
+  // a chest that opens for having got there.
+  {
+    id: 'nyc-union-square',
+    name: '14th Street & Union Square',
+    region: 'Union Square',
+    ...PARK,
+    rows: [
+      'TTTTTTTTTTTTTTTT',
+      'T,............,T',
+      'T....SSSSSS....T',
+      'T....S~~~~S....T',
+      'T....S~~~~S....T',
+      'T....SSSSSS....T',
+      'T..*........*..T',
+      'T,............,T',
+      'T......SS......T',
+      'TTTTTTT^TTTTTTTT',
+      'TTTTTTTTTTTTTTTT',
+    ],
+    exits: {},
+    portals: [{ col: 7, row: 9, to: 'nyc-sub-union-mezz', spawnCol: 7, spawnRow: 3 }],
+    treasure: {
+      id: 'nyc-union-chest',
+      col: 3,
+      row: 8,
+      rupees: 80,
+      message: 'A box under the bench by the market stalls. Nobody has looked in it for years.',
+    },
+    props: [
+      { sprite: 'scribe', col: 10, row: 7, talk: 'Union Square. Market on Saturdays, chess every day, and the only way back to the Village is the train.' },
+      { sprite: 'pigeonA', col: 12, row: 2 },
+      { sprite: 'pigeonB', col: 4, row: 6 },
+      { sprite: 'dogB', col: 9, row: 1 },
+    ],
+    spawns: [{ kind: 'flyer', col: 12, row: 8 }],
+  },
+  // The train. He stands in it while the tunnel goes past; the doors along
+  // the bottom open at every stop, and stepping through them gets him off.
+  {
+    id: TRAIN_CAR,
+    name: 'On the V Train',
+    region: SUBWAY_REGION,
+    ...TRAIN,
+    rows: [
+      '~~~~~~~~~~~~~~~~',
+      '################',
+      '#R.R..R..R..R.R#',
+      '#..............#',
+      '#....*.....*...#',
+      '#..............#',
+      '#..............#',
+      '#....*.....*...#',
+      '#R.R..R..R..R.R#',
+      '####HH####HH####',
+      '~~~~~~~~~~~~~~~~',
+    ],
+    exits: {},
+    props: [{ sprite: 'scribe', col: 2, row: 5, talk: 'Stand clear of the closing doors, please.' }],
+    spawns: [{ kind: 'chaser', col: 12, row: 5 }],
+  },
+]
+
+export const AUTHORED_CITY: Screen[] = [...BLOCKS, ...PARKS, ...INTERIORS, ...SUBWAY]
 
 /** The sample screens the design page was drawn from, kept for the previews. */
 export const SAMPLE_CITY: Screen[] = [

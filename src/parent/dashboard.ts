@@ -121,7 +121,7 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
   // Everything a shopkeeper stocks, plus the map — which no shop sells, and
   // which you would otherwise have to bomb your way to before you could test
   // the map screen at all.
-  const sellable = Object.values(ITEMS).filter((item) => item.price !== undefined || item.id === 'map')
+  const sellable = Object.values(ITEMS).filter((item) => item.price !== undefined || item.id === 'map' || item.id === 'subwayMap')
 
   // Named as the world he is in names them: a parent testing the ship should
   // see the lightsaber on the list, not the metal sword it used to be.

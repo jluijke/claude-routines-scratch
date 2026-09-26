@@ -1779,6 +1779,26 @@ const SERUM = S([
   '................',
 ])
 
+/** The subway map: folded white card, the green V line across it with its stops. */
+const SUBWAY_MAP = S([
+  '................',
+  '..kkkkkkkkkkkk..',
+  '.kwwwwwwwwwwwwk.',
+  '.kwwwwwwwwwwwwk.',
+  '.kwwrrwwwwwwwwk.',
+  '.kwwrrwwbbwwwwk.',
+  '.kwwwwwwbbwwwwk.',
+  '.kwEEEEEEEEEEwk.',
+  '.kwEwEwEwEwEEwk.',
+  '.kwEEEEEEEEEEwk.',
+  '.kwwwwwwwwwwwwk.',
+  '.kwwwwyywwwwwwk.',
+  '.kwwwwyywwwwwwk.',
+  '..kkkkkkkkkkkk..',
+  '................',
+  '................',
+])
+
 /** The ship schematic: a blueprint, white lines on blue. */
 const SCHEMATIC = S([
   '................',
@@ -2507,6 +2527,7 @@ export const SPRITES = {
   arrow: ARROW,
   wings: WINGS,
   worldMap: MAP,
+  subwayMap: SUBWAY_MAP,
   arrowFlyRight: ARROW_FLY_RIGHT,
   arrowFlyLeft: mirror(ARROW_FLY_RIGHT),
   arrowFlyDown: ARROW_FLY_DOWN,

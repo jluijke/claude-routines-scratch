@@ -28,6 +28,7 @@ export type ItemId =
   | 'recoveryHeart'
   | 'heartContainer'
   | 'map'
+  | 'subwayMap'
   | 'animalFood'
   | 'potion'
 
@@ -439,6 +440,22 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     city: {
       name: 'Hoodie and Sunglasses',
       description: 'Nobody looks twice at you until you have left three blocks behind.',
+    },
+  },
+  subwayMap: {
+    id: 'subwayMap',
+    name: 'Subway Map',
+    category: 'tool',
+    // Free, from the booth at West 4th. The land and the ship have no subway,
+    // so the other two faces are only here to keep the table whole.
+    description: 'Every stop on the V line, and which one you are at. Press M underground.',
+    future: {
+      name: 'Transit Chart',
+      description: 'Every stop on the V line, and which one you are at. Press M underground.',
+    },
+    city: {
+      name: 'Subway Map',
+      description: 'Every stop on the V line, and which one you are at. Press M underground.',
     },
   },
   animalFood: {

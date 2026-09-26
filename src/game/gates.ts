@@ -21,6 +21,7 @@ export type GateKind =
   | 'wall' // a cracked wall hiding something
   | 'smith' // forging the next sword
   | 'food' // a sack of animal food lying in the open
+  | 'turnstile' // the subway turnstiles: three words is the fare, every time
 
 export interface Reward {
   rupees?: number
@@ -56,8 +57,10 @@ export interface Gate {
    *  'five'  — exactly five questions, and no rule to read first. The price of
    *            the chest in the quiet square, which is meant to be a small
    *            kindness rather than a lesson.
+   *  'turnstile' — three questions, and the barrier does not stay open: it is
+   *            the subway fare, paid every time he comes down the stairs.
    */
-  challenge?: 'intro' | 'half' | 'grammar' | 'five'
+  challenge?: 'intro' | 'half' | 'grammar' | 'five' | 'turnstile'
 }
 
 const GATE_LIST: Gate[] = [
@@ -1066,6 +1069,22 @@ const GATE_LIST: Gate[] = [
     openMessage: '"Careful enough. It is yours to buy. Mind the windows."',
     reward: { rupees: 30 },
   },
+
+  // --- the subway: the fare is three words, every time ----------------------
+  ...[
+    ['christopher', 'The turnstile at Christopher Street. No card, no coins. A screen above it says: SPELL THREE WORDS.'],
+    ['w4', 'The turnstiles at West 4th. The reader wants three words, not a card, and the man in the booth is watching.'],
+    ['astor', 'The Astor Place turnstile. A little beaver on the wall tile seems to be waiting for you to spell something.'],
+    ['2av', 'The turnstile at Second Avenue clicks once. THREE WORDS, says the screen. PLEASE.'],
+    ['union', 'The turnstile at Union Square. Busiest station in the city, and it still wants its three words.'],
+  ].map(([key, message]) => ({
+    id: `nyc-turnstile-${key}`,
+    kind: 'turnstile' as const,
+    message: message as string,
+    openMessage: 'The turnstile clunks round and lets you through. Mind the gap.',
+    reward: {},
+    challenge: 'turnstile' as const,
+  })),
 ]
 
 

@@ -75,6 +75,8 @@ export function itemSprite(id: ItemId, level: Level = 1): SpriteName {
       return 'ring'
     case 'map':
       return 'worldMap'
+    case 'subwayMap':
+      return 'subwayMap'
     case 'animalFood':
       return 'animalFood'
     case 'potion':
@@ -109,6 +111,8 @@ function futureItemSprite(id: ItemId, tier: string): SpriteName {
       return 'circuitRing'
     case 'map':
       return 'schematic'
+    case 'subwayMap':
+      return 'subwayMap'
     case 'animalFood':
       return 'battery'
     case 'potion':

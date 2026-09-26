@@ -20,7 +20,7 @@ import { masteredCount } from './spelling/mastery'
 import { button, clear, el } from './spelling/ui/dom'
 import { World } from './game/world'
 import { SCREENS } from './game/world/screens'
-import { showGatePrompt, showNotice } from './game/ui/prompt'
+import { showGatePrompt, showNotice, showRidePrompt } from './game/ui/prompt'
 import { showBossVictory } from './game/ui/victory'
 import { showDiscovery } from './game/ui/discovery'
 import { TO_THE_PRESENT, CITY_SAVED, showStory, TO_THE_FUTURE } from './game/ui/story'
@@ -189,6 +189,24 @@ function enterWorld(): void {
     onMessage: () => {},
     onHelp: () => openHelp(),
     onFoodOffer: () => offerFood(),
+    onBoard: (offer) => {
+      world?.setPaused(true)
+      showRidePrompt(root, {
+        station: offer.station.name,
+        choices: [
+          ...(offer.uptown ? [{ dir: -1 as const, label: `Uptown to ${offer.uptown.name}` }] : []),
+          ...(offer.downtown ? [{ dir: 1 as const, label: `Downtown to ${offer.downtown.name}` }] : []),
+        ],
+        onChoose: (dir) => {
+          world?.startRide(dir)
+          world?.setPaused(false)
+        },
+        onDecline: () => {
+          world?.declineBoarding()
+          world?.setPaused(false)
+        },
+      })
+    },
     onDiscovery: (found) => {
       world?.setPaused(true)
       persist()
@@ -295,6 +313,7 @@ function handleGate(gate: Gate): void {
       if (gate.challenge === 'intro') return startShortChallenge(gate, INTRO_CANDLE)
       if (gate.challenge === 'half') return startHalfChallenge(gate)
       if (gate.challenge === 'five') return startFiveChallenge(gate)
+      if (gate.challenge === 'turnstile') return startTurnstileChallenge(gate)
       if (isReview) return startReviewChallenge(gate)
       if (!up) {
         showNotice(root, 'You have finished every exercise there is. This door opens for you anyway.', () => {
@@ -407,6 +426,41 @@ function startFiveChallenge(gate: Gate): void {
       ...source.activities.filter((q) => q.novel || q.masteryRequired),
       ...source.activities.filter((q) => !q.novel && !q.masteryRequired),
     ].slice(0, 5),
+    ruleReveal: {
+      title: source.ruleReveal.title,
+      text: source.ruleReveal.text,
+      examples: source.ruleReveal.examples.slice(0, 2),
+    },
+  })
+}
+
+/**
+ * The subway fare: three words, from any exercise he has finished, a
+ * different one each time he comes down the stairs. A child who has finished
+ * nothing yet is waved through — the subway is not the place to hold a first
+ * lesson, and the booth attendant has seen it all before.
+ */
+function startTurnstileChallenge(gate: Gate): void {
+  const learned = EXERCISES.filter((e) => state.spelling.completedExercises.includes(e.id))
+  const source = learned[Math.floor(Math.random() * learned.length)]
+  if (!source) {
+    showNotice(root, 'The attendant in the booth looks up. "First ride is free, kid. Next time, you spell." The turnstile clunks round.', () => {
+      grantReward(gate)
+      world?.setPaused(false)
+    })
+    return
+  }
+
+  startShortChallenge(gate, {
+    ...source,
+    title: 'Three words for the fare',
+    targetMinutes: source.targetMinutes,
+    concepts: [],
+    fixedQuestions: 3,
+    activities: [
+      ...source.activities.filter((q) => q.novel || q.masteryRequired),
+      ...source.activities.filter((q) => !q.novel && !q.masteryRequired),
+    ].slice(0, 3),
     ruleReveal: {
       title: source.ruleReveal.title,
       text: source.ruleReveal.text,

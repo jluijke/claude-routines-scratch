@@ -973,3 +973,7 @@ tr.mastery-unseen { opacity: 0.55; }
 @media (prefers-reduced-motion: reduce) {
   .story-panel, .story-text-in { animation: none; }
 }
+
+/* The train's direction prompt: a button a way, stacked so both read whole. */
+.ride-actions { flex-wrap: wrap; justify-content: center; }
+.ride-actions .btn-primary { min-width: 12rem; }

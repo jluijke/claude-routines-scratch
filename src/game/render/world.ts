@@ -11,7 +11,7 @@ import { SCREEN_COLS, SCREEN_ROWS, TILE, TILES, type TileChar } from '../world/t
 import type { Atlas } from './atlas'
 import type { Screen } from '../world/screens'
 import { gateById } from '../gates'
-import { CITY_PALETTES, drawCityOverlay, drawCityTile, isCityTheme } from './city'
+import { CITY_PALETTES, drawCityOverlay, drawCityTile, drawTurnstile, isCityTheme } from './city'
 
 export type Theme =
   | 'overworld'
@@ -1498,12 +1498,21 @@ export function drawBarriers(
   frame: number,
 ): void {
   const future = isFutureTheme(themeFor(screen))
+  // A turnstile stands on seal tiles, but it is steel and not runes: the
+  // seal-tile pass leaves its tiles to the barrier pass below.
+  const turnstiles = new Set<string>()
+  for (const placement of screen.gates ?? []) {
+    if (gateById(placement.gateId)?.kind !== 'turnstile') continue
+    for (const tile of placement.opens ?? [{ col: placement.col, row: placement.row }]) {
+      turnstiles.add(`${tile.col},${tile.row}`)
+    }
+  }
   // Seal tiles the map author placed directly, with no barrier behind them.
   for (let row = 0; row < SCREEN_ROWS; row++) {
     const line = screen.rows[row] as string
     for (let col = 0; col < SCREEN_COLS; col++) {
       if (line[col] !== '=') continue
-      if (openedTiles.has(`${col},${row}`)) continue
+      if (openedTiles.has(`${col},${row}`) || turnstiles.has(`${col},${row}`)) continue
       drawRuneSeal(ctx, atlas, col, row, frame, future)
     }
   }
@@ -1547,6 +1556,13 @@ export function drawBarriers(
           // Skip anything the seal-tile pass above already painted.
           if ((screen.rows[tile.row] ?? '')[tile.col] === '=') continue
           drawRuneSeal(ctx, atlas, tile.col, tile.row, frame, future)
+        }
+        break
+
+      // The turnstiles: one per tile, shut or turned, and never gone.
+      case 'turnstile':
+        for (const tile of placement.opens ?? [{ col: placement.col, row: placement.row }]) {
+          drawTurnstile(ctx, tile.col * TILE, tile.row * TILE, openedTiles.has(`${tile.col},${tile.row}`), frame)
         }
         break
 

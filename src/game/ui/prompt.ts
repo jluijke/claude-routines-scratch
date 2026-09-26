@@ -23,6 +23,7 @@ const KIND_LABEL: Record<GateKind, string> = {
   wall: 'Something is hidden behind here',
   smith: 'At the forge',
   food: 'A sack of animal food',
+  turnstile: 'The turnstile',
 }
 
 export interface PromptOptions {
@@ -48,13 +49,19 @@ export function showGatePrompt(root: HTMLElement, options: PromptOptions): () =>
         ? 'A short challenge'
         : options.gate.challenge === 'grammar'
           ? 'One rule, then four questions'
-          : 'A quick challenge'
+          : options.gate.challenge === 'turnstile'
+            ? 'Three words for the fare'
+            : 'A quick challenge'
     : `Exercise ${options.exerciseNumber}: ${options.exerciseTitle}`
 
-  const accept = button(options.isReview ? 'Take the challenge' : 'Open it', () => {
+  const accept = button(
+    options.gate.challenge === 'turnstile' ? 'Pay the fare' : options.isReview ? 'Take the challenge' : 'Open it',
+    () => {
     close()
     options.onAccept()
-  }, { class: 'btn btn-primary btn-large' })
+  },
+    { class: 'btn btn-primary btn-large' },
+  )
 
   const decline = button('Not right now', () => {
     close()
@@ -105,6 +112,53 @@ export function showNotice(root: HTMLElement, text: string, onClose?: () => void
   ])
   root.append(panel)
   window.setTimeout(() => ok.focus(), 50)
+
+  function close(): void {
+    panel.remove()
+  }
+  return close
+}
+
+/** A direction on the line, offered when he steps aboard. */
+export interface RideChoice {
+  /** -1 uptown, +1 downtown. */
+  dir: -1 | 1
+  label: string
+}
+
+export interface RidePromptOptions {
+  station: string
+  choices: RideChoice[]
+  onChoose: (dir: -1 | 1) => void
+  onDecline: () => void
+}
+
+/**
+ * The doors are open and the train goes two ways. Asked rather than guessed:
+ * a nine-year-old who wanted Union Square and got Christopher Street would
+ * not think the train had made an honest mistake.
+ */
+export function showRidePrompt(root: HTMLElement, options: RidePromptOptions): () => void {
+  const buttons = options.choices.map((choice) =>
+    button(choice.label, () => {
+      close()
+      options.onChoose(choice.dir)
+    }, { class: 'btn btn-primary btn-large' }),
+  )
+  const decline = button('Stay on the platform', () => {
+    close()
+    options.onDecline()
+  }, { class: 'btn btn-quiet' })
+
+  const panel = el('div', { class: 'overlay' }, [
+    el('section', { class: 'gate-prompt ride-prompt panel-game' }, [
+      el('p', { class: 'gate-kind' }, ['The V train']),
+      el('p', { class: 'gate-message' }, [`The doors are open at ${options.station}. Which way?`]),
+      el('div', { class: 'gate-actions ride-actions' }, [decline, ...buttons]),
+    ]),
+  ])
+  root.append(panel)
+  window.setTimeout(() => buttons[0]?.focus(), 60)
 
   function close(): void {
     panel.remove()

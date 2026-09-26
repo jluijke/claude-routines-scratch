@@ -35,6 +35,8 @@ export interface Flavour {
   foodGateOpen: string
   potionWearsOff: string
   noMap: string
+  /** M underground, with no subway map in the pack. */
+  noSubwayMap: string
   nothingToUse: string
   noItems: string
   defeated: string
@@ -83,6 +85,7 @@ const LAND: Flavour = {
   foodGateOpen: 'The sack is yours.',
   potionWearsOff: 'The potion wears off. They can see you again.',
   noMap: 'You have no map. There must be one somewhere.',
+  noSubwayMap: 'You have no map of this place.',
   nothingToUse: 'Nothing to use yet. Buy something at the shop.',
   noItems: 'You have no items to use yet.',
   defeated: 'You have run out of hearts. A villager carries you back to the square.',
@@ -130,6 +133,7 @@ const SHIP: Flavour = {
   foodGateOpen: 'The battery pack is yours.',
   potionWearsOff: 'The cloaking serum wears off. Their sensors can see you again.',
   noMap: 'You have no schematic of the ship. There must be one somewhere.',
+  noSubwayMap: 'You have no schematic of this place.',
   nothingToUse: 'Nothing to use yet. Buy something at a computer.',
   noItems: 'You have no items to use yet.',
   defeated: 'You have run out of hearts. A medical drone carries you back to the bridge.',
@@ -175,6 +179,7 @@ const CITY: Flavour = {
   foodGateOpen: 'The sandwich is yours.',
   potionWearsOff: 'You take the hoodie off. They can see you again.',
   noMap: 'You have no map. The newsstand on Sheridan Square sells one.',
+  noSubwayMap: 'You have no subway map. The booth at West 4th Street has them, free.',
   nothingToUse: 'Nothing to use yet. Buy something at the bodega.',
   noItems: 'You have no items to use yet.',
   defeated: 'You have run out of hearts. A cab driver takes you back to the square, and does not charge you.',

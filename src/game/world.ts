@@ -14,7 +14,7 @@ import { Rng } from '../core/rng'
 import { Atlas } from './render/atlas'
 import type { SpriteName } from './render/sprites'
 import { drawHud, HUD_H } from './render/hud'
-import { drawWorldMap } from './render/map'
+import { drawSubwayMap, drawWorldMap } from './render/map'
 import { drawBarriers, drawDarkness, drawGlimmers, drawSpeech, drawTiles, themeFor, visibleTile } from './render/world'
 import { itemSprite } from './render/icons'
 import { Enemy, isBossKind, overlaps, ringBurst, type Projectile } from './entities/enemies'
@@ -32,6 +32,24 @@ import type { ShopKind } from './ui/shop'
 import { TOTAL_EXERCISES } from '../content/exercises'
 import { flavourFor, type Flavour } from './flavour'
 import { START_SCREENS } from './levels'
+import {
+  beginRide,
+  directionsFrom,
+  DOORS_FRAMES,
+  isUnderground,
+  LURCH_EVERY,
+  nextStop,
+  rideProgress,
+  stationIndex,
+  stationsVisited,
+  STOPS,
+  stopIndex,
+  tickRide,
+  TRAIN_CAR,
+  type Ride,
+  type RideDirection,
+  type Stop,
+} from './world/subway'
 
 /** What the sign says when a dungeon guardian falls. */
 export interface BossVictory {
@@ -64,6 +82,8 @@ export interface WorldCallbacks {
   onDiscovery: (found: { item: ItemId; message: string }) => void
   /** He stepped onto a sack of animal food. Ask, then run the four questions. */
   onFoodOffer: () => void
+  /** He stepped onto the train. Ask which way, or let him step off again. */
+  onBoard: (offer: { station: Stop; uptown?: Stop; downtown?: Stop }) => void
 }
 
 interface Drop {
@@ -387,6 +407,18 @@ export class World {
   private mapOpen = false
   /** The cars, on a Level 3 street. Nowhere else has any. */
   private traffic: Traffic | undefined
+  /**
+   * Turnstiles he has paid at since arriving on this screen. Not in the save:
+   * the fare is three words every time he comes down, so a pass lasts exactly
+   * as long as he stays on the mezzanine.
+   */
+  private turnstilePasses = new Set<string>()
+  /** The train he is on, if he is on one. */
+  private ride: Ride | undefined
+  /** He said no to the train; do not ask again until he steps off it. */
+  private boardingDeclined = false
+  /** The direction prompt is up. */
+  private pendingBoard = false
   /** Set from the moment he picks something up until the sign is dismissed. */
   private discovery: Discovery | undefined
   /** The animal, on the screens it comes to. */
@@ -453,6 +485,11 @@ export class World {
       save.player.hearts,
       save.player.maxHearts,
     )
+    // A save closed on the train has no train to come back to: the ride was
+    // not written down, and a car with no ride is a room with no doors. He
+    // wakes on the platform in the middle of the line instead.
+    const stranded = this.screen.id === TRAIN_CAR
+    if (stranded) this.screen = screenById(STOPS[3]?.id ?? START_SCREENS[3]) as Screen
     this.player.x = save.player.x
     this.player.y = save.player.y
 
@@ -463,6 +500,7 @@ export class World {
     })
 
     this.loadScreen(this.screen.id, false)
+    if (stranded) this.player.placeAtTile(7, 4)
     // A save written before the doorway shove was fixed can hold a position
     // inside a wall. Release him on load rather than making him start again.
     this.ensureFree()
@@ -558,6 +596,18 @@ export class World {
 
   /** Called once a barrier's exercise has been completed. */
   openGate(gate: Gate): void {
+    // The turnstile turns once. It is not remembered: the next time he comes
+    // down the stairs it wants its three words again.
+    if (gate.kind === 'turnstile') {
+      this.turnstilePasses.add(gate.id)
+      sfx.play('gateOpen')
+      this.showMessage(gate.openMessage)
+      this.pendingGate = undefined
+      this.stepAwayFromGate(gate.id)
+      this.ensureFree()
+      this.callbacks.onChange()
+      return
+    }
     if (!this.save.world.openedGates.includes(gate.id)) {
       this.save.world.openedGates.push(gate.id)
     }
@@ -662,6 +712,13 @@ export class World {
     // load: reloading the room he is already in must not spend the food he just
     // earned, nor bring the next sack a screen closer.
     const arrived = remember && this.screen?.id !== id
+    if (this.screen?.id !== id) {
+      this.turnstilePasses.clear()
+      this.boardingDeclined = false
+    }
+    this.pendingBoard = false
+    // Anywhere but the car, and the ride is over — a teleport, a respawn.
+    if (id !== TRAIN_CAR) this.ride = undefined
     this.screen = next
     this.enemies = []
     this.projectiles = []
@@ -798,6 +855,8 @@ export class World {
     if (screen.shop) return 'shop'
     if (theme === 'dungeon') return 'dungeon'
     if (theme === 'cave') return 'cave'
+    // Underground is underground, until the subway has a tune of its own.
+    if (theme === 'platform' || theme === 'train') return 'cave'
     if (theme === 'ship') return 'ship'
     if (theme === 'rock' || theme === 'airlock') return 'rock'
     return 'overworld'
@@ -817,7 +876,8 @@ export class World {
     for (const placement of this.screen.gates ?? []) {
       const isOpen =
         this.save.world.openedGates.includes(placement.gateId) ||
-        this.isFreelyOpen(placement.gateId)
+        this.isFreelyOpen(placement.gateId) ||
+        this.turnstilePasses.has(placement.gateId)
       if (!isOpen) continue
       for (const tile of placement.opens ?? [{ col: placement.col, row: placement.row }]) {
         opened.add(`${tile.col},${tile.row}`)
@@ -919,11 +979,15 @@ export class World {
       return
     }
     if (state.map) {
-      if ((this.save.inventory.map ?? 0) > 0) {
+      // The same key opens whichever map fits where he is standing: the
+      // street map above ground, the subway map below it.
+      const underground = this.underground()
+      const held = underground ? this.save.inventory.subwayMap : this.save.inventory.map
+      if ((held ?? 0) > 0) {
         this.mapOpen = true
         sfx.play('select')
       } else {
-        this.showMessage(this.words.noMap, 140)
+        this.showMessage(underground ? this.words.noSubwayMap : this.words.noMap, 140)
       }
       return
     }
@@ -970,8 +1034,10 @@ export class World {
     this.checkPickup()
     this.checkFood()
     this.checkPortals()
+    this.checkBoarding()
     this.checkEdges()
     this.updateTraffic(step)
+    this.updateRide()
 
     // While a potion holds, nothing has a fix on him: the monsters steer for
     // the middle of the room and shoot at where he is not.
@@ -1090,12 +1156,121 @@ export class World {
 
       const gate = gateById(placement.gateId)
       if (!gate) continue
+      // The turnstile only charges on the way in. Coming up from the platform
+      // he is below it, and it simply lets him out.
+      if (gate.kind === 'turnstile' && toTile(centre.x, centre.y).row > placement.row) {
+        this.turnstilePasses.add(gate.id)
+        sfx.play('select')
+        this.showMessage('The exit turnstile lets you out.', 100)
+        return
+      }
       this.pendingGate = gate
       this.callbacks.onGate(gate)
       return
     }
     // He has stepped off it, so it may ask again next time he walks up.
     if (!touchingSuppressed) this.suppressedGate = undefined
+  }
+
+  // ------------------------------------------------------------------ subway
+
+  private underground(): boolean {
+    return isUnderground(this.screen.setting)
+  }
+
+  /**
+   * Stepping onto the train at a platform. It stands there with its doors
+   * open, and the moment he is aboard he is asked which way — the line runs
+   * both ways from every stop but the two ends.
+   */
+  private checkBoarding(): void {
+    const index = stopIndex(this.screen.id)
+    if (index < 0 || this.ride) return
+    const centre = this.player.centre()
+    const { col, row } = toTile(centre.x, centre.y)
+    const aboard = ((this.screen.rows[row] ?? '')[col] ?? '.') === 'B'
+    if (!aboard) {
+      this.boardingDeclined = false
+      return
+    }
+    if (this.boardingDeclined || this.pendingBoard) return
+    this.pendingBoard = true
+    const station = STOPS[index] as Stop
+    this.callbacks.onBoard({ station, ...directionsFrom(index) })
+  }
+
+  /** He chose a direction: the doors close and the tunnel starts going past. */
+  startRide(dir: RideDirection): void {
+    const index = stopIndex(this.screen.id)
+    this.pendingBoard = false
+    if (index < 0) return
+    this.loadScreen(TRAIN_CAR)
+    this.player.placeAtTile(7, 5)
+    this.ride = beginRide(index, dir)
+    sfx.play('gateOpen')
+    this.showMessage(
+      `The doors close. This is ${dir < 0 ? 'an uptown' : 'a downtown'} V train. Next stop, ${nextStop(this.ride).name}.`,
+      260,
+    )
+    this.ensureFree()
+    this.input.clearTarget()
+    this.syncSave()
+    this.callbacks.onChange()
+  }
+
+  /** He stayed on the platform: step him back off the train, and do not ask again until he steps on. */
+  declineBoarding(): void {
+    this.pendingBoard = false
+    this.boardingDeclined = true
+    const { col } = toTile(this.player.centre().x, this.player.centre().y)
+    this.player.placeAtTile(col, 4)
+    this.ensureFree()
+    this.input.clearTarget()
+  }
+
+  /**
+   * The ride: the clock runs, the car lurches now and then and shoves him
+   * along it, and at each stop the doors open for a while. Standing in a
+   * doorway while they are open gets him off.
+   */
+  private updateRide(): void {
+    if (!this.ride || this.screen.id !== TRAIN_CAR) return
+    const { ride, event } = tickRide(this.ride)
+    this.ride = ride
+    if (event === 'arrive') {
+      const stop = STOPS[ride.index] as Stop
+      sfx.play('select')
+      this.shake = 6
+      this.showMessage(`This is ${stop.name}. The doors are open. Step through them to get off.`, DOORS_FRAMES)
+    } else if (event === 'depart') {
+      sfx.play('gateOpen')
+      this.showMessage(`Stand clear of the closing doors. Next stop, ${nextStop(ride).name}.`, 220)
+    }
+    if (ride.phase === 'moving') {
+      if (ride.frames % LURCH_EVERY === 0) {
+        const shove = Math.floor(ride.frames / LURCH_EVERY) % 2 === 0 ? 6 : -6
+        if (!this.wouldOverlap(this.player.x + shove, this.player.y)) this.player.x += shove
+        this.shake = 4
+      }
+      return
+    }
+    const centre = this.player.centre()
+    const { col, row } = toTile(centre.x, centre.y)
+    if (((this.screen.rows[row] ?? '')[col] ?? '.') === 'H') this.alight(ride.index)
+  }
+
+  private alight(index: number): void {
+    const stop = STOPS[index]
+    if (!stop) return
+    this.ride = undefined
+    this.loadScreen(stop.id)
+    this.player.placeAtTile(7, 4)
+    this.boardingDeclined = true
+    this.ensureFree()
+    this.input.clearTarget()
+    this.syncSave()
+    this.callbacks.onChange()
+    this.showMessage(`${stop.name}. Mind the gap.`, 160)
   }
 
   private pointAhead(from: { x: number; y: number }, facing: Facing, distance: number) {
@@ -2139,11 +2314,24 @@ export class World {
     // Over everything: the map covers the play field, but not the HUD, so he
     // can still see his hearts and rupees while he reads it.
     if (this.mapOpen) {
-      drawWorldMap(
-        ctx,
-        { here: this.screen.id, visited: this.save.world.visitedScreens, level: this.level },
-        this.frame,
-      )
+      if (this.underground()) {
+        const station = stationIndex(this.screen.id)
+        drawSubwayMap(
+          ctx,
+          {
+            at: this.ride ? rideProgress(this.ride) : Math.max(0, station),
+            riding: this.ride?.phase === 'moving',
+            visited: stationsVisited(this.save.world.visitedScreens),
+          },
+          this.frame,
+        )
+      } else {
+        drawWorldMap(
+          ctx,
+          { here: this.screen.id, visited: this.save.world.visitedScreens, level: this.level },
+          this.frame,
+        )
+      }
     }
 
     if (this.transition > 0) {
@@ -3040,6 +3228,9 @@ export class World {
       flying: this.flight !== undefined,
       mapOpen: this.mapOpen,
       discovering: this.discovery !== undefined,
+      ride: this.ride ? { ...this.ride } : undefined,
+      turnstilePasses: [...this.turnstilePasses],
+      boarding: this.pendingBoard,
       traffic: this.traffic
         ? {
             cars: this.traffic.cars.map((c) => ({ axis: c.lane.axis, at: c.lane.at, pos: Math.round(c.pos), dir: c.lane.dir })),

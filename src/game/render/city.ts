@@ -1024,10 +1024,16 @@ function bandHere(screen: Screen, col: number, row: number): boolean {
   return '#T'.includes(at(screen, col, row)) && !'#T'.includes(below) && row < 3
 }
 
-/** The station's name, in the band, in white mosaic capitals. */
+/**
+ * The station's name, in the band, in white mosaic capitals — in every run
+ * of band wide enough to hold it, the way a real platform repeats its name
+ * the whole length of the wall.
+ */
 function mosaicName(ctx: CanvasRenderingContext2D, screen: Screen): void {
-  // Find the widest run of band tiles on the top rows.
-  let best: { row: number; start: number; length: number } | undefined
+  const name = (screen.mosaic ?? screen.name).toUpperCase()
+  const width = name.length * 4.2
+  ctx.font = '7px monospace'
+  ctx.textBaseline = 'top'
   for (let row = 0; row < 3; row++) {
     let start = -1
     for (let col = 0; col <= 16; col++) {
@@ -1035,22 +1041,17 @@ function mosaicName(ctx: CanvasRenderingContext2D, screen: Screen): void {
       if (band && start < 0) start = col
       if (!band && start >= 0) {
         const length = col - start
-        if (!best || length > best.length) best = { row, start, length }
         start = -1
+        if (length < 4 || length * TILE < width + 6) continue
+        const x = (col - length) * TILE + (length * TILE - width) / 2
+        const y = row * TILE + 5
+        ctx.fillStyle = '#12131a'
+        ctx.fillText(name, x + 1, y + 1)
+        ctx.fillStyle = '#f6f3ec'
+        ctx.fillText(name, x, y)
       }
     }
   }
-  if (!best || best.length < 4) return
-  const name = (screen.mosaic ?? screen.name).toUpperCase()
-  ctx.font = '7px monospace'
-  ctx.textBaseline = 'top'
-  const width = name.length * 4.2
-  const x = best.start * TILE + (best.length * TILE - width) / 2
-  const y = best.row * TILE + 5
-  ctx.fillStyle = '#12131a'
-  ctx.fillText(name, x + 1, y + 1)
-  ctx.fillStyle = '#f6f3ec'
-  ctx.fillText(name, x, y)
 }
 
 /** The green-painted steel columns that hold the street up. */
@@ -1241,21 +1242,39 @@ function stairsUp(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palett
 
 /** A turnstile: the steel tripod arms in their frame. Swipe to pass. */
 function turnstile(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+  drawTurnstile(ctx, x, y, false, 0)
+}
+
+/**
+ * The turnstile as a barrier: locked, with the reader glowing red and the
+ * arms across; or passed, with the arms turned and the reader green. Drawn
+ * by the barrier pass over the concrete, so it is the same tile whether it
+ * is shut or open.
+ */
+export function drawTurnstile(ctx: CanvasRenderingContext2D, x: number, y: number, open: boolean, frame: number): void {
   ctx.fillStyle = '#12131a'
   ctx.fillRect(x + 1, y + 2, 4, 13)
   ctx.fillRect(x + 11, y + 2, 4, 13)
   ctx.fillStyle = '#6f7370'
   ctx.fillRect(x + 2, y + 3, 2, 11)
   ctx.fillRect(x + 12, y + 3, 2, 11)
-  // The arms.
+  // The arms: across the gap when shut, turned edge-on when he has paid.
   ctx.fillStyle = '#c6c8c4'
-  ctx.fillRect(x + 5, y + 7, 6, 2)
-  ctx.fillRect(x + 7, y + 4, 2, 8)
+  if (open) {
+    ctx.fillRect(x + 7, y + 4, 2, 8)
+    ctx.fillRect(x + 5, y + 11, 2, 2)
+    ctx.fillRect(x + 9, y + 11, 2, 2)
+  } else {
+    ctx.fillRect(x + 5, y + 7, 6, 2)
+    ctx.fillRect(x + 7, y + 4, 2, 8)
+  }
   ctx.fillStyle = '#12131a'
   ctx.fillRect(x + 7, y + 7, 2, 2)
-  // The card reader, glowing.
-  ctx.fillStyle = '#3fb85f'
+  // The reader: red while it wants its three words, green once it has them.
+  const blink = Math.floor(frame / 24) % 2 === 0
+  ctx.fillStyle = open ? '#3fb85f' : blink ? '#ff5a4a' : '#8f2320'
   ctx.fillRect(x + 2, y + 4, 2, 1)
+  ctx.fillRect(x + 12, y + 4, 2, 1)
 }
 
 /** Where the track goes into the dark. A signal light beside it. */

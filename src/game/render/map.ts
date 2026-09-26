@@ -17,6 +17,7 @@ import { overworldLayout } from '../world/analysis'
 import { screenById, SCREENS, type Screen } from '../world/screens'
 import { isFutureTheme, PALETTES, themeFor, type Palette, type Theme } from './world'
 import { START_SCREENS } from '../levels'
+import { LINE_COLOUR, LINE_NAME, STOPS } from '../world/subway'
 import type { Level } from '../../core/save'
 
 /**
@@ -271,4 +272,113 @@ function drawCell(
     ctx.fillStyle = bright ? '#f6f3e7' : '#8fd39c'
     ctx.fillRect(at.x + CELL_W / 2 - 2, at.y + CELL_H / 2 - 2, 4, 4)
   }
+}
+
+// ------------------------------------------------------------- the subway
+
+export interface SubwayView {
+  /** Where he is on the line, in stops: 2 is standing at the third stop, 2.5 halfway to the fourth. */
+  at: number
+  /** True on the train; the marker then rides the line rather than sitting on a stop. */
+  riding: boolean
+  visited: readonly string[]
+}
+
+/**
+ * The subway map, the way the real one is drawn: one thick coloured line,
+ * a dot for every stop, the names beside them. Unlike the street map this
+ * shows every stop from the start — it is a printed map he picked up, not a
+ * record of where he has been — but the stops he has stood on are filled in
+ * white, and the one he is at blinks.
+ */
+export function drawSubwayMap(ctx: CanvasRenderingContext2D, view: SubwayView, frame: number): void {
+  ctx.fillStyle = '#0d1017'
+  ctx.fillRect(0, 0, SCREEN_W, SCREEN_H)
+
+  const seen = new Set(view.visited)
+  const n = STOPS.length
+  const left = 28
+  const right = SCREEN_W - 28
+  const y = Math.round(SCREEN_H / 2) + 4
+  const xOf = (index: number): number => Math.round(left + ((right - left) * index) / Math.max(1, n - 1))
+
+  // The line, with the bullet at the uptown end.
+  ctx.fillStyle = LINE_COLOUR
+  ctx.fillRect(left - 10, y - 3, right - left + 20, 6)
+  ctx.beginPath()
+  ctx.arc(left - 16, y, 8, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = '#f6f3e7'
+  ctx.font = 'bold 9px monospace'
+  ctx.textBaseline = 'middle'
+  ctx.textAlign = 'center'
+  ctx.fillText(LINE_NAME, left - 16, y + 1)
+
+  ctx.font = '7px monospace'
+  ctx.textBaseline = 'top'
+  for (const [index, stop] of STOPS.entries()) {
+    const x = xOf(index)
+    const known = seen.has(stop.id)
+    // The stop: a white dot on the line, hollow until he has stood there.
+    ctx.fillStyle = '#0d1017'
+    ctx.fillRect(x - 4, y - 4, 8, 8)
+    ctx.fillStyle = known ? '#f6f3e7' : '#3a4150'
+    ctx.fillRect(x - 3, y - 3, 6, 6)
+    // The name, above the line for one stop and below for the next, so the
+    // long ones do not run into each other.
+    const above = index % 2 === 0
+    const ty = above ? y - 22 : y + 12
+    ctx.textAlign = 'center'
+    const lines = splitLabel(stop.short)
+    // A stalk from the dot to the name.
+    ctx.fillStyle = '#3a4150'
+    ctx.fillRect(x, above ? y - 12 : y + 4, 1, 8)
+    ctx.fillStyle = known ? '#f6f3e7' : '#7a8290'
+    for (const [i, word] of lines.entries()) {
+      // Kept on the screen: the last stop's name is wider than its slot.
+      const half = (word.length * 4.2) / 2
+      const tx = Math.min(Math.max(x, half + 2), SCREEN_W - half - 2)
+      ctx.fillText(word, tx, ty + (above ? -(lines.length - 1 - i) * 9 : i * 9))
+    }
+  }
+
+  // Him: on a stop, or somewhere along the line between two.
+  const hx = Math.round(left + ((right - left) * view.at) / Math.max(1, n - 1))
+  const bright = Math.floor(frame / 16) % 2 === 0
+  if (view.riding) {
+    // A little train on the line.
+    ctx.fillStyle = '#12131a'
+    ctx.fillRect(hx - 7, y - 6, 14, 12)
+    ctx.fillStyle = bright ? '#e3e5e1' : '#c6c8c4'
+    ctx.fillRect(hx - 6, y - 5, 12, 10)
+    ctx.fillStyle = '#26304a'
+    ctx.fillRect(hx - 4, y - 3, 3, 3)
+    ctx.fillRect(hx + 1, y - 3, 3, 3)
+  } else {
+    ctx.fillStyle = '#12131a'
+    ctx.fillRect(hx - 4, y - 4, 8, 8)
+    ctx.fillStyle = bright ? '#f6f3e7' : '#8fd39c'
+    ctx.fillRect(hx - 3, y - 3, 6, 6)
+  }
+
+  ctx.textAlign = 'left'
+  ctx.fillStyle = '#e6b422'
+  ctx.fillText('THE SUBWAY', 4, 4)
+  ctx.fillStyle = '#5d6472'
+  ctx.fillText('THE V · VILLAGE LOCAL', 4, 14)
+  const legend = 'M OR ESC TO CLOSE'
+  ctx.fillText(legend, SCREEN_W - 4 - legend.length * 4.2, 4)
+  ctx.fillText('UPTOWN', left - 26, y + 30)
+  ctx.textAlign = 'right'
+  ctx.fillText('DOWNTOWN', right + 20, y + 30)
+  // Under the legend rather than along the bottom, where the message bar
+  // sits over the canvas and hid it.
+  const found = `${STOPS.filter((s) => seen.has(s.id)).length}/${n} STATIONS`
+  ctx.fillText(found, SCREEN_W - 4, 14)
+  ctx.textAlign = 'left'
+}
+
+/** "14 ST-UNION SQ" is too wide for its slot on the line; it breaks at the dash. */
+function splitLabel(label: string): string[] {
+  return label.includes('-') ? label.split('-').map((s) => s.trim()) : [label]
 }
