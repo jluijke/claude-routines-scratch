@@ -371,7 +371,7 @@ const shipFindingRows = findings.filter((f) => f.level === 2).map(findingRow).jo
 const cityFindingRows = findings.filter((f) => f.level === 3).map(findingRow).join('\n')
 
 /** The stations, in line order, each with its screens; then the lairs and the plazas up their stairs. */
-const stationOrder = ['59st', 'union', 'astor', '2av', 'w4', 'christopher', 'canal', 'cityhall', 'atlantic', 'brighton']
+const stationOrder = ['59st', 'union', 'astor', '2av', 'w4', 'christopher', 'canal', 'cityhall', 'atlantic', 'brighton', 'coney']
 const subwayClusterHtml = [
   ...stationOrder.map((key) => {
     const members = city.filter((s) => s.id.startsWith(`nyc-sub-${key}-`))
@@ -387,7 +387,7 @@ const subwayClusterHtml = [
     </section>`,
   )
   .join('\n')
-const lairIds = ['nyc-trump-green', 'nyc-columbus-park', 'nyc-boardwalk', 'nyc-atlantic-terminal', 'nyc-union-square', 'nyc-times-square']
+const lairIds = ['nyc-trump-green', 'nyc-columbus-park', 'nyc-boardwalk', 'nyc-atlantic-terminal', 'nyc-union-square', 'nyc-coney-island', 'nyc-times-square']
 const lairClusterHtml = `<section class="cluster"><h3>Up the stairs, and out of the purple car</h3><div class="strip">${lairIds
   .map((id) => byId.get(id))
   .filter(Boolean)
@@ -630,7 +630,7 @@ const html = `<title>Atlas of Both Worlds</title>
   ${cityClusterHtml}
 
   <h2>Level 3 · The subway</h2>
-  <p class="note">One line, the V. Every station is three screens deep: the mezzanine with the booth and the turnstiles (three words from any finished exercise, every time he comes down — the spelling is the fare), a passage, and the platform with the train at it. Walk onto the train and it asks which way. Uptown from the Village is Union Square and, at the top of the line, 59th Street, where Trump has a putting green. Downtown is Canal Street (Xi, in Columbus Park), then Brooklyn: Atlantic Avenue and its chest, and Brighton Beach, where Putin is on the boardwalk. Between Canal Street and Atlantic Avenue the train stops at City Hall, which the map does not print until he has been: a haven with five hearts every visit, a strongbox, and the rabbit. The subway map is free on the West 4th mezzanine, before the turnstile; M underground opens it.</p>
+  <p class="note">One line, the V. Every station is three screens deep: the mezzanine with the booth and the turnstiles (three words from any finished exercise, every time he comes down — the spelling is the fare), a passage, and the platform with the train at it. Walk onto the train and it asks which way. Uptown from the Village is Union Square and, at the top of the line, 59th Street, where Trump has a putting green. Downtown is Canal Street (Xi, in Columbus Park), then Brooklyn: Atlantic Avenue and its chest, and Brighton Beach, where Putin is on the boardwalk. Between Canal Street and Atlantic Avenue the train stops at City Hall, which the map does not print until he has been: a haven with five hearts every visit, a strongbox, and the rabbit. The line ends at Coney Island, where the Wonder Wheel is, and where the three guardians turn up, pink and sorry, once all three are loved. From most stops he can take the express instead, which skips a stop. The standing train is shorter than the platform, so the pit shows at each end: the third rail costs a heart, and every fifteen seconds an express comes through the far track, with two seconds of warning. Buskers play in the Union Square and Atlantic Avenue passages, and the music changes while he is near them. The subway map is free on the West 4th mezzanine, before the turnstile; M underground opens it.</p>
   ${subwayClusterHtml}
 
   <h2>Level 3 · The guardians</h2>
