@@ -98,20 +98,16 @@ const shots = await page.evaluate(async () => {
     ctx.translate(-crop.x, -crop.y)
     drawTiles(ctx, avenue, new Set(), 12)
     for (const prop of avenue.props ?? []) blit(ctx, SPRITES[prop.sprite], prop.col * TILE, prop.row * TILE)
-    // The column up from the hydrant at (10, 2), then the fan across the road.
-    blit(ctx, SPRITES.sprayA, 10 * TILE, 2 * TILE - 14)
-    blit(ctx, SPRITES.sprayB, 10 * TILE, 2 * TILE - 26)
-    const fan = [[11, 3], [12, 4], [13, 5], [12, 5], [11, 4], [10, 4], [13, 6], [12, 6], [11, 6], [14, 7], [12, 7]]
-    for (const [c, r] of fan) {
-      ctx.fillStyle = '#57d2c6'
-      ctx.fillRect(c * TILE + 3, r * TILE + 5, 9, 5)
-      ctx.fillStyle = '#f6f3e7'
-      ctx.fillRect(c * TILE + 5, r * TILE + 6, 4, 2)
-      ctx.fillRect(c * TILE + 1, r * TILE + 12, 2, 2)
-      ctx.fillRect(c * TILE + 12, r * TILE + 2, 2, 2)
-    }
+    // The jet from the hydrant at (10, 2): up at forty-five degrees and down
+    // onto the road two tiles to the right, where it pools.
+    blit(ctx, SPRITES.sprayA, 10 * TILE + 2, 2 * TILE - 4)
+    ctx.fillStyle = '#4a8ae8'
+    ctx.fillRect(11 * TILE + 8, 3 * TILE + 2, 14, 3)
+    ctx.fillRect(11 * TILE + 4, 3 * TILE + 5, 22, 2)
+    ctx.fillStyle = '#c9e6f2'
+    ctx.fillRect(11 * TILE + 10, 3 * TILE + 3, 4, 1)
     // A hoodie washed off his feet, and a cab skidded to a stop.
-    blit(ctx, SPRITES.hoodieB, 12 * TILE + 4, 5 * TILE + 2)
+    blit(ctx, SPRITES.hoodieB, 12 * TILE + 6, 3 * TILE - 2)
     blit(ctx, SPRITES.heroWoodenRightA, 8 * TILE + 2, 2 * TILE + 2)
     out.spray = canvas.toDataURL('image/png')
   }

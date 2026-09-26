@@ -2308,45 +2308,57 @@ const CAP_B = S([
   '...kkk....kkk...',
 ])
 
-/** A hydrant with its cap blown off: the column of water, in two frames. */
-const SPRAY_A = S([
-  '.......c........',
-  '......cwc.......',
-  '.....cwwwc..c...',
-  '....cwwwwwc.w...',
-  '...bcwwwwwcb....',
-  '..b.cwwwwwc..c..',
-  '....cwwwwwc.....',
-  '.c...cwwwc......',
-  '.....cwwwc...b..',
-  '.....cwwwc......',
-  '..c..cwwwc.c....',
-  '.....cwwwc......',
-  '.....cwwwc......',
-  '....bcwwwcb.....',
-  '.....cwwwc......',
-  '................',
+/**
+ * A hydrant with its cap blown off: the jet leaves at forty-five degrees,
+ * crests, and comes down a couple of tiles to the right with a splash. Two
+ * frames, so the droplets move. Drawn to sit with its left edge on the
+ * hydrant's tile and spill across the two beside it.
+ */
+const SPRAY_A = defineSprite(40, 20, [
+  '..............cccccccc..................',
+  '............cccccccccccc................',
+  '...........cccwwwwwwwwccc...............',
+  '.........cccwwwccccccwwwccc.............',
+  '........cccwwccccccccccwwccc............',
+  '.......ccwwwccc......cccwwwcc...........',
+  '.......cwwccc..........cccwwc...........',
+  '......cwwccc............cccwwc..........',
+  '.....ccwcc........b.......ccwcc.........',
+  '....ccwwc...............b..cwwcc........',
+  '....cwwc....................cwwc........',
+  '...cwwcc....b...............ccwwc.......',
+  '..ccwcc......................ccwcc......',
+  '..cwwc......................b.cwwc......',
+  '.cwwc..........................ccwcc....',
+  '.cwcc..........................ccwc.c...',
+  '..cc..........................c.cc...c..',
+  '..c..........................b.b.b.b.b.b',
+  '........................................',
+  '........................................',
 ])
 
-const SPRAY_B = S([
-  '......c.........',
-  '.....cwc....c...',
-  '....cwwwc.......',
-  '...cwwwwwc..b...',
-  '..bcwwwwwcb.....',
-  '....cwwwwwc.c...',
-  '.c..cwwwwwc.....',
-  '....cwwwwwc.....',
-  '.....cwwwc..c...',
-  '..b..cwwwc......',
-  '.....cwwwc.b....',
-  '.....cwwwc......',
-  '.c...cwwwc......',
-  '....bcwwwcb.....',
-  '.....cwwwc......',
-  '................',
+const SPRAY_B = defineSprite(40, 20, [
+  '..............cccccccc..................',
+  '............cccccccccccc................',
+  '...........cccwwwwwwwwccc...............',
+  '.........cccwwwccccccwwwccc.............',
+  '........cccwwccccccccccwwccc............',
+  '.......ccwwwccc......cccwwwcc...........',
+  '.......cwwccc.........bcccwwc...........',
+  '......cwwccc............cccwwc..........',
+  '.....ccwcc................ccwcc.........',
+  '....ccwwc..................cwwcc........',
+  '....cwwc...........b........cwwc........',
+  '...cwwcc..................b.ccwwc.......',
+  '..ccwcc.b....................ccwcc......',
+  '..cwwc........................cwwc......',
+  '.cwwc..........................ccwcc....',
+  '.cwcc.........................bccwc.c...',
+  '..cc..........................c.cc...c..',
+  '..c..........................b.b.b.b.b.b',
+  '........................................',
+  '........................................',
 ])
-
 
 /**
  * The three guardians of the city. Drawn as caricatures — the hair, the tie,
