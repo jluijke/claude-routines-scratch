@@ -83,6 +83,12 @@ export interface Portal {
    * Laboratory Two, one in the corner of the old square it leads to.
    */
   teleporter?: boolean
+  /**
+   * The purple car. Stepping into it is a ride to somewhere else in the
+   * city — not `to`, which is only where the map checks are told it goes,
+   * but wherever the car feels like. `to` is one of the places it might.
+   */
+  car?: boolean
 }
 
 /**

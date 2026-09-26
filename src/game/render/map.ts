@@ -319,6 +319,8 @@ export function drawSubwayMap(ctx: CanvasRenderingContext2D, view: SubwayView, f
   for (const [index, stop] of STOPS.entries()) {
     const x = xOf(index)
     const known = seen.has(stop.id)
+    // A closed station is not printed. It is there when he has been there.
+    if (stop.secret && !known) continue
     // The stop: a white dot on the line, hollow until he has stood there.
     ctx.fillStyle = '#0d1017'
     ctx.fillRect(x - 4, y - 4, 8, 8)
@@ -373,7 +375,8 @@ export function drawSubwayMap(ctx: CanvasRenderingContext2D, view: SubwayView, f
   ctx.fillText('DOWNTOWN', right + 20, y + 30)
   // Under the legend rather than along the bottom, where the message bar
   // sits over the canvas and hid it.
-  const found = `${STOPS.filter((s) => seen.has(s.id)).length}/${n} STATIONS`
+  const printed = STOPS.filter((s) => !s.secret || seen.has(s.id)).length
+  const found = `${STOPS.filter((s) => seen.has(s.id)).length}/${printed} STATIONS`
   ctx.fillText(found, SCREEN_W - 4, 14)
   ctx.textAlign = 'left'
 }

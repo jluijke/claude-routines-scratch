@@ -194,8 +194,8 @@ function enterWorld(): void {
       showRidePrompt(root, {
         station: offer.station.name,
         choices: [
-          ...(offer.uptown ? [{ dir: -1 as const, label: `Uptown to ${offer.uptown.name}` }] : []),
-          ...(offer.downtown ? [{ dir: 1 as const, label: `Downtown to ${offer.downtown.name}` }] : []),
+          ...(offer.uptown ? [{ dir: -1 as const, label: `Uptown to ${nextStopName(offer.uptown)}` }] : []),
+          ...(offer.downtown ? [{ dir: 1 as const, label: `Downtown to ${nextStopName(offer.downtown)}` }] : []),
         ],
         onChoose: (dir) => {
           world?.startRide(dir)
@@ -253,6 +253,12 @@ function enterWorld(): void {
   })
   world.start()
   fitStage()
+}
+
+/** A closed station is not named until he has stood in it: the train just goes on into the dark. */
+function nextStopName(stop: { id: string; name: string; secret?: boolean }): string {
+  if (stop.secret && !state.world.visitedScreens.includes(stop.id)) return 'the dark'
+  return stop.name
 }
 
 /**

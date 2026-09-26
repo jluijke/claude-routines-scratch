@@ -17,6 +17,11 @@ export interface Stop {
   name: string
   /** What fits in the mosaic band on the wall. */
   short: string
+  /**
+   * Not on the printed map, and not named by the conductor, until he has
+   * stood there. The train stops anyway. City Hall closed in 1945.
+   */
+  secret?: boolean
 }
 
 /** The screen he stands in while the train moves. */
@@ -39,6 +44,7 @@ export const STOPS: readonly Stop[] = [
   { id: 'nyc-sub-w4-platform', name: 'West 4th Street', short: 'W 4 ST' },
   { id: 'nyc-sub-christopher-platform', name: 'Christopher Street', short: 'CHRISTOPHER ST' },
   { id: 'nyc-sub-canal-platform', name: 'Canal Street', short: 'CANAL ST' },
+  { id: 'nyc-sub-cityhall-platform', name: 'City Hall', short: 'CITY HALL', secret: true },
   { id: 'nyc-sub-atlantic-platform', name: 'Atlantic Avenue', short: 'ATLANTIC AV' },
   { id: 'nyc-sub-brighton-platform', name: 'Brighton Beach', short: 'BRIGHTON BEACH' },
 ]

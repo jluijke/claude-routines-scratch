@@ -197,6 +197,25 @@ interface Teleport {
   to?: { screen: string; col: number; row: number }
 }
 
+/**
+ * Where the purple car might let him out. Never the same twice running, and
+ * never where he got in. Times Square is on the list, and is on no other.
+ */
+const PURPLE_RIDES: readonly [string, number, number][] = [
+  ['nyc-times-square', 7, 5],
+  ['nyc-sheridan-square', 7, 6],
+  ['nyc-w10th', 7, 6],
+  ['nyc-cooper-square', 7, 3],
+  ['nyc-st-marks', 7, 6],
+  ['nyc-tompkins-square', 7, 5],
+  ['nyc-avenue-b-south', 6, 3],
+  ['nyc-fifth-ave', 5, 3],
+]
+
+/** How long the hydrant sprays, and how often it knocks a rat about. */
+const SPRAY_FRAMES = 300
+const SPRAY_HIT_EVERY = 24
+
 /** Frames each half of a teleport takes. Long enough to be worth watching. */
 const TELEPORT_OUT = 66
 const TELEPORT_IN = 52
@@ -368,7 +387,7 @@ export const EDGE_MARGIN = TILE
 const SHAKE_FRAMES = 16
 
 /** The quiet square, and where its five hearts are laid out. */
-const HAVEN = 'haven-square'
+const HAVENS = new Set(['haven-square', 'nyc-sub-cityhall-hall'])
 const HAVEN_HEARTS: readonly [number, number][] = [
   [5, 3],
   [11, 3],
@@ -463,6 +482,12 @@ export class World {
   private hearts: Heart[] = []
   /** A scratch canvas for tinting a sprite pink without tinting the room. */
   private tintCanvas: HTMLCanvasElement | undefined
+  /** A hydrant with its cap off, and how long the water has left. */
+  private spray: { col: number; row: number; frames: number } | undefined
+  /** Pigeons he has walked up to, by prop index, and how long they stay up. */
+  private scared = new Map<number, number>()
+  /** Pigeons he is standing beside. One flies up when he arrives, not while he stays. */
+  private besidePigeon = new Set<number>()
   /**
    * Tiles a barrier still stands on. Solid, whatever is drawn under them: a
    * keeper in a field was a prompt he could decline and then walk through,
@@ -769,6 +794,9 @@ export class World {
       this.boardingDeclined = false
     }
     this.pendingBoard = false
+    this.spray = undefined
+    this.scared.clear()
+    this.besidePigeon.clear()
     // Anywhere but the car, and the ride is over — a teleport, a respawn.
     if (id !== TRAIN_CAR) this.ride = undefined
     this.screen = next
@@ -837,7 +865,7 @@ export class World {
    * has already spent.
    */
   private dressTheHaven(screen: Screen): void {
-    if (screen.id !== HAVEN) {
+    if (!HAVENS.has(screen.id)) {
       // The rabbit belongs to the square and stays in it. Left set, it walked
       // back through the teleporter with him and turned up on the ship.
       this.greeter = undefined
@@ -1134,6 +1162,8 @@ export class World {
     this.updateProjectiles(step)
     this.updateShots(step)
     this.updateHearts(step)
+    this.updateSpray()
+    this.updatePigeons()
     this.updateDrops(step)
     this.updateBombs(step)
 
@@ -1308,7 +1338,12 @@ export class World {
       const stop = STOPS[ride.index] as Stop
       sfx.play('select')
       this.shake = 6
-      this.showMessage(`This is ${stop.name}. The doors are open. Step through them to get off.`, DOORS_FRAMES)
+      this.showMessage(
+        stop.secret
+          ? `This is ${stop.name}. The lights are off. Nobody gets off here. The doors open anyway.`
+          : `This is ${stop.name}. The doors are open. Step through them to get off.`,
+        DOORS_FRAMES,
+      )
     } else if (event === 'depart') {
       sfx.play('gateOpen')
       this.showMessage(`Stand clear of the closing doors. Next stop, ${nextStop(ride).name}.`, 220)
@@ -1432,6 +1467,24 @@ export class World {
         this.equipBest()
       }
 
+      // The purple car. The same fade as a teleporter, and it goes where it
+      // likes: anywhere on its list but here.
+      if (portal.car) {
+        const choices = PURPLE_RIDES.filter(([id]) => id !== this.screen.id)
+        const [to, spawnCol, spawnRow] = choices[this.rng.int(0, choices.length - 1)] as [string, number, number]
+        this.beaming = {
+          frames: TELEPORT_OUT,
+          span: TELEPORT_OUT,
+          phase: 'out',
+          to: { screen: to, col: spawnCol, row: spawnRow },
+        }
+        this.projectiles = []
+        this.shots = []
+        this.player.invulnerable = Math.max(this.player.invulnerable, TELEPORT_OUT + TELEPORT_IN)
+        sfx.play('wings')
+        this.showMessage(this.words.teleportGo)
+        return
+      }
       // A teleporter takes him apart where he stands and only loads the far
       // screen at the seam, halfway through — unlike every other door here,
       // which cuts on the frame he walks into it.
@@ -2344,6 +2397,52 @@ export class World {
     this.callbacks.onChange()
   }
 
+  /** The water off the hydrant: it lands two tiles to the right, and rats do not like it. */
+  private updateSpray(): void {
+    const spray = this.spray
+    if (!spray) return
+    spray.frames -= 1
+    if (spray.frames <= 0) {
+      this.spray = undefined
+      return
+    }
+    if (spray.frames % SPRAY_HIT_EVERY !== 0) return
+    // Where the water comes down: the two tiles right of the hydrant.
+    const box = { x: (spray.col + 1) * TILE, y: spray.row * TILE - 4, w: 2 * TILE, h: TILE + 8 }
+    for (const enemy of [...this.enemies]) {
+      if (enemy.isBoss) continue
+      if (!overlaps(box, enemy.box())) continue
+      // Shoved along by the water, and it hurts a little.
+      enemy.x += 6
+      this.strike(enemy, 1)
+    }
+  }
+
+  /** Pigeons on the sidewalk fly up when he walks at them, and come back down. */
+  private updatePigeons(): void {
+    const me = this.player.centre()
+    for (const [index, prop] of (this.screen.props ?? []).entries()) {
+      if (prop.sprite !== 'pigeonA' && prop.sprite !== 'pigeonB') continue
+      const up = this.scared.get(index)
+      if (up !== undefined) {
+        if (up <= 1) this.scared.delete(index)
+        else this.scared.set(index, up - 1)
+        continue
+      }
+      const dx = me.x - (prop.col * TILE + 8)
+      const dy = me.y - (prop.row * TILE + 8)
+      const near = Math.hypot(dx, dy) <= 20
+      // It goes up when he walks in on it, and settles even if he stays: a
+      // pigeon that flapped for as long as he stood there was not a pigeon.
+      if (near && !this.besidePigeon.has(index)) {
+        this.scared.set(index, 90)
+        if (this.scared.size === 1) sfx.play('select')
+      }
+      if (near) this.besidePigeon.add(index)
+      else this.besidePigeon.delete(index)
+    }
+  }
+
   /** Hearts off a spot: a few for a hit, a fountain for a guardian turned. */
   private burstHearts(x: number, y: number, count: number): void {
     for (let i = 0; i < count; i++) {
@@ -2449,6 +2548,23 @@ export class World {
       this.showMessage(this.words.wallBlown)
     }
 
+    // A firecracker beside a hydrant blows the cap off it, and the water
+    // goes up and over and comes down two tiles to the right, on whatever
+    // is standing there.
+    if (this.level === 3 && this.screen.setting === 'street' && !this.spray) {
+      for (let dc = -1; dc <= 1 && !this.spray; dc++) {
+        for (let dr = -1; dr <= 1; dr++) {
+          const c = col + dc
+          const r = row + dr
+          if (((this.screen.rows[r] ?? '')[c] ?? '.') !== '*') continue
+          this.spray = { col: c, row: r, frames: SPRAY_FRAMES }
+          sfx.play('secret')
+          this.showMessage('The cap blows off the hydrant and the water goes everywhere.', 200)
+          break
+        }
+      }
+    }
+
     // Bombs hurt monsters, not the child. Getting the placement slightly wrong
     // should cost a bomb, not a heart.
     for (const enemy of [...this.enemies]) {
@@ -2475,13 +2591,28 @@ export class World {
     this.drawTeleporters(ctx, opened)
     this.traffic?.draw(ctx, this.atlas, this.frame)
 
-    for (const prop of this.screen.props ?? []) {
+    for (const [index, prop] of (this.screen.props ?? []).entries()) {
       // The suit stands by the wall until he is wearing it.
       if (prop.locker && this.save.world.suitOn) continue
       // The rabbit in the quiet square does not stay on its tile — it is drawn
       // below, wherever it has got to.
       if (this.greeter && prop.sprite === 'rabbitA') continue
+      // A pigeon he has startled: up, flapping, and back down again.
+      const up = this.scared.get(index)
+      if (up !== undefined) {
+        const t = up / 90
+        const lift = Math.round(Math.sin(t * Math.PI) * 22)
+        const flap = Math.floor(this.frame / 3) % 2 === 0 ? 'pigeonA' : 'pigeonB'
+        this.atlas.draw(ctx, flap, prop.col * TILE + Math.round((1 - t) * 6), prop.row * TILE - lift)
+        continue
+      }
       this.atlas.draw(ctx, prop.sprite, prop.col * TILE, prop.row * TILE)
+    }
+    if (this.spray) {
+      // The arc, its left edge on the hydrant, spilling over the two tiles
+      // beside it; two frames, so the drops move.
+      const frame = Math.floor(this.frame / 5) % 2 === 0 ? 'sprayA' : 'sprayB'
+      this.atlas.draw(ctx, frame, this.spray.col * TILE, this.spray.row * TILE - 12)
     }
     if (this.greeter) {
       const lift = Math.round(Math.sin(this.greeter.hop * Math.PI) * 3)
@@ -3603,6 +3734,8 @@ export class World {
       stunned: this.enemies.filter((e) => e.stunned > 0).length,
       guardians: this.enemies.filter((e) => e.isGuardian).map((e) => ({ kind: e.kind, hp: e.hp, loved: Number(e.loved.toFixed(2)) })),
       loveBombs: this.save.inventory.loveBomb ?? 0,
+      spray: this.spray ? { ...this.spray } : undefined,
+      scaredPigeons: this.scared.size,
       guardianAt: (() => {
         const g = this.enemies.find((e) => e.isGuardian)
         return g ? { x: Math.round(g.centre().x), y: Math.round(g.centre().y) } : undefined

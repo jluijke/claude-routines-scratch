@@ -38,8 +38,8 @@ const screen = (id: string) => {
 }
 
 describe('the line', () => {
-  it('runs through nine stops, every one of them a platform', () => {
-    expect(STOPS.length).toBe(9)
+  it('runs through ten stops, every one of them a platform', () => {
+    expect(STOPS.length).toBe(10)
     for (const stop of STOPS) {
       const platform = screen(stop.id)
       expect(platform.setting).toBe('platform')

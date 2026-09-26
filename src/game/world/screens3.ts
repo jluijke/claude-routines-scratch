@@ -364,10 +364,13 @@ const BLOCKS: Screen[] = [
     id: 'nyc-fifth-ave',
     name: 'Fifth Avenue',
     region: SQUARE,
-    set: ['5,8=,', '10,8=*', '5,2=,'],
+    set: ['5,8=,', '10,8=*'],
+    // The purple car, parked half on the sidewalk with its back door open.
+    // Step in and it takes him somewhere. It never says where.
+    portals: [{ col: 5, row: 1, to: 'nyc-times-square', spawnCol: 7, spawnRow: 5, car: true }],
     props: [
-      { sprite: 'purpleCar', col: 6, row: 1, solid: true },
-      { sprite: 'scribe', col: 10, row: 2, talk: 'Fifth Avenue runs all the way up the island. Not today, though — see the barriers.' },
+      { sprite: 'purpleCar', col: 5, row: 1 },
+      { sprite: 'scribe', col: 10, row: 2, talk: 'Fifth Avenue runs all the way up the island. Not today, though — see the barriers. That purple car? Get in. Or don\'t. It goes where it likes.' },
     ],
     spawns: rats([5, 8], [10, 9]),
   }, 4, 'down'),
@@ -1203,6 +1206,89 @@ const SUBWAY: Screen[] = [
       { sprite: 'pigeonA', col: 2, row: 8 },
     ],
     spawns: [{ kind: 'boss2', col: 7, row: 4 }, { kind: 'flyer', col: 2, row: 5 }, { kind: 'flyer', col: 13, row: 5 }],
+  },
+  // City Hall: the station the trains go through and nobody gets off at.
+  // Closed since 1945, and the best tiles in the city. A haven, the way the
+  // old square on the ship was: hearts laid out fresh every time, a chest
+  // that pays once, and the rabbit.
+  {
+    id: 'nyc-sub-cityhall-platform',
+    name: 'City Hall Platform',
+    region: SUBWAY_REGION,
+    ...PLATFORM,
+    mosaic: 'CITY HALL',
+    rows: PLATFORM_ROWS,
+    exits: { up: 'nyc-sub-cityhall-hall' },
+  },
+  {
+    id: 'nyc-sub-cityhall-hall',
+    name: 'City Hall Station',
+    region: 'City Hall',
+    ...PLATFORM,
+    mosaic: 'CITY HALL',
+    rows: [
+      '################',
+      '################',
+      '#..............#',
+      '#..............#',
+      '#..*........*..#',
+      '#..............#',
+      '#..............#',
+      '#..*........*..#',
+      '#..............#',
+      '#..............#',
+      '######....######',
+    ],
+    exits: { down: 'nyc-sub-cityhall-platform' },
+    treasure: {
+      id: 'nyc-cityhall-cache',
+      col: 7,
+      row: 2,
+      rupees: 120,
+      message: 'A strongbox left under the vault in 1945, when they turned the lights off. Nobody came back for it.',
+    },
+    props: [
+      { sprite: 'scribe', col: 13, row: 8, talk: 'City Hall station. Closed since 1945. Best tiles in the city and nobody sees them but you and me and the rabbit.' },
+    ],
+  },
+  // Times Square. The purple car goes here, among other places, and it is
+  // the only way to get here. Lit up, loud, and somebody has dropped a
+  // wallet in the middle of it.
+  {
+    id: 'nyc-times-square',
+    name: 'Times Square',
+    region: 'Midtown',
+    ...STREET,
+    rows: [
+      'TTTTTTTTTTTTTTTT',
+      'TTTTTTTTTTTTTTTT',
+      '##............##',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '##............##',
+      'TTTTTTTTTTTTTTTT',
+      'TTTTTTTTTTTTTTTT',
+    ],
+    exits: {},
+    portals: [{ col: 12, row: 7, to: 'nyc-fifth-ave', spawnCol: 5, spawnRow: 3, car: true }],
+    treasure: {
+      id: 'nyc-times-square-wallet',
+      col: 3,
+      row: 3,
+      rupees: 150,
+      message: 'A wallet, dropped in the middle of Times Square. Nobody noticed. Nobody ever does.',
+    },
+    props: [
+      { sprite: 'purpleCar', col: 12, row: 7 },
+      { sprite: 'scribe', col: 8, row: 4, talk: 'A man in a red furry suit wants five dollars for a photo. He is not who he says he is. Nobody here is.' },
+      { sprite: 'pigeonA', col: 4, row: 6 },
+      { sprite: 'pigeonB', col: 10, row: 3 },
+      { sprite: 'pigeonA', col: 6, row: 7 },
+    ],
+    spawns: [{ kind: 'flyer', col: 11, row: 5 }, { kind: 'flyer', col: 3, row: 6 }],
   },
   // Up the stairs at the end of the line: a square he cannot walk to, with
   // a chest that opens for having got there.
