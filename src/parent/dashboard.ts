@@ -165,7 +165,7 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
 
   // Animal food turns up on its own every four screens above ground, which is
   // a long way to walk when what you want is to see the grammar questions.
-  const dropFood = button(save.level === 2 ? 'Drop a battery pack here' : 'Drop animal food here', () => {
+  const dropFood = button(save.level === 2 ? 'Drop a battery pack here' : save.level === 3 ? 'Drop a bodega sandwich here' : 'Drop animal food here', () => {
     const where = options.onDropFood()
     grantNote.textContent = where
       ? (save.level === 2 ? 'A battery pack is on this screen. Walk onto it.' : 'A sack is on this screen. Walk onto it.')
@@ -176,16 +176,15 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
   //
   // Level 2 is meant to be reached by beating the four guardians of the land.
   // A parent should not have to.
-  const otherLevel: Level = save.level === 2 ? 1 : 2
-  const levelButton = button(
-    otherLevel === 2 ? 'Jump to Level 2: the sky-ship' : 'Back to Level 1: the land',
-    () => options.onEnterLevel(otherLevel),
-    { class: 'btn btn-quiet' },
+  const LEVEL_NAMES: Record<Level, string> = { 1: 'Level 1: the land', 2: 'Level 2: the sky-ship', 3: 'Level 3: New York' }
+  const otherLevels = ([1, 2, 3] as Level[]).filter((l) => l !== save.level)
+  const levelButtons = otherLevels.map((l) =>
+    button(l < save.level ? `Back to ${LEVEL_NAMES[l]}` : `Jump to ${LEVEL_NAMES[l]}`, () => options.onEnterLevel(l), {
+      class: 'btn btn-quiet',
+    }),
   )
   const levelNote = el('p', { class: 'q-hint-line' }, [
-    save.level === 2
-      ? 'He is in Level 2. His Level 1 sword, shield and rupees are put aside and come back when he returns.'
-      : 'He is in Level 1. Jumping ahead puts his gear and rupees aside — they come back when he returns — and starts him on the bridge of the ship with nothing but his hearts and his animal.',
+    `He is in ${LEVEL_NAMES[save.level]}. Jumping between worlds puts his gear and money aside — they come back when he returns — and starts him at the beginning of the other world with nothing but his hearts and his animal.`,
   ])
 
   // --- the voice ---------------------------------------------------------
@@ -246,14 +245,14 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
         stat('Needs practice', String(shaky.length)),
         stat('Rupees', String(save.player.rupees)),
         stat('Hearts', `${save.player.hearts} of ${save.player.maxHearts}`),
-        stat('World', save.level === 2 ? 'Level 2: the ship' : 'Level 1: the land'),
+        stat('World', save.level === 2 ? 'Level 2: the ship' : save.level === 3 ? 'Level 3: New York' : 'Level 1: the land'),
       ]),
 
       el('h3', {}, ['Testing kit']),
       el('div', { class: 'dash-actions' }, [grantSelect, grantOne, grantAll, dropFood]),
       grantNote,
       skipNote,
-      el('div', { class: 'dash-actions' }, [levelButton]),
+      el('div', { class: 'dash-actions' }, [...levelButtons]),
       levelNote,
 
       el('h3', {}, ['Play and spelling balance']),

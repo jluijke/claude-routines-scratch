@@ -22,7 +22,7 @@ page.on('console', (m) => { if (m.type() === 'error') console.log('CONSOLE', m.t
 await page.goto(BASE, { waitUntil: 'networkidle' })
 
 const shots = await page.evaluate(async ({ scale }) => {
-  const [{ drawTiles }, { SAMPLE_CITY }, { SPRITES, PALETTE }, { TILE }] = await Promise.all([
+  const [{ drawTiles }, { AUTHORED_CITY }, { SPRITES, PALETTE }, { TILE }] = await Promise.all([
     import('/src/game/render/world.ts'),
     import('/src/game/world/screens3.ts'),
     import('/src/game/render/sprites.ts'),
@@ -38,9 +38,10 @@ const shots = await page.evaluate(async ({ scale }) => {
       }
     }
   }
-  const HERO = { 'nyc-washington-square': [3, 7], 'nyc-avenue-a': [5, 2], 'nyc-bleecker': [6, 3], 'nyc-west-4th': [7, 2], 'nyc-a-train': [4, 4], 'nyc-bodega': [6, 6] }
+  const WANT = (window.__want ?? 'nyc-washington-square,nyc-sixth-ave,nyc-second-ave,nyc-w4th,nyc-tompkins-square,nyc-garden,nyc-avenue-b,nyc-st-marks').split(',')
+  const HERO = { 'nyc-washington-square': [3, 7], 'nyc-avenue-a': [5, 2], 'nyc-bleecker': [6, 3], 'nyc-bodega': [6, 6] }
   const out = []
-  for (const screen of SAMPLE_CITY) {
+  for (const screen of AUTHORED_CITY.filter((s) => WANT.includes(s.id))) {
     const canvas = document.createElement('canvas')
     canvas.width = 256 * scale
     canvas.height = 176 * scale

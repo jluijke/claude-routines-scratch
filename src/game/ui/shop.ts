@@ -16,6 +16,8 @@ import {
   itemName,
   type ItemDef,
   type ItemId,
+  NEWSSTAND,
+  itemPrice,
 } from '../items'
 import { gateById, type Gate } from '../gates'
 import { flavourFor } from '../flavour'
@@ -41,13 +43,15 @@ function patter(item: ItemDef, save: SaveData, level: Level): string {
   if (item.id === 'bomb' && (save.inventory.map ?? 0) === 0) {
     return level === 2
       ? '"PLASMA CHARGES. MIND YOUR TOES. NOTE: A CRACKED BULKHEAD IN THE OBSERVATORY. SOMETHING IS BEHIND IT."'
-      : '"Bombs. Mind your toes. And if you are going north — there is a cracked ' +
+      : level === 3
+        ? '"Firecrackers. Mind your fingers. And the newsstand on Sheridan Square sells a map, if you have not got one."'
+        : '"Bombs. Mind your toes. And if you are going north — there is a cracked ' +
           'boulder in the rocks on the forest path. Something is behind it."'
   }
   // The bow is the one thing on the shelf that needs a word of instruction:
   // it is the only weapon that lives in the item slot rather than in his hand.
   if (item.id === 'bow') return flavourFor(level).bowPatter
-  return level === 2 ? `"${itemName(item.id, level).toUpperCase()}. GOOD CHOICE."` : `"${item.name}. Good choice."`
+  return level === 2 ? `"${itemName(item.id, level).toUpperCase()}. GOOD CHOICE."` : `"${itemName(item.id, level)}. Good choice."`
 }
 
 const TITLES: Record<Level, Record<ShopKind, string>> = {
@@ -64,6 +68,13 @@ const TITLES: Record<Level, Record<ShopKind, string>> = {
     smith: 'Forge Console',
     castaway: 'Outpost Terminal',
     pets: 'Cyborg Bay Console',
+  },
+  3: {
+    village: "Ray's Deli & Grocery",
+    secret: 'We Buy Gold',
+    smith: 'Sheridan Hardware',
+    castaway: 'The Newsstand',
+    pets: 'The Pet Shop',
   },
 }
 
@@ -86,6 +97,13 @@ const GREETINGS: Record<Level, Record<ShopKind, string>> = {
       'The pilot\'s voice comes out of the speaker. "Everyone who lands here needs the same thing, and I am the only one selling it. Three hundred. I am not sorry."',
     pets: 'SIX CYBORG COMPANIONS ONLINE.',
   },
+  3: {
+    village: '"What can I get you? Sandwiches are in the back, and the cat is not for sale."',
+    secret: 'The man behind the grille says nothing, and taps the glass twice.',
+    smith: '"Hammers, cutters, and things that go bang. Dollars, and a steady mind."',
+    castaway: '"Map of the Village, forty dollars. Hot dogs are from the cart, not from me, but I keep a few."',
+    pets: '"You again? Same six as ever."',
+  },
 }
 
 export interface ShopOptions {
@@ -105,7 +123,7 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
   const stock =
     kind === 'village' ? VILLAGE_SHOP
     : kind === 'secret' ? SECRET_SHOP
-    : kind === 'castaway' ? CASTAWAY_SHOP
+    : kind === 'castaway' ? (level === 3 ? NEWSSTAND : CASTAWAY_SHOP)
     : SMITH_STOCK
 
   const rupeeLine = el('span', { class: 'shop-rupees' })
@@ -147,7 +165,7 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
 
     for (const id of stock) {
       const item = ITEMS[id]
-      if (!item?.price) continue
+      if (!itemPrice(id, level)) continue
       list.append(renderRow(item))
     }
   }
@@ -161,7 +179,7 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
     const gate = gateId ? gateById(gateId) : undefined
     const gateOpen = !gate || save.world.openedGates.includes(gate.id)
     const missingRequirement = item.requires && owned(item.requires) === 0
-    const price = item.price ?? 0
+    const price = itemPrice(item.id, level) ?? 0
     const affordable = save.player.rupees >= price
 
     const status = alreadyHave
@@ -223,7 +241,7 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
   }
 
   function buy(item: ItemDef): void {
-    const price = item.price ?? 0
+    const price = itemPrice(item.id, level) ?? 0
     if (save.player.rupees < price) return
 
     save.player.rupees -= price

@@ -289,7 +289,7 @@ const OVERWORLD = new Set([
  * than written down, so adding a fifth dungeon cannot leave the sign counting
  * to four — and so the ship's four count for the ship, not for the land.
  */
-const BOSS_ROOMS: Record<Level, string[]> = { 1: [], 2: [] }
+const BOSS_ROOMS: Record<Level, string[]> = { 1: [], 2: [], 3: [] }
 for (const screen of SCREENS) {
   if (!(screen.spawns ?? []).some((spawn) => isBossKind(spawn.kind))) continue
   BOSS_ROOMS[screen.level ?? 1].push(screen.id)

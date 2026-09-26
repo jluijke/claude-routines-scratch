@@ -1000,6 +1000,72 @@ const GATE_LIST: Gate[] = [
     openMessage: 'The strongbox opens on a life core.',
     reward: { rupees: 95, heartContainer: true },
   },
+
+  // =========================================================================
+  // Level 3: New York. The same kinds of barrier, in the city's words: police
+  // tape for seals, padlocked chests, a gardener at a gate, and a hardware
+  // store that wants proof before it sells anything heavy.
+  // =========================================================================
+  {
+    id: 'nyc-broadway-tape',
+    kind: 'seal',
+    message: 'Police tape across the crosswalk. DO NOT CROSS, it says, over and over, in letters you can read.',
+    openMessage: 'The tape comes down. Nobody stops you.',
+    reward: { rupees: 40, unlock: 'nyc-square-chest' },
+  },
+  {
+    id: 'nyc-sixth-ave-tape',
+    kind: 'seal',
+    message: 'Police tape across the way west. A cop leans on a car and does not look up. "Spell your way past, kid."',
+    openMessage: 'He lifts the tape without looking up. "Go on."',
+    reward: { rupees: 40 },
+  },
+  {
+    id: 'nyc-square-chest',
+    kind: 'chest',
+    message: 'A padlocked box behind the fountain, with a word scratched on the lid.',
+    openMessage: 'The padlock springs. Dollars, folded small.',
+    reward: { rupees: 60 },
+    optional: true,
+  },
+  {
+    id: 'nyc-w8th-chest',
+    kind: 'chest',
+    message: 'A locked strongbox in the doorway of an empty shop.',
+    openMessage: 'The lock gives.',
+    reward: { rupees: 50 },
+    optional: true,
+  },
+  {
+    id: 'nyc-tompkins-chest',
+    kind: 'chest',
+    message: 'A locked box under the bench by the dog run. Every dog in the run is watching you.',
+    openMessage: 'It opens. The dogs lose interest at once.',
+    reward: { rupees: 60 },
+    optional: true,
+  },
+  {
+    id: 'nyc-garden-gate',
+    kind: 'npc',
+    message: 'A woman with a watering can stands in the garden gate. "Members only. Or — can you spell? Members can spell."',
+    openMessage: '"Well then. Mind the tomatoes."',
+    reward: { hearts: 3, unlock: 'nyc-garden-chest' },
+  },
+  {
+    id: 'nyc-garden-chest',
+    kind: 'chest',
+    message: 'A locked box in the tool shed at the back of the garden.',
+    openMessage: 'It opens. Somebody has been saving.',
+    reward: { rupees: 90 },
+    optional: true,
+  },
+  {
+    id: 'nyc-hammer',
+    kind: 'shop',
+    message: 'The man at the hardware counter puts a hand on the box hammer. "This thing shakes the street. Show me you are careful first."',
+    openMessage: '"Careful enough. It is yours to buy. Mind the windows."',
+    reward: { rupees: 30 },
+  },
 ]
 
 

@@ -10,8 +10,8 @@ import { emptyMasteryStore, type MasteryStore } from '../spelling/mastery'
 const STORAGE_KEY = 'zsq.save'
 export const SAVE_VERSION = 7
 
-/** The two worlds: the land, and the sky-ship a thousand years on. */
-export type Level = 1 | 2
+/** The three worlds: the land, the sky-ship a thousand years on, and the city now. */
+export type Level = 1 | 2 | 3
 
 /**
  * What he carries and how he stands: the part of the save that belongs to one
@@ -225,7 +225,7 @@ const MIGRATIONS: Record<number, Migration> = {
   // 6 -> 7: a second world. A save from before this is in the first one, with
   // nothing put aside, and is not wearing a space suit.
   6: (data) => {
-    if (data['level'] !== 2) data['level'] = 1
+    if (data['level'] !== 2 && data['level'] !== 3) data['level'] = 1
     const world = (data['world'] as Record<string, unknown>) ?? {}
     if (typeof world['suitOn'] !== 'boolean') world['suitOn'] = false
     data['world'] = world
@@ -257,7 +257,7 @@ export function withDefaults(data: Record<string, unknown>): SaveData {
   merged.world.screensSinceFood = merged.world.screensSinceFood ?? 0
   merged.world.invisibleScreens = merged.world.invisibleScreens ?? 0
   merged.world.suitOn = merged.world.suitOn ?? false
-  merged.level = merged.level === 2 ? 2 : 1
+  merged.level = merged.level === 2 ? 2 : merged.level === 3 ? 3 : 1
   merged.world.grammarRule = merged.world.grammarRule ?? 0
   merged.world.grammarAsked = merged.world.grammarAsked ?? []
   merged.spelling = { ...base.spelling, ...(data['spelling'] as object) }

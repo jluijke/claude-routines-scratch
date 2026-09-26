@@ -23,7 +23,7 @@ import { SCREENS } from './game/world/screens'
 import { showGatePrompt, showNotice } from './game/ui/prompt'
 import { showBossVictory } from './game/ui/victory'
 import { showDiscovery } from './game/ui/discovery'
-import { FUTURE_SAVED, showStory, TO_THE_FUTURE } from './game/ui/story'
+import { TO_THE_PRESENT, CITY_SAVED, showStory, TO_THE_FUTURE } from './game/ui/story'
 import { switchLevel } from './game/levels'
 import { flavourFor } from './game/flavour'
 import { mapLayout } from './game/render/map'
@@ -135,7 +135,7 @@ function showTitle(): void {
       ]),
       el('p', { class: 'q-hint-line' }, [
         `${completed} of ${TOTAL_EXERCISES} exercises complete · ${masteredCount(state.spelling.mastery, CONCEPTS.keys())} patterns mastered · ${state.player.rupees} rupees` +
-          (state.level === 2 ? ' · Level 2: the sky-ship' : ''),
+          (state.level === 2 ? ' · Level 2: the sky-ship' : state.level === 3 ? ' · Level 3: New York' : ''),
       ]),
       el('div', { class: 'controls' }, [start]),
       el('p', { class: 'q-hint-line controls-help' }, [
@@ -218,8 +218,14 @@ function enterWorld(): void {
             showStory(root, { ...TO_THE_FUTURE, onContinue: () => enterLevel(2) })
             return
           }
+          // The last mech is where the story turns again: the thing that sent the
+          // robots passed through the present on its way, and it is still there.
           if (allDone && state.level === 2) {
-            showStory(root, { ...FUTURE_SAVED, onContinue: () => world?.setPaused(false) })
+            showStory(root, { ...TO_THE_PRESENT, onContinue: () => enterLevel(3) })
+            return
+          }
+          if (allDone && state.level === 3) {
+            showStory(root, { ...CITY_SAVED, onContinue: () => world?.setPaused(false) })
             return
           }
           world?.setPaused(false)
@@ -250,7 +256,9 @@ function enterLevel(level: Level): void {
   world?.showMessage(
     level === 2
       ? 'A thousand years on. Cold metal under your boots, and a red light blinking.'
-      : 'Home. The grass is exactly where you left it, and so is your sword.',
+      : level === 3
+        ? 'Now. Car horns, a hot dog cart, and the smell of the subway coming up through the grate.'
+        : 'Home. The grass is exactly where you left it, and so is your sword.',
     320,
   )
 }
@@ -554,7 +562,7 @@ function startFoodChallenge(): void {
     id: 0,
     title: rule.title,
     level: 1,
-    levelName: state.level === 2 ? 'Battery pack' : 'Animal food',
+    levelName: state.level === 2 ? 'Battery pack' : state.level === 3 ? 'Bodega sandwich' : 'Animal food',
     targetMinutes: 2,
     // No concepts to prove: the engine would otherwise keep going until each
     // was answered unaided, and four questions is four questions.

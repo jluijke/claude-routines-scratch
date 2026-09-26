@@ -93,7 +93,7 @@ export const PETS: PetDef[] = [
 ]
 
 /** How it is drawn where he is: fur in the land, half chrome on the ship. */
-export function petFrames(def: PetDef, level: 1 | 2): [SpriteName, SpriteName] {
+export function petFrames(def: PetDef, level: 1 | 2 | 3): [SpriteName, SpriteName] {
   return level === 2 ? def.cyborgFrames : def.frames
 }
 

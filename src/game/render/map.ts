@@ -36,9 +36,10 @@ const MOUNTAIN = 'Mountain'
  * buildCells. The island lies west of the Long Water; the outpost lies east of
  * the hangar, out past the bay doors.
  */
-const FLIGHTS: Record<Level, { shore: string; island: string; dx: number }> = {
+const FLIGHTS: Partial<Record<Level, { shore: string; island: string; dx: number }>> = {
   1: { shore: 'lagoon-shore', island: 'lagoon-island', dx: -1 },
   2: { shore: 'ship-hangar', island: 'outpost-deck', dx: 1 },
+  // The city's crossing is a bridge he walks, so it is on the grid already.
 }
 
 interface Cell {
@@ -66,8 +67,8 @@ function buildCells(level: Level): { main: Cell[]; mountain: Cell[] } {
   // west of the Long Water he flies from. The outpost is the same, the other
   // way round.
   const flight = FLIGHTS[level]
-  const shore = cells.get(flight.shore)
-  if (shore) main.push({ id: flight.island, x: shore.x + flight.dx, y: shore.y })
+  const shore = flight ? cells.get(flight.shore) : undefined
+  if (flight && shore) main.push({ id: flight.island, x: shore.x + flight.dx, y: shore.y })
 
   // Follow the track upward from its foot, so the order comes from the map
   // rather than from a list that could fall out of step with it. Only the
@@ -88,6 +89,7 @@ function buildCells(level: Level): { main: Cell[]; mountain: Cell[] } {
 const ALL_CELLS: Record<Level, { main: Cell[]; mountain: Cell[] }> = {
   1: buildCells(1),
   2: buildCells(2),
+  3: buildCells(3),
 }
 
 /** Where every square on the map sits. Read by the end-to-end checks. */
@@ -155,7 +157,7 @@ export function drawWorldMap(ctx: CanvasRenderingContext2D, view: MapView, frame
     drawCell(ctx, cell, { x: trackX, y: originY + row * (CELL_H + gap) }, seen, view, frame)
   }
 
-  const title = screenById(view.here)?.name?.toUpperCase() ?? (view.level === 2 ? 'THE SHIP' : 'THE LAND')
+  const title = screenById(view.here)?.name?.toUpperCase() ?? (view.level === 2 ? 'THE SHIP' : view.level === 3 ? 'THE VILLAGE' : 'THE LAND')
   ctx.fillStyle = '#e6b422'
   ctx.font = '7px monospace'
   ctx.textBaseline = 'top'

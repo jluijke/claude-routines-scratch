@@ -100,8 +100,9 @@ export function roughen(screen: Screen): Screen {
   // Only the wooded overworld. Dungeon rooms are walls, and meant to be square.
   if (!rows.some((line) => line.includes('T'))) return screen
   // And only where the border is something that grows. A ship's hull is built
-  // straight; the rocks outside it are as ragged as any wood.
-  if (screen.setting === 'ship' || screen.setting === 'airlock') return screen
+  // straight; the rocks outside it are as ragged as any wood. A city block is
+  // built straighter still, and its 'T' is a tenement, not a tree.
+  if (screen.setting && screen.setting !== 'rock') return screen
   // And not where the author asked for it to be left alone.
   if (screen.tidy) return screen
 

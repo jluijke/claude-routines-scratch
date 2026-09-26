@@ -16,7 +16,7 @@ export interface HudState {
   /** The item in the B slot, and how many are left. */
   tool?: { name: string; count: number }
   /** Which world, for naming things: a sword in the land, a weapon on the ship. */
-  level: 1 | 2
+  level: 1 | 2 | 3
   weaponLabel: string
 }
 

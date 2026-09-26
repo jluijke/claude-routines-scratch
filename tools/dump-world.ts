@@ -17,6 +17,7 @@ import { themeFor } from '../src/game/render/world'
 const cells = new Map([
   ...overworldLayout(START_SCREENS[1]).cells,
   ...overworldLayout(START_SCREENS[2]).cells,
+  ...overworldLayout(START_SCREENS[3]).cells,
 ])
 
 /** Why a door is hard to find, if it is. */

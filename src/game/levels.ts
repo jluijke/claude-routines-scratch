@@ -1,10 +1,10 @@
 /**
- * The two worlds, and stepping between them.
+ * The three worlds, and stepping between them.
  *
- * Level 1 is the land. Level 2 is the sky-ship a thousand years on: the same
- * game underneath — barriers, a shop, an animal, things hidden behind things —
- * dressed for the future and laid out differently, so it is a new quest rather
- * than the old one twice.
+ * Level 1 is the land. Level 2 is the sky-ship a thousand years on. Level 3
+ * is New York, now: the same game underneath — barriers, a shop, an animal,
+ * things hidden behind things — dressed for the present and laid out
+ * differently, so each is a new quest rather than the old one twice.
  *
  * Only what he carries changes hands at the crossing. The machine that takes
  * him forward cannot carry metal, so the sword, the shield and the purse stay
@@ -18,6 +18,7 @@ import { screenById } from './world/screens'
 export const START_SCREENS: Record<Level, string> = {
   1: 'village-square',
   2: 'ship-bridge',
+  3: 'nyc-washington-square',
 }
 
 /** What he arrives with. Level 2's shield is a deflector plate, but it is the same slot. */
@@ -87,5 +88,6 @@ export function switchLevel(save: SaveData, level: Level): void {
 export function levelOfScreen(id: string): Level {
   const screen = screenById(id)
   if (screen) return screen.level ?? 1
+  if (/^nyc-/.test(id)) return 3
   return /^(ship|airlock|rock|outpost)-/.test(id) ? 2 : 1
 }

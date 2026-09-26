@@ -16,8 +16,10 @@ const themeOf = (s) => s.theme
 const byId = new Map(world.screens.map((s) => [s.id, s]))
 const land = world.screens.filter((s) => s.level === 1)
 const ship = world.screens.filter((s) => s.level === 2)
+const city = world.screens.filter((s) => s.level === 3)
 const overworld = land.filter((s) => s.at)
 const decks = ship.filter((s) => s.at)
+const blocks = city.filter((s) => s.at)
 
 // The mountain track is walkable but sits off the main grid — see the note on
 // the page. Ordered by following its own exits upward.
@@ -39,6 +41,10 @@ const sMinX = Math.min(...decks.map((s) => s.at.x))
 const sMinY = Math.min(...decks.map((s) => s.at.y))
 const sCols = Math.max(...decks.map((s) => s.at.x)) - sMinX + 1
 const sRows = Math.max(...decks.map((s) => s.at.y)) - sMinY + 1
+const cMinX = Math.min(...blocks.map((s) => s.at.x))
+const cMinY = Math.min(...blocks.map((s) => s.at.y))
+const cCols = Math.max(...blocks.map((s) => s.at.x)) - cMinX + 1
+const cRows = Math.max(...blocks.map((s) => s.at.y)) - cMinY + 1
 
 /** Everything hard to find, in the order he would meet it. */
 const findings = []
@@ -272,6 +278,10 @@ const deckCells = decks
   .map((s) => `<div class="cell" style="grid-column:${s.at.x - sMinX + 1};grid-row:${s.at.y - sMinY + 1}">${tile(s)}</div>`)
   .join('\n')
 
+const blockCells = blocks
+  .map((s) => `<div class="cell" style="grid-column:${s.at.x - cMinX + 1};grid-row:${s.at.y - cMinY + 1}">${tile(s)}</div>`)
+  .join('\n')
+
 const trackCells = mountain
   .map((id, i) => `<div class="cell" style="grid-row:${mountain.length - i}">${tile(byId.get(id))}</div>`)
   .join('\n')
@@ -348,6 +358,7 @@ const legend = `<div class="legend">
 
 const clusterHtml = clustersOf(land)
 const shipClusterHtml = clustersOf(ship)
+const cityClusterHtml = clustersOf(city)
 
 const findingRow = (f) => `<tr>
       <td><span class="pin ${f.kind === 'warp' ? 'm-warp' : f.kind === 'bomb' ? 'm-bomb' : f.kind === 'candle' ? 'm-candle' : f.kind === 'item' ? 'm-item' : 'm-gate'}"></span>${esc(f.what)}</td>
@@ -357,6 +368,7 @@ const findingRow = (f) => `<tr>
     </tr>`
 const findingRows = findings.filter((f) => f.level === 1).map(findingRow).join('\n')
 const shipFindingRows = findings.filter((f) => f.level === 2).map(findingRow).join('\n')
+const cityFindingRows = findings.filter((f) => f.level === 3).map(findingRow).join('\n')
 
 const html = `<title>Atlas of Both Worlds</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -465,6 +477,7 @@ const html = `<title>Atlas of Both Worlds</title>
   .board { display: flex; gap: 26px; align-items: flex-start; overflow-x: auto; padding-bottom: 8px; }
   .grid { display: grid; grid-template-columns: repeat(${cols}, minmax(104px, 1fr)); grid-template-rows: repeat(${rows}, auto); gap: 6px; flex: 1 1 auto; min-width: 640px; }
   .grid.ship { grid-template-columns: repeat(${sCols}, minmax(104px, 1fr)); grid-template-rows: repeat(${sRows}, auto); }
+  .grid.city { grid-template-columns: repeat(${cCols}, minmax(104px, 1fr)); grid-template-rows: repeat(${cRows}, auto); min-width: 900px; }
   .aside { flex: none; width: 138px; padding-left: 22px; border-left: 1px dashed var(--rule); }
   .track { display: grid; grid-template-rows: repeat(${mountain.length}, auto); gap: 6px; }
   .lbl { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--faint); letter-spacing: .1em; text-transform: uppercase; margin: 0 0 8px; }
@@ -504,11 +517,11 @@ const html = `<title>Atlas of Both Worlds</title>
 <div class="wrap">
   <header class="top">
     <div>
-      <p class="eyebrow">Parent's copy · every secret shown · both worlds</p>
-      <h1>Atlas of the Land, and of the Ship</h1>
-      <p class="lede">Every screen in both levels, drawn from the game's own tiles. Level 1 is the land; Level 2 is the sky-ship a thousand years on, reached by beating all four dungeon guardians — or from the parent panel. The ways in that nobody finds by accident are listed first for each.</p>
+      <p class="eyebrow">Parent's copy · every secret shown · three worlds</p>
+      <h1>Atlas of the Land, the Ship, and the City</h1>
+      <p class="lede">Every screen in all three levels, drawn from the game's own tiles. Level 1 is the land; Level 2 is the sky-ship a thousand years on, reached by beating all four dungeon guardians; Level 3 is New York, now, reached by beating all four mechs — or any of them from the parent panel. The ways in that nobody finds by accident are listed first for each.</p>
     </div>
-    <div class="stamp">${land.length} screens in the land · ${ship.length} on the ship<br>${overworld.length} + ${decks.length} you can walk between<br>generated ${esc(world.generated)}</div>
+    <div class="stamp">${land.length} screens in the land · ${ship.length} on the ship · ${city.length} in the city<br>${overworld.length} + ${decks.length} + ${blocks.length} you can walk between<br>generated ${esc(world.generated)}</div>
   </header>
 
   <h2>Level 1 · The four guardians</h2>
@@ -581,6 +594,47 @@ const html = `<title>Atlas of Both Worlds</title>
   <p class="note">The airlocks, the four rocks with a mech at the core of each, the hidden rooms behind bulkheads, and the outpost across the void from the hangar — the island of the ship, reached by rocket and left by a second one bought from the stranded pilot below it.</p>
   ${shipClusterHtml}
 
+  <h2>Level 3 · The Village</h2>
+  <p class="note">New York, now: the West Village west of Sixth Avenue, the East Village and Alphabet City east of Broadway, Washington Square in the middle and Tompkins Square at the far end. Nine blocks across, three deep, laid out exactly as they connect. Streets run across a square, avenues run up one, and where they meet there is a crosswalk. He arrives in Washington Square with nothing; the knife is on a bench by the fountain. The two police tapes either side of the square are the first spellings. <b>This is stage one of the city</b>: the streets and the shops. The traffic, the subway, the guns and the three guardians are still to come.</p>
+  ${legend}
+  <div class="board">
+    <div class="grid city">${blockCells}</div>
+  </div>
+
+  <h2>Level 3 · Inside</h2>
+  <p class="note">The shops, the pet shop, and the community garden on Avenue B. Every shop door is under an awning; walk into it. The newsstand on Sheridan Square sells the Street Map, which is the only way to get one. The pawn shop (We Buy Gold) is the hidden trader; the hardware store on Christopher Street is the smith, and it wants a spelling before it sells the box hammer.</p>
+  ${cityClusterHtml}
+
+  <h2>Level 3 · What you cannot find by walking</h2>
+  <p class="note">The city keeps its secrets behind boarded-up doors (firecrackers) and padlocked dumpsters (bolt cutters). None of the boarded doors lead anywhere yet.</p>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>Leads to</th><th>On this screen</th><th>Tile</th><th>How it opens</th></tr></thead>
+      <tbody>${cityFindingRows || '<tr><td colspan="4">Nothing hidden yet. The boarded doors open in a later stage.</td></tr>'}</tbody>
+    </table>
+  </div>
+
+  <h2>Level 3 · Same things, new names</h2>
+  <div class="cols">
+    <div class="stack">
+      <div class="row"><b>Wooden, Metal Sword</b><span>Kitchen Knife, Box Hammer</span></div>
+      <div class="row"><b>Bronze, Golden Sword</b><span>Pistol, Rifle</span></div>
+      <div class="row"><b>Bow and arrows</b><span>Machine Gun and Bullets</span></div>
+      <div class="row"><b>Shields</b><span>Pizza Box, Trash-can Lid, Manhole Cover, Riot Shield</span></div>
+      <div class="row"><b>Wings</b><span>Citi Bike Pass — over the bridge, one way</span></div>
+      <div class="row"><b>Blue Candle</b><span>Bolt Cutters — open a padlocked dumpster</span></div>
+      <div class="row"><b>Bombs</b><span>Firecrackers — blow open a boarded door, or a hydrant</span></div>
+    </div>
+    <div class="stack">
+      <div class="row"><b>Bait</b><span>Pizza Slice</span></div>
+      <div class="row"><b>Tunics, Blue Ring</b><span>Knicks and Yankees jackets, Subway Token</span></div>
+      <div class="row"><b>Map</b><span>Street Map — forty dollars at the newsstand on Sheridan Square</span></div>
+      <div class="row"><b>Animal food</b><span>Bodega sandwich — same grammar rule and four questions</span></div>
+      <div class="row"><b>Vanishing potion</b><span>Hoodie and Sunglasses</span></div>
+      <div class="row"><b>The animal</b><span>The same six, at the original pet shop on Bleecker Street</span></div>
+    </div>
+  </div>
+
   <h2>Level 2 · Same things, new names</h2>
   <div class="cols">
     <div class="stack">
@@ -646,6 +700,11 @@ const html = `<title>Atlas of Both Worlds</title>
     ship:      { g:'#3b4452', s:'#46505f', wall:'#3a414d', rock:'#5a6b8a', water:'#06070f', path:'#c9a32c', leaf:'#e2883a', leafDark:'#6b7686' },
     rock:      { g:'#5c5e66', s:'#4f5159', wall:'#3a3c45', rock:'#7a7c86', water:'#06070f', path:'#8a8c96', leaf:'#57d2c6', leafDark:'#3a3c45' },
     airlock:   { g:'#2e3440', s:'#3a4252', wall:'#4e5563', rock:'#5a6b8a', water:'#06070f', path:'#c9a32c', leaf:'#e2883a', leafDark:'#4e5563' },
+    street:    { g:'#b7b3a8', s:'#9e9a8f', wall:'#7a6154', rock:'#9d9a90', water:'#3a3b41', path:'#ece9df', road:'#3a3b41', leaf:'#16161b', leafDark:'#a4543b' },
+    park:      { g:'#4f9f47', s:'#43903d', wall:'#23242a', rock:'#a89f8f', water:'#2f6fd0', path:'#a49a94', road:'#a49a94', leaf:'#2e7a3a', leafDark:'#1d5824' },
+    platform:  { g:'#8d8b84', s:'#76746d', wall:'#e6e2d6', rock:'#2f6b46', water:'#17171b', path:'#f2c12e', road:'#c6c8c4', leaf:'#16161b', leafDark:'#e6e2d6' },
+    train:     { g:'#a7a398', s:'#8f8b80', wall:'#c6c8c4', rock:'#e0862c', water:'#0d0d14', path:'#f2c12e', road:'#a7a398', leaf:'#16161b', leafDark:'#c6c8c4' },
+    bodega:    { g:'#d8d3c4', s:'#b9b3a3', wall:'#3f6b5a', rock:'#8a6a44', water:'#c9e6f2', path:'#e8bb2c', road:'#d8d3c4', leaf:'#e8e4d8', leafDark:'#3f6b5a' },
   }
   function colourFor(ch, p) {
     switch (ch) {
@@ -656,7 +715,10 @@ const html = `<title>Atlas of Both Worlds</title>
       case '#': return p.wall
       case 'X': return p.rock
       case '*': return p.rock
-      case 'S': case 'B': return p.path
+      case 'S': return p.path
+      case 'B': return p.road ?? p.path
+      case 'p': return p.rock
+      case 'A': return p.rock
       case '=': return '#c9a86a'
       case 'D': case 'C': case 'H': case '^': return '#12131a'
       default: return p.g

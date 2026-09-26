@@ -217,10 +217,7 @@ function streetTile(
       return trashBags(ctx, x, y, col, row, screen)
     case 'p':
       sidewalk(ctx, x, y, col, row, p, screen)
-      trashBags(ctx, x, y, col, row, screen)
-      ctx.fillStyle = '#57d2c6'
-      ctx.fillRect(x + 11, y + 12, 2, 2)
-      return
+      return dumpster(ctx, x, y)
     case '*':
       sidewalk(ctx, x, y, col, row, p, screen)
       return hydrant(ctx, x, y)
@@ -319,26 +316,66 @@ function road(
   if (v === 0) ctx.fillRect(x + 3, y + 9, 5, 2)
   if (v === 1) ctx.fillRect(x + 10, y + 3, 3, 3)
 
-  const isRoad = (c: number, r: number): boolean => 'BS'.includes(at(screen, c, r))
-  // How many road rows are above this one, and how many in the whole run.
-  let above = 0
-  while (isRoad(col, row - above - 1)) above += 1
-  let below = 0
-  while (isRoad(col, row + below + 1)) below += 1
-  const lanes = above + below + 1
-  const lane = above
+  const run = roadRun(screen, col, row)
+  if (run === 'crossing') return
 
-  // The line on the lower edge of this lane, if there is a lane under it.
+  if (run === 'across') {
+    // How many road rows are above this one, and how many in the whole run.
+    let above = 0
+    while (isRoad(screen, col, row - above - 1)) above += 1
+    let below = 0
+    while (isRoad(screen, col, row + below + 1)) below += 1
+    const lanes = above + below + 1
+    const lane = above
+    // The line on the lower edge of this lane, if there is a lane under it.
+    if (lane < lanes - 1) {
+      if (lanes % 2 === 0 && lane === lanes / 2 - 1) {
+        ctx.fillStyle = '#e8b62a'
+        ctx.fillRect(x, y + TILE - 2, TILE, 1)
+        ctx.fillRect(x, y + TILE - 4, TILE, 1)
+      } else {
+        ctx.fillStyle = '#d8d5c8'
+        ctx.fillRect(x + 2, y + TILE - 2, 6, 1)
+      }
+    }
+    return
+  }
+
+  // An avenue: the same, turned on its side.
+  let left = 0
+  while (isRoad(screen, col - left - 1, row)) left += 1
+  let right = 0
+  while (isRoad(screen, col + right + 1, row)) right += 1
+  const lanes = left + right + 1
+  const lane = left
   if (lane < lanes - 1) {
     if (lanes % 2 === 0 && lane === lanes / 2 - 1) {
       ctx.fillStyle = '#e8b62a'
-      ctx.fillRect(x, y + TILE - 2, TILE, 1)
-      ctx.fillRect(x, y + TILE - 4, TILE, 1)
+      ctx.fillRect(x + TILE - 2, y, 1, TILE)
+      ctx.fillRect(x + TILE - 4, y, 1, TILE)
     } else {
       ctx.fillStyle = '#d8d5c8'
-      ctx.fillRect(x + 2, y + TILE - 2, 6, 1)
+      ctx.fillRect(x + TILE - 2, y + 2, 1, 6)
     }
   }
+}
+
+const isRoad = (screen: Screen, c: number, r: number): boolean => 'BS'.includes(at(screen, c, r))
+
+/**
+ * Which way the road under a tile runs. A street runs across the screen, an
+ * avenue up it, and where the two meet there is a crossing, which gets no
+ * lane lines at all — nobody paints them through an intersection.
+ */
+function roadRun(screen: Screen, col: number, row: number): 'across' | 'up' | 'crossing' {
+  let h = 1
+  for (let c = col - 1; isRoad(screen, c, row); c--) h += 1
+  for (let c = col + 1; isRoad(screen, c, row); c++) h += 1
+  let v = 1
+  for (let r = row - 1; isRoad(screen, col, r); r--) v += 1
+  for (let r = row + 1; isRoad(screen, col, r); r++) v += 1
+  if (h >= 5 && v >= 5) return 'crossing'
+  return h >= v ? 'across' : 'up'
 }
 
 /** Zebra bars, laid across the road the way the city paints them. */
@@ -353,6 +390,12 @@ function crosswalk(
 ): void {
   road(ctx, x, y, col, row, p, screen)
   ctx.fillStyle = p.path
+  if (roadRun(screen, col, row) === 'up') {
+    ctx.fillRect(x + 2, y + 1, 3, 14)
+    ctx.fillRect(x + 7, y + 1, 3, 14)
+    ctx.fillRect(x + 12, y + 1, 3, 14)
+    return
+  }
   ctx.fillRect(x + 1, y + 2, 14, 3)
   ctx.fillRect(x + 1, y + 7, 14, 3)
   ctx.fillRect(x + 1, y + 12, 14, 3)
@@ -516,6 +559,27 @@ function trashBags(ctx: CanvasRenderingContext2D, x: number, y: number, col: num
   // A knotted top on one of them.
   ctx.fillStyle = '#4a4a55'
   ctx.fillRect(x + (h % 2 === 0 ? 5 : 10), y + 3, 2, 2)
+}
+
+/** A green dumpster with a padlock on the lid. The bolt cutters open it. */
+function dumpster(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+  ctx.fillStyle = '#12131a'
+  ctx.fillRect(x + 1, y + 4, 14, 11)
+  ctx.fillStyle = '#2f6b46'
+  ctx.fillRect(x + 2, y + 5, 12, 9)
+  ctx.fillStyle = '#4d9066'
+  ctx.fillRect(x + 2, y + 5, 12, 2)
+  ctx.fillStyle = '#1b4229'
+  ctx.fillRect(x + 2, y + 12, 12, 2)
+  ctx.fillRect(x + 7, y + 7, 1, 5)
+  // The wheels, and the padlock hanging off the lid.
+  ctx.fillStyle = '#12131a'
+  ctx.fillRect(x + 3, y + 15, 2, 1)
+  ctx.fillRect(x + 11, y + 15, 2, 1)
+  ctx.fillStyle = '#e8bb2c'
+  ctx.fillRect(x + 11, y + 6, 3, 3)
+  ctx.fillStyle = '#12131a'
+  ctx.fillRect(x + 12, y + 7, 1, 1)
 }
 
 /** A hydrant: squat, red, with a cap on each side. */

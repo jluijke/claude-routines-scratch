@@ -41,6 +41,11 @@ export type ItemCategory = 'sword' | 'shield' | 'tunic' | 'tool' | 'consumable' 
  * something you cannot walk across. Only what he sees changes: the name, the
  * description, and the picture.
  */
+export interface CityFace extends FutureFace {
+  /** The city sells a few things the land never did — the map, for one. */
+  price?: number
+}
+
 export interface FutureFace {
   name: string
   description: string
@@ -61,6 +66,11 @@ export interface ItemDef {
   description: string
   /** How it appears in Level 2. */
   future: FutureFace
+  /**
+   * How it appears in Level 3, the city. Absent means the land's face is used,
+   * which is right for the animals and the hearts and wrong for a sword.
+   */
+  city?: CityFace
   /** Sword damage, or shield block strength, or tunic damage reduction. */
   power?: number
   /** Item that must already be owned before this one can be bought or used. */
@@ -87,6 +97,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
       description: 'A short, dim yellow blade of light. It is better than bare hands.',
     },
     power: 1,
+    city: {
+      name: 'Kitchen Knife',
+      description: 'A knife from the bodega\'s back room. It is better than bare hands.',
+    },
   },
   metalSword: {
     id: 'metalSword',
@@ -99,6 +113,11 @@ export const ITEMS: Record<ItemId, ItemDef> = {
       description: 'A full blade of blue light. Longer reach, and it hums when it swings.',
     },
     power: 2,
+    city: {
+      name: 'Box Hammer',
+      description: 'Slow and heavy, and every hit shakes the whole street.',
+      gate: 'nyc-hammer',
+    },
   },
   bronzeSword: {
     id: 'bronzeSword',
@@ -114,6 +133,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     power: 3,
     requires: 'metalSword',
     gate: 'smith-bronze',
+    city: {
+      name: 'Pistol',
+      description: 'Short reach, six shots, then a click-clack while it reloads.',
+    },
   },
   goldenSword: {
     id: 'goldenSword',
@@ -129,6 +152,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     power: 5,
     requires: 'bronzeSword',
     gate: 'smith-golden',
+    city: {
+      name: 'Rifle',
+      description: 'Long reach: the whole screen. Fewer shots before the reload.',
+    },
   },
   woodenShield: {
     id: 'woodenShield',
@@ -140,6 +167,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
       description: 'Stops a bolt. Not much else.',
     },
     power: 1,
+    city: {
+      name: 'Pizza Box',
+      description: 'Cardboard, and a bit greasy. It stops a thrown bottle.',
+    },
   },
   metalShield: {
     id: 'metalShield',
@@ -152,6 +183,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
       description: 'Turns aside bolts and scrap while you face them.',
     },
     power: 2,
+    city: {
+      name: 'Trash-can Lid',
+      description: 'Galvanised steel. Stops most of what the street throws.',
+    },
   },
   bronzeShield: {
     id: 'bronzeShield',
@@ -165,6 +200,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     },
     power: 3,
     requires: 'metalShield',
+    city: {
+      name: 'Manhole Cover',
+      description: 'Cast iron, and heavy. Nothing gets through it.',
+    },
   },
   magicalShield: {
     id: 'magicalShield',
@@ -180,6 +219,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     power: 4,
     requires: 'bronzeShield',
     gate: 'shop-magical-shield',
+    city: {
+      name: 'Riot Shield',
+      description: 'Clear polycarbonate. Nothing gets through, and you can see what tried.',
+    },
   },
   wings: {
     id: 'wings',
@@ -193,6 +236,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
       gate: 'ship-rocket',
     },
     gate: 'shop-wings',
+    city: {
+      name: 'Citi Bike Pass',
+      description: 'Ride over the Williamsburg Bridge. The bike docks on the far side, so it is one way.',
+    },
   },
   blueTunic: {
     id: 'blueTunic',
@@ -205,6 +252,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
       description: 'Woven from nanofibre. Softens every blow.',
     },
     power: 1,
+    city: {
+      name: 'Knicks Jacket',
+      description: 'Orange and blue. You take a quarter less damage.',
+    },
   },
   redTunic: {
     id: 'redTunic',
@@ -220,6 +271,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     power: 2,
     requires: 'blueTunic',
     gate: 'shop-red-tunic',
+    city: {
+      name: 'Yankees Jacket',
+      description: 'Pinstripes. You take half damage.',
+    },
   },
   bow: {
     id: 'bow',
@@ -233,6 +288,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
       gate: 'ship-blaster',
     },
     gate: 'shop-bow',
+    city: {
+      name: 'Machine Gun',
+      description: 'Long reach, three bullets in a fan each press. Lives in the item slot.',
+    },
   },
   arrows: {
     id: 'arrows',
@@ -246,6 +305,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     },
     requires: 'bow',
     stackable: true,
+    city: {
+      name: 'Bullets',
+      description: 'A box of thirty for the machine gun.',
+    },
   },
   blueCandle: {
     id: 'blueCandle',
@@ -259,6 +322,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
       description: 'Its beam lights a dark deck, and unscrews a loose panel. One use per room.',
       gate: 'ship-candle',
     },
+    city: {
+      name: 'Bolt Cutters',
+      description: 'Cut the padlock off a dumpster. Once per block.',
+    },
   },
   bomb: {
     id: 'bomb',
@@ -271,6 +338,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
       description: 'Blows open a cracked bulkhead. Sold in packs of four.',
     },
     stackable: true,
+    city: {
+      name: 'Firecrackers',
+      description: 'From Chinatown. Blow open a boarded door — or a hydrant.',
+    },
   },
   bait: {
     id: 'bait',
@@ -283,6 +354,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
       description: 'Hungry robots stop to chew on it instead of chasing you.',
     },
     stackable: true,
+    city: {
+      name: 'Pizza Slice',
+      description: 'Rats stop to eat it. So do most things.',
+    },
   },
   blueRing: {
     id: 'blueRing',
@@ -298,6 +373,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     power: 2,
     secret: true,
     gate: 'secret-blue-ring',
+    city: {
+      name: 'Subway Token',
+      description: 'An old brass token. Halves the damage you take.',
+    },
   },
   recoveryHeart: {
     id: 'recoveryHeart',
@@ -310,6 +389,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
       description: 'Restores one heart straight away.',
     },
     stackable: true,
+    city: {
+      name: 'Hot Dog',
+      description: 'Restores three hearts. Mustard, no ketchup.',
+    },
   },
   heartContainer: {
     id: 'heartContainer',
@@ -318,6 +401,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     description: 'Raises your maximum life by one heart. Never sold — only earned.',
     future: {
       name: 'Life Core',
+      description: 'Raises your maximum life by one heart. Never sold — only earned.',
+    },
+    city: {
+      name: 'Everything Bagel',
       description: 'Raises your maximum life by one heart. Never sold — only earned.',
     },
   },
@@ -332,6 +419,11 @@ export const ITEMS: Record<ItemId, ItemDef> = {
       name: 'Ship Schematic',
       description: 'Every deck you have walked, drawn as you found it. Press M.',
     },
+    city: {
+      name: 'Street Map',
+      description: 'Every block you have walked, drawn as you found it. Press M.',
+      price: 40,
+    },
   },
   potion: {
     id: 'potion',
@@ -344,6 +436,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
       name: 'Cloaking Serum',
       description: 'No sensor can see you, and nothing can touch you, until you have left three places behind.',
     },
+    city: {
+      name: 'Hoodie and Sunglasses',
+      description: 'Nobody looks twice at you until you have left three blocks behind.',
+    },
   },
   animalFood: {
     id: 'animalFood',
@@ -355,6 +451,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     future: {
       name: 'Battery Pack',
       description: 'Your cyborg fights beside you until you have left the next place behind.',
+    },
+    city: {
+      name: 'Bodega Sandwich',
+      description: 'Wrapped in foil. Whatever is in it, your friend wants it.',
     },
   },
 }
@@ -384,6 +484,9 @@ export const SECRET_SHOP: ItemId[] = ['blueRing', 'bomb', 'recoveryHeart', 'arro
 /** The castaway under the island. He sells one thing, and knows it. */
 export const CASTAWAY_SHOP: ItemId[] = ['wings', 'recoveryHeart']
 
+/** The newsstand on Sheridan Square: the street map, and a hot dog. */
+export const NEWSSTAND: ItemId[] = ['map', 'recoveryHeart']
+
 /**
  * Items that occupy the B slot and are used with the item key. Ordered the way
  * the child cycles through them.
@@ -399,17 +502,26 @@ export function itemPower(id: ItemId): number {
 }
 
 /** What it is called where he is standing. */
-export function itemName(id: ItemId, level: 1 | 2 = 1): string {
+export function itemName(id: ItemId, level: 1 | 2 | 3 = 1): string {
+  if (level === 3) return ITEMS[id].city?.name ?? ITEMS[id].name
   return level === 2 ? ITEMS[id].future.name : ITEMS[id].name
 }
 
+/** What it costs here. The city prices a couple of things the land gave away. */
+export function itemPrice(id: ItemId, level: 1 | 2 | 3 = 1): number | undefined {
+  if (level === 3) return ITEMS[id].city?.price ?? ITEMS[id].price
+  return ITEMS[id].price
+}
+
 /** What it does, in the words of the world he is in. */
-export function itemDescription(id: ItemId, level: 1 | 2 = 1): string {
+export function itemDescription(id: ItemId, level: 1 | 2 | 3 = 1): string {
+  if (level === 3) return ITEMS[id].city?.description ?? ITEMS[id].description
   return level === 2 ? ITEMS[id].future.description : ITEMS[id].description
 }
 
 /** The proof a shop wants before selling it, in this world. */
-export function itemGate(id: ItemId, level: 1 | 2 = 1): string | undefined {
+export function itemGate(id: ItemId, level: 1 | 2 | 3 = 1): string | undefined {
+  if (level === 3) return ITEMS[id].city?.gate ?? ITEMS[id].gate
   return level === 2 ? ITEMS[id].future.gate : ITEMS[id].gate
 }
 

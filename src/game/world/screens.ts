@@ -9,6 +9,7 @@ import type { SpriteName } from '../render/sprites'
 import type { ItemId } from '../items'
 import { roughen } from './scenery'
 import { AUTHORED_FUTURE } from './screens2'
+import { AUTHORED_CITY } from './screens3'
 
 export type EnemyKind = 'shooter' | 'chaser' | 'flyer' | 'caster' | 'boss1' | 'boss2' | 'boss3' | 'boss4'
 
@@ -138,7 +139,7 @@ export interface Screen {
   /** Opens the shop interface on entry. */
   shop?: ShopKind
   /** Which world this is part of. Absent means the land, Level 1. */
-  level?: 2
+  level?: 2 | 3
   /** Levels 2 and 3: what the place is made of. */
   setting?: Setting
   /**
@@ -1888,7 +1889,7 @@ const AUTHORED: Screen[] = [
  * the readable way to write a map; the woods are then grown in unevenly, so no
  * two clearings are the same shape. See world/scenery.ts.
  */
-export const SCREENS: Screen[] = [...AUTHORED, ...AUTHORED_FUTURE].map(roughen)
+export const SCREENS: Screen[] = [...AUTHORED, ...AUTHORED_FUTURE, ...AUTHORED_CITY].map(roughen)
 
 export const SCREENS_BY_ID: ReadonlyMap<string, Screen> = new Map(SCREENS.map((s) => [s.id, s]))
 

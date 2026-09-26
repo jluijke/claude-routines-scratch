@@ -91,22 +91,43 @@ export const TO_THE_FUTURE: Omit<StoryOptions, 'onContinue'> = {
 }
 
 /** And what happens when the last mech is down. */
-export const FUTURE_SAVED: Omit<StoryOptions, 'onContinue'> = {
+export const TO_THE_PRESENT: Omit<StoryOptions, 'onContinue'> = {
   kicker: 'The last mech has fallen',
-  title: 'The future is safe',
+  title: 'It was never the robots',
   paragraphs: [
     'The core goes dark. Out on every rock, every robot that was hunting the ship ' +
       'stops where it stands. On the bridge, the red light stops blinking and turns ' +
-      'green.',
-    'One by one, the people come out of hiding. The droids begin sweeping up. Your ' +
-      'cyborg friend sits down at your feet, humming, and looks up at you as if to ' +
-      'say: well, that was easy.',
-    'A thousand years behind you, a village is sleeping soundly. A thousand years ' +
-      'ahead, a ship is sailing safely between the stars. Both of them because of ' +
-      'someone who could spell.',
-    'The machine on the bridge hums, ready to take you home whenever you like. Or ' +
-      'you can stay a while. There is a whole ship to explore, and nothing left on it ' +
-      'that wants to hurt you.',
+      'green. One by one, the people come out of hiding.',
+    'And then the ring of silver hums again, and the thin voice is back. "Hero. The ' +
+      'robots were never the trouble. Something passed through on its way to the ' +
+      'future, and it stopped, on the way, in the present. In a city of eight ' +
+      'million people, under the streets, it is still there."',
+    '"They call the city New York. It has a river on each side, a park in the ' +
+      'middle of every neighbourhood, and trains that run under the ground. Nobody ' +
+      'there can see what is wrong. But you have been a thousand years each way. ' +
+      'You will."',
+    'The ring flares. When you can see again there is a fountain in front of you, ' +
+      'pigeons at your feet, a man playing chess against nobody, and a sound you have ' +
+      'never heard before, which is a taxi, leaning on its horn.',
   ],
-  onwardLabel: 'Keep exploring →',
+  onwardLabel: 'Step out into the square →',
+}
+
+export const CITY_SAVED: Omit<StoryOptions, 'onContinue'> = {
+  kicker: 'The last of the three has been loved',
+  title: 'The city is safe',
+  paragraphs: [
+    'He hugs you. He actually hugs you. Then he walks off down the boardwalk, pink ' +
+      'to the ears, and does not look back. Somewhere under the city something that ' +
+      'had been humming for a very long time stops.',
+    'The trains keep running. The taxis keep honking. Nobody in New York notices ' +
+      'anything at all, which is the way New York likes it. Your friend sits down at ' +
+      'your feet and looks up at you as if to say: well, that was easy.',
+    'A thousand years behind you, a village is sleeping. A thousand years ahead, a ' +
+      'ship is sailing between the stars. And right now, in the middle, eight million ' +
+      'people are getting on with it. All three because of someone who could spell.',
+    'The ring hums, ready to take you anywhere you like. Or stay a while. There is a ' +
+      'whole city to walk, and nothing left in it that wants to hurt you.',
+  ],
+  onwardLabel: 'Back to the city →',
 }

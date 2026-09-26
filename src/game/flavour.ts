@@ -1,5 +1,5 @@
 /**
- * The words that change between the land and the ship.
+ * The words that change between the land, the ship and the city.
  *
  * The world says a lot of small things — a bush burned, a rock blown open, a
  * sack found — and every one of them is wrong on a spacecraft. Rather than
@@ -147,6 +147,51 @@ const SHIP: Flavour = {
   computer: true,
 }
 
+const CITY: Flavour = {
+  weaponLabel: 'WEAPON',
+  swing: 'weapon',
+  bushBurned: 'The bolt cutters go through the padlock, and the lid comes up.',
+  hidingTreeBurned: 'The padlock drops off the dumpster, and something rolls out of it.',
+  flameGutters: 'Nothing here to cut.',
+  candleOncePerRoom: 'The bolt cutters need a rest. Once per block.',
+  wallBlown: 'The firecrackers go off and the boards come away, revealing a way through.',
+  outOfBombs: 'You are out of firecrackers.',
+  noArrows: 'You are out of bullets. The hardware store sells them.',
+  bowPatter: '"The machine gun. Press C until it is in your hand, then X. Bullets sold separately, and mind where you point it."',
+  nothingHungry: 'Nothing here is hungry.',
+  baitDropped: 'The rats stop to eat.',
+  wingsHowTo: 'Hold the Citi Bike pass and ride onto the bridge. It only carries you across.',
+  wingsNotHeld: (name) =>
+    `You have the ${name}, but it is not in your hand. Press C until the B slot shows it.`,
+  wingsTorn: 'The bike docks itself on the far side. That crossing was one way.',
+  foodAppears: 'A bodega sandwich is lying on the sidewalk, still in its foil.',
+  foodTaken:
+    'You hold up a bodega sandwich. Your friend has already smelled it — ' +
+    'and it is going to fight anything that comes near you.',
+  foodGateKind: 'A bodega sandwich',
+  foodGateMessage:
+    'A bodega sandwich in foil, sitting on the sidewalk. Your friend has already ' +
+    'noticed it. There is a note stuck to the wrapper.',
+  foodGateOpen: 'The sandwich is yours.',
+  potionWearsOff: 'You take the hoodie off. They can see you again.',
+  noMap: 'You have no map. The newsstand on Sheridan Square sells one.',
+  nothingToUse: 'Nothing to use yet. Buy something at the bodega.',
+  noItems: 'You have no items to use yet.',
+  defeated: 'You have run out of hearts. A cab driver takes you back to the square, and does not charge you.',
+  mechSplit: 'It breaks in two, and both halves come on.',
+  mechEnraged: 'It is badly hurt, and it stops holding still.',
+  teleportGo: 'The purple car pulls away with you in the back.',
+  teleportArrive: 'The purple car lets you out. This is not where you got in.',
+  noSuit: '',
+  suitOn: '',
+  suitOff: '',
+  petShopTitle: 'The Pet Shop',
+  petShopGreeting:
+    '"You again? A thousand years each way and you still haven\'t decided. ' +
+    'Same six as ever — pick the one you like the look of."',
+  computer: false,
+}
+
 export function flavourFor(level: Level): Flavour {
-  return level === 2 ? SHIP : LAND
+  return level === 2 ? SHIP : level === 3 ? CITY : LAND
 }

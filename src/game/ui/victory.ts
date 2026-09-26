@@ -7,6 +7,7 @@
  * the room, over a gold wash rather than the usual near-black one: winning
  * should not look like another dialog box.
  */
+import type { Level } from '../../core/save'
 import { button, el } from '../../spelling/ui/dom'
 
 export interface VictoryOptions {
@@ -18,7 +19,7 @@ export interface VictoryOptions {
   defeated: number
   total: number
   /** Which world this happened in. The last guardian of each means something different. */
-  world: 1 | 2
+  world: Level
   onContinue: () => void
 }
 
@@ -57,9 +58,9 @@ export function showBossVictory(root: HTMLElement, options: VictoryOptions): () 
 
   const panel = el('div', { class: 'overlay overlay-victory' }, [
     el('section', { class: `panel-game victory-panel${allDone ? ' final' : ''}` }, [
-      el('p', { class: 'victory-banner' }, [allDone ? (world === 2 ? 'The future is saved' : 'Level 1 complete') : 'Victory']),
+      el('p', { class: 'victory-banner' }, [allDone ? (world === 2 ? 'The future is saved' : world === 3 ? 'The city is saved' : 'Level 1 complete') : 'Victory']),
       el('h2', { class: 'victory-title' }, [
-        world === 2 ? `Rock ${level} Cleared` : `Quest Level ${level} Completed`,
+        world === 2 ? `Rock ${level} Cleared` : world === 3 ? `Guardian ${level} Loved` : `Quest Level ${level} Completed`,
       ]),
       el('p', { class: 'victory-room' }, [`${dungeonName} cleared`]),
       crests,

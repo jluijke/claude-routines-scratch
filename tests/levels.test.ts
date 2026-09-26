@@ -85,7 +85,7 @@ describe('the second world in the save', () => {
 
 describe('the sky-ship', () => {
   const ship = SCREENS.filter((s) => s.level === 2)
-  const land = SCREENS.filter((s) => s.level !== 2)
+  const land = SCREENS.filter((s) => s.level === undefined)
 
   it('is a world of its own, with no ids in common with the land', () => {
     expect(ship.length).toBeGreaterThan(40)
@@ -205,5 +205,34 @@ describe('the future in pictures and words', () => {
     expect(flavourFor(1).noSuit).toBe('')
     expect(flavourFor(2).noSuit).toMatch(/space suit/)
     expect(flavourFor(2).foodGateKind).toMatch(/battery/i)
+  })
+})
+
+describe('the city', () => {
+  const city = SCREENS.filter((s) => s.level === 3)
+
+  it('is a world of its own, with no ids in common with the others', () => {
+    expect(city.length).toBeGreaterThan(30)
+    for (const s of city) expect(levelOfScreen(s.id)).toBe(3)
+    expect(START_SCREENS[3]).toBe('nyc-washington-square')
+  })
+
+  it('lays out on its own grid from the square, and never touches the others', () => {
+    const { cells, conflicts } = overworldLayout(START_SCREENS[3])
+    expect(conflicts).toEqual([])
+    expect(cells.size).toBeGreaterThan(20)
+    for (const id of cells.keys()) expect(screenById(id)?.level).toBe(3)
+    const taken = new Set<string>()
+    for (const at of cells.values()) {
+      const key = `${at.x},${at.y}`
+      expect(taken.has(key)).toBe(false)
+      taken.add(key)
+    }
+    for (const id of overworldLayout(START_SCREENS[2]).cells.keys()) expect(screenById(id)?.level).toBe(2)
+  })
+
+  it('starts him with a knife on a bench, the way the land started him with a sword', () => {
+    const square = screenById('nyc-washington-square')
+    expect(square?.pickup?.item).toBe('woodenSword')
   })
 })
