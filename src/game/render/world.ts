@@ -24,6 +24,7 @@ export type Theme =
   | 'park'
   | 'platform'
   | 'train'
+  | 'bodega'
 
 /** The three looks of Level 2. Same tiles underneath, drawn as steel and stone. */
 const FUTURE_THEMES: readonly Theme[] = ['ship', 'rock', 'airlock']

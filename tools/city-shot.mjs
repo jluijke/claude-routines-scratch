@@ -38,7 +38,7 @@ const shots = await page.evaluate(async ({ scale }) => {
       }
     }
   }
-  const HERO = { 'nyc-washington-square': [3, 7], 'nyc-avenue-a': [5, 2], 'nyc-bleecker': [6, 3], 'nyc-west-4th': [7, 4], 'nyc-a-train': [4, 3] }
+  const HERO = { 'nyc-washington-square': [3, 7], 'nyc-avenue-a': [5, 2], 'nyc-bleecker': [6, 3], 'nyc-west-4th': [7, 2], 'nyc-a-train': [4, 4], 'nyc-bodega': [6, 6] }
   const out = []
   for (const screen of SAMPLE_CITY) {
     const canvas = document.createElement('canvas')

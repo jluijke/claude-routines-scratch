@@ -26,6 +26,8 @@ export const PALETTE: Record<string, string> = {
   B: '#27488f', // dark blue
   p: '#9a55d1', // purple
   P: '#5e2f8a', // dark purple — the one car in the city that is not a cab
+  i: '#ff6fb5', // pink — love
+  I: '#c2357a', // deep pink
   o: '#e2883a', // orange
   y: '#e8bb2c', // gold
   Y: '#a9821a', // dark gold
@@ -2128,6 +2130,379 @@ const PIGEON_B = S([
   '................',
 ])
 
+
+/**
+ * The box hammer, held out in front of the hero the way the sword is. A
+ * short wooden handle and a head the size of his own; every hit shakes the
+ * screen, so it has to look like it could.
+ */
+const HAMMER_RIGHT = defineSprite(16, 10, [
+  '..........kkkkkk',
+  '.........kmmmmMk',
+  '.........kmwmmMk',
+  'kkkkkkkkkkmmmmMk',
+  'knvvvvvvvkmmmmMk',
+  'kkkkkkkkkkmmmmMk',
+  '.........kmmmmMk',
+  '.........kMMMMMk',
+  '..........kkkkkk',
+  '................',
+])
+
+const HAMMER_DOWN = defineSprite(8, 16, [
+  '..kkkk..',
+  '..knnk..',
+  '..kvnk..',
+  '..kvnk..',
+  '..kvnk..',
+  '..kvnk..',
+  '..kvnk..',
+  '..kvnk..',
+  '..kvnk..',
+  'kkkkkkkk',
+  'kmmmmmmk',
+  'kmwmmmmk',
+  'kmmmmmmk',
+  'kMMMMMMk',
+  'kkkkkkkk',
+  '........',
+])
+
+/** The box hammer as it sits in the HUD and on a shop shelf. */
+const BOX_HAMMER_ICON = S([
+  '................',
+  '......kkkkkkk...',
+  '.....kmmmmmmMk..',
+  '.....kmwmmmmMk..',
+  '.....kmmmmmmMk..',
+  '.....kMMMMMMMk..',
+  '......kkkknkk...',
+  '.........knk....',
+  '........kvnk....',
+  '........kvnk....',
+  '.......kvnk.....',
+  '.......kvnk.....',
+  '......kvnk......',
+  '......kkk.......',
+  '................',
+  '................',
+])
+
+/**
+ * The people. This level's monsters are not monsters: they are people in
+ * black and grey, who want him out of the way. A hood, a suit, a cap and a
+ * tracksuit — each one plain enough that he is the only colour on the
+ * screen, which is the point.
+ */
+const HOODIE_A = S([
+  '................',
+  '.....kkkkkk.....',
+  '....kzzzzzzk....',
+  '...kzzsssszzk...',
+  '...kzsksskszk...',
+  '...kzsssssszk...',
+  '....kzzssszk....',
+  '....kzzzzzzk....',
+  '...kzzzzzzzzk...',
+  '..kzkzzzzzzkzk..',
+  '..kzkzzzzzzkzk..',
+  '...kkzzzzzzkk...',
+  '....kzzzzzzk....',
+  '....kkkkkkkk....',
+  '....kzzkkzzk....',
+  '....kkk..kkk....',
+])
+
+const HOODIE_B = S([
+  '................',
+  '.....kkkkkk.....',
+  '....kzzzzzzk....',
+  '...kzzsssszzk...',
+  '...kzsksskszk...',
+  '...kzsssssszk...',
+  '....kzzssszk....',
+  '....kzzzzzzk....',
+  '...kzzzzzzzzk...',
+  '..kzkzzzzzzkzk..',
+  '..kzkzzzzzzkzk..',
+  '...kkzzzzzzkk...',
+  '....kzzzzzzk....',
+  '....kkkkkkkk....',
+  '...kzzk..kzzk...',
+  '...kkk....kkk...',
+])
+
+const SUIT_A = S([
+  '................',
+  '.....kkkkkk.....',
+  '....khhhhhhk....',
+  '....kssssssk....',
+  '....kskssksk....',
+  '....kssssssk....',
+  '.....kssssk.....',
+  '....kMMwwMMk....',
+  '...kMMMwkMMMk...',
+  '..kMkMMkkMMkMk..',
+  '..kMkMMwwMMkMk..',
+  '...kkMMMMMMkk...',
+  '....kMMMMMMk....',
+  '....kkkkkkkk....',
+  '....kMMkkMMk....',
+  '....kkk..kkk....',
+])
+
+const SUIT_B = S([
+  '................',
+  '.....kkkkkk.....',
+  '....khhhhhhk....',
+  '....kssssssk....',
+  '....kskssksk....',
+  '....kssssssk....',
+  '.....kssssk.....',
+  '....kMMwwMMk....',
+  '...kMMMwkMMMk...',
+  '..kMkMMkkMMkMk..',
+  '..kMkMMwwMMkMk..',
+  '...kkMMMMMMkk...',
+  '....kMMMMMMk....',
+  '....kkkkkkkk....',
+  '...kMMk..kMMk...',
+  '...kkk....kkk...',
+])
+
+const CAP_A = S([
+  '................',
+  '.....kkkkkkk....',
+  '....kkkkkkkkkk..',
+  '....kssssssk....',
+  '....kskssksk....',
+  '....kssssssk....',
+  '.....kssssk.....',
+  '....kMMMMMMk....',
+  '...kMkMMMMkMk...',
+  '..kMkkMMMMkkMk..',
+  '..kMkkMMMMkkMk..',
+  '...kkkMMMMkkk...',
+  '....kMMMMMMk....',
+  '....kkkkkkkk....',
+  '....kMMkkMMk....',
+  '....kkk..kkk....',
+])
+
+const CAP_B = S([
+  '................',
+  '.....kkkkkkk....',
+  '....kkkkkkkkkk..',
+  '....kssssssk....',
+  '....kskssksk....',
+  '....kssssssk....',
+  '.....kssssk.....',
+  '....kMMMMMMk....',
+  '...kMkMMMMkMk...',
+  '..kMkkMMMMkkMk..',
+  '..kMkkMMMMkkMk..',
+  '...kkkMMMMkkk...',
+  '....kMMMMMMk....',
+  '....kkkkkkkk....',
+  '...kMMk..kMMk...',
+  '...kkk....kkk...',
+])
+
+/** A hydrant with its cap blown off: the column of water, in two frames. */
+const SPRAY_A = S([
+  '.......c........',
+  '......cwc.......',
+  '.....cwwwc..c...',
+  '....cwwwwwc.w...',
+  '...bcwwwwwcb....',
+  '..b.cwwwwwc..c..',
+  '....cwwwwwc.....',
+  '.c...cwwwc......',
+  '.....cwwwc...b..',
+  '.....cwwwc......',
+  '..c..cwwwc.c....',
+  '.....cwwwc......',
+  '.....cwwwc......',
+  '....bcwwwcb.....',
+  '.....cwwwc......',
+  '................',
+])
+
+const SPRAY_B = S([
+  '......c.........',
+  '.....cwc....c...',
+  '....cwwwc.......',
+  '...cwwwwwc..b...',
+  '..bcwwwwwcb.....',
+  '....cwwwwwc.c...',
+  '.c..cwwwwwc.....',
+  '....cwwwwwc.....',
+  '.....cwwwc..c...',
+  '..b..cwwwc......',
+  '.....cwwwc.b....',
+  '.....cwwwc......',
+  '.c...cwwwc......',
+  '....bcwwwcb.....',
+  '.....cwwwc......',
+  '................',
+])
+
+
+/**
+ * The three guardians of the city. Drawn as caricatures — the hair, the tie,
+ * the suit, the mouth — and beaten by nothing sharp: only love bombs touch
+ * them, and enough of it turns them pink, hugging, and gone. A knife,
+ * a hammer or a bullet bounces off with "not like that".
+ */
+const GUARDIAN_GOLD = defineSprite(32, 32, [
+  '................................',
+  '...................kyyyyyyk.....',
+  '.......kkkkkkkkkkkkyywwwyyk.....',
+  '.......kyyyyyyyyyyyyyyyyYk......',
+  '.....kyyywwwwwwyyyyyyyyyk.......',
+  '....kyyyyyyyyyyyyyyyyyyyk.......',
+  '....kyyyyyYYYYyyyyYYYYyyk.......',
+  '.....kyyysssssssssssssssk.......',
+  '.......kssskwsssssskwsssk.......',
+  '.......kssskksssssskksssk.......',
+  '.......ksoossssssssssoosk.......',
+  '.......ksoossRssssRssoosk.......',
+  '.......kssssssRRRRssssssk.......',
+  '.......kssssssssssssssssk.......',
+  '.......kssssssssssssssssk.......',
+  '.......kkkkkksssssskkkkkk.......',
+  '............kssssssk............',
+  '.....kkkkkkkkkkkkkkkkkkkkkk.....',
+  '.....kBBBBBkwwwwwwwwkBBBBBk.....',
+  '..kkkkBBBBBkBwwrrwwBkBBBBBkkkk..',
+  '..kBBkBBBBBkBBwrrwBBkBBBBBkBBk..',
+  '..kBBkBBBBBkBBrrrrBBkBBBBBkBBk..',
+  '..kBBkBBBBBkBBrrrrBBkBBBBBkBBk..',
+  '..kBBkBBBBBBBBrrrrBBBBBBBBkBBk..',
+  '..kBBkBBBBBBBBrrrrBBBBBBBBkBBk..',
+  '..kBBkBBBBBBBBrrrrBBBBBBBBkBBk..',
+  '..kBBkBBBBBBBBrrrrBBBBBBBBkBBk..',
+  '..ksskBBBBBBBBrrrrBBBBBBBBkssk..',
+  '...sskBBBBBBBBrrrrBBBBBBBBkss...',
+  '.....kkkkkkkkkkrrkkkkkkkkkk.....',
+  '........kzzzzzkrrkzzzzzk........',
+  '................................',
+])
+
+const GUARDIAN_GREY = defineSprite(32, 32, [
+  '................................',
+  '................................',
+  '.......kkkkkkkkkkkkkkkkkk.......',
+  '.......kxxssssssssssssxxk.......',
+  '.......kxxxxxxxxxxxxxxxxk.......',
+  '.......kxxssssssssssssxxk.......',
+  '.......kxxkkkksssskkkkxxk.......',
+  '.......kxxssskssssksssxxk.......',
+  '.......kssskwsssssskwsssk.......',
+  '.......kssskksssssskksssk.......',
+  '.......kssssssssssssssssk.......',
+  '.......kssssssssssssssssk.......',
+  '.......ksssssRRRRRRsssssk.......',
+  '.......kssssssssssssssssk.......',
+  '.......kssssssssssssssssk.......',
+  '.......kkkkkksssssskkkkkk.......',
+  '............kssssssk............',
+  '.....kkkkkkkkkkkkkkkkkkkkkk.....',
+  '.....kzzzzzkwwwwwwwwkzzzzzk.....',
+  '..kkkkzzzzzkzwwbbwwzkzzzzzkkkk..',
+  '..kzzkzzzzzkzzwbbwzzkzzzzzkzzk..',
+  '..kzzkzzzzzkzzbbbbzzkzzzzzkzzk..',
+  '..kzzkzzzzzkzzbbbbzzkzzzzzkzzk..',
+  '..kzzkzzzzzzzzbbbbzzzzzzzzkzzk..',
+  '..kzzkzzzzzzzzbbbbzzzzzzzzkzzk..',
+  '..kzzkzzzzzzzzbbbbzzzzzzzzkzzk..',
+  '..kzzkzzzzzzzzbbbbzzzzzzzzkzzk..',
+  '..ksskzzzzzzzzbbbbzzzzzzzzkssk..',
+  '...sskzzzzzzzzzbbzzzzzzzzzkss...',
+  '.....kkkkkkkkkkkkkkkkkkkkkk.....',
+  '........kzzzzzk..kzzzzzk........',
+  '................................',
+])
+
+const GUARDIAN_DARK = defineSprite(32, 32, [
+  '................................',
+  '................................',
+  '.......kkkkkkkkkkkkkkkkkk.......',
+  '.......kzzzzzzzkzzzzzzzzk.......',
+  '.......kzzMMMMzkzzzzzzzzk.......',
+  '.......kzzzzzzzkzzzzzzzzk.......',
+  '.......kzzzzzzzkzzzzzzzzk.......',
+  '.......kzsssssssssssssszk.......',
+  '.......kzsskwsssssskwsszk.......',
+  '.......kssskksssssskksssk.......',
+  '.......kssssssssssssssssk.......',
+  '.......kssssRssssssRssssk.......',
+  '.......ksssssRRRRRRsssssk.......',
+  '.......kssssssssssssssssk.......',
+  '.......kssssssssssssssssk.......',
+  '.......kkkkkksssssskkkkkk.......',
+  '............kssssssk............',
+  '.....kkkkkkkkkkkkkkkkkkkkkk.....',
+  '.....kzzzzzkwwwwwwwwkzzzzzk.....',
+  '..kkkkzzzzzkzwwrrwwzkzzzzzkkkk..',
+  '..kzzkzzzzzkzzwrrwzzkzzzzzkzzk..',
+  '..kzzkzzzzzkzzrrrrzzkzzzzzkzzk..',
+  '..kzzkzzzzzkzzrrrrzzkzzzzzkzzk..',
+  '..kzzkzzzzzzzzrrrrzzzzzzzzkzzk..',
+  '..kzzkzzzzzzzzrrrrzzzzzzzzkzzk..',
+  '..kzzkzzzzzzzzrrrrzzzzzzzzkzzk..',
+  '..kzzkzzzzzzzzrrrrzzzzzzzzkzzk..',
+  '..ksskzzzzzzzzrrrrzzzzzzzzkssk..',
+  '...sskzzzzzzzzzrrzzzzzzzzzkss...',
+  '.....kkkkkkkkkkkkkkkkkkkkkk.....',
+  '........kzzzzzk..kzzzzzk........',
+  '................................',
+])
+
+
+/** A love bomb: a heart with a fuse, bought by the dozen at the florist. */
+const LOVE_BOMB = S([
+  '.........k......',
+  '........kyk.....',
+  '.........k......',
+  '...kkkk..kkkk...',
+  '..kiiiikkiiiik..',
+  '.kiwiiiiiiiiiik.',
+  '.kiiiiiiiiiiiik.',
+  '.kIiiiiiiiiiiIk.',
+  '..kIiiiiiiiiIk..',
+  '...kIiiiiiiIk...',
+  '....kIiiiiIk....',
+  '.....kIiiIk.....',
+  '......kIIk......',
+  '.......kk.......',
+  '................',
+  '................',
+])
+
+/** What comes off a guardian who is being loved: little hearts, two sizes. */
+const HEART_BIG = S8([
+  '.kk.kk..',
+  'kiikiik.',
+  'kiiiiik.',
+  '.kiiik..',
+  '..kik...',
+  '...k....',
+  '........',
+  '........',
+])
+
+const HEART_SMALL = S8([
+  '........',
+  '.k.k....',
+  'kikik...',
+  '.kik....',
+  '..k.....',
+  '........',
+  '........',
+  '........',
+])
+
 export const SPRITES = {
   ...buildVariants(),
   shooterA: SHOOTER_A,
@@ -2244,6 +2619,25 @@ export const SPRITES = {
   purpleCarLeft: mirror(PURPLE_CAR),
   pigeonA: PIGEON_A,
   pigeonB: PIGEON_B,
+  hammerRight: HAMMER_RIGHT,
+  hammerLeft: mirror(HAMMER_RIGHT),
+  hammerDown: HAMMER_DOWN,
+  hammerUp: flipVertical(HAMMER_DOWN),
+  boxHammer: BOX_HAMMER_ICON,
+  hoodieA: HOODIE_A,
+  hoodieB: HOODIE_B,
+  suitA: SUIT_A,
+  suitB: SUIT_B,
+  capA: CAP_A,
+  capB: CAP_B,
+  sprayA: SPRAY_A,
+  sprayB: SPRAY_B,
+  guardianGold: GUARDIAN_GOLD,
+  guardianGrey: GUARDIAN_GREY,
+  guardianDark: GUARDIAN_DARK,
+  loveBomb: LOVE_BOMB,
+  heartBig: HEART_BIG,
+  heartSmall: HEART_SMALL,
 } as const
 
 export type SpriteName = keyof typeof SPRITES

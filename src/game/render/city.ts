@@ -24,9 +24,9 @@ import { TILE, type TileChar } from '../world/tiles'
 import type { Screen } from '../world/screens'
 import { bush, caveMouth, cliff, tileHash, tree, water, type Palette, type Theme } from './world'
 
-export type CityTheme = 'street' | 'park' | 'platform' | 'train'
+export type CityTheme = 'street' | 'park' | 'platform' | 'train' | 'bodega'
 
-const CITY_THEMES: readonly Theme[] = ['street', 'park', 'platform', 'train']
+const CITY_THEMES: readonly Theme[] = ['street', 'park', 'platform', 'train', 'bodega']
 
 export function isCityTheme(theme: Theme): theme is CityTheme {
   return CITY_THEMES.includes(theme)
@@ -113,11 +113,31 @@ const TRAIN: Palette = {
   trunk: '#d9dbd7', // the poles
 }
 
+const BODEGA: Palette = {
+  ground: '#d8d3c4', // linoleum, the light square
+  groundSpeckle: '#b9b3a3', // the dark square
+  wall: '#3f6b5a', // the painted wall, bodega green
+  wallLight: '#5a8a76',
+  wallDark: '#24403a',
+  rock: '#8a6a44', // shelving
+  rockLight: '#b08a5a',
+  rockDark: '#4d3a22',
+  water: '#c9e6f2', // the drinks fridge, lit
+  waterLight: '#eaf6fb',
+  path: '#e8bb2c', // the counter
+  pathEdge: '#a9821a',
+  leaf: '#d5433f', // the awning stripe over the door
+  leafLight: '#f6f3e7',
+  leafDark: '#8f2320',
+  trunk: '#5a3a1b',
+}
+
 export const CITY_PALETTES: Record<CityTheme, Palette> = {
   street: STREET,
   park: PARK,
   platform: PLATFORM,
   train: TRAIN,
+  bodega: BODEGA,
 }
 
 const at = (screen: Screen, col: number, row: number): string =>
@@ -145,6 +165,8 @@ export function drawCityTile(
       return platformTile(ctx, char, x, y, col, row, p, frame, screen)
     case 'train':
       return trainTile(ctx, char, x, y, col, row, p, frame, screen)
+    case 'bodega':
+      return bodegaTile(ctx, char, x, y, col, row, p, frame, screen)
     default:
       return
   }
@@ -1041,6 +1063,10 @@ function tracks(
  * A subway car standing at the platform, seen from the side. Stainless with a
  * dark window band, a door every fourth tile, the route bullet by the door.
  * Walkable — 'B' — so stepping onto it is stepping aboard.
+ *
+ * Two rows of 'B' stacked make one car two tiles tall: roof and windows on
+ * the upper row, the fluted body and the wheels on the lower. One row alone
+ * still draws a whole (short) car, for a siding.
  */
 function trainCar(
   ctx: CanvasRenderingContext2D,
@@ -1052,49 +1078,85 @@ function trainCar(
   frame: number,
   screen: Screen,
 ): void {
-  ctx.fillStyle = '#12131a'
-  ctx.fillRect(x, y, TILE, TILE)
-  ctx.fillStyle = '#c6c8c4'
-  ctx.fillRect(x, y + 1, TILE, 14)
-  ctx.fillStyle = '#e3e5e1'
-  ctx.fillRect(x, y + 1, TILE, 1)
-  ctx.fillStyle = '#767974'
-  ctx.fillRect(x, y + 13, TILE, 2)
-  // Corrugation: the fluted lower body.
-  ctx.fillStyle = '#b0b2ae'
-  for (let i = 1; i < TILE; i += 2) ctx.fillRect(x + i, y + 9, 1, 4)
-
+  const upper = at(screen, col, row + 1) === 'B'
+  const lower = at(screen, col, row - 1) === 'B'
   const left = at(screen, col - 1, row)
   const right = at(screen, col + 1, row)
   const isEnd = left !== 'B' || right !== 'B'
-  const door = !isEnd && (col + Math.floor(row / 2)) % 4 === 1
-  if (door) {
-    ctx.fillStyle = '#5a5d59'
-    ctx.fillRect(x + 2, y + 2, 12, 13)
-    ctx.fillStyle = '#26304a'
-    ctx.fillRect(x + 3, y + 3, 4, 5)
-    ctx.fillRect(x + 9, y + 3, 4, 5)
-    ctx.fillStyle = '#12131a'
-    ctx.fillRect(x + 7, y + 2, 2, 13)
-    // The route bullet beside the door.
-    ctx.fillStyle = p.leaf
-    ctx.fillRect(x + 12, y + 9, 3, 3)
+  const door = !isEnd && (col + 1) % 4 === 1
+
+  ctx.fillStyle = '#12131a'
+  ctx.fillRect(x, y, TILE, TILE)
+  ctx.fillStyle = '#c6c8c4'
+  ctx.fillRect(x, upper ? y + 2 : y + 1, TILE, lower ? 13 : 14)
+
+  if (upper) {
+    // The roof line, then the window band.
+    ctx.fillStyle = '#e3e5e1'
+    ctx.fillRect(x, y + 2, TILE, 1)
+    ctx.fillStyle = '#8f928e'
+    ctx.fillRect(x, y + 1, TILE, 1)
+    if (door) {
+      ctx.fillStyle = '#5a5d59'
+      ctx.fillRect(x + 2, y + 4, 12, 12)
+      ctx.fillStyle = '#26304a'
+      ctx.fillRect(x + 3, y + 6, 4, 8)
+      ctx.fillRect(x + 9, y + 6, 4, 8)
+      ctx.fillStyle = '#12131a'
+      ctx.fillRect(x + 7, y + 4, 2, 12)
+    } else {
+      ctx.fillStyle = '#26304a'
+      ctx.fillRect(x + 2, y + 5, 5, 8)
+      ctx.fillRect(x + 9, y + 5, 5, 8)
+      ctx.fillStyle = '#4a5f8f'
+      ctx.fillRect(x + 3, y + 6, 2, 1)
+      ctx.fillRect(x + 10, y + 6, 2, 1)
+    }
+    if (isEnd) {
+      ctx.fillStyle = '#12131a'
+      ctx.fillRect(left !== 'B' ? x : x + 14, y + 1, 2, 15)
+    }
     return
   }
-  // Windows.
-  ctx.fillStyle = '#26304a'
-  ctx.fillRect(x + 2, y + 3, 5, 5)
-  ctx.fillRect(x + 9, y + 3, 5, 5)
-  ctx.fillStyle = '#4a5f8f'
-  ctx.fillRect(x + 3, y + 4, 2, 1)
-  ctx.fillRect(x + 10, y + 4, 2, 1)
-  if (isEnd) {
-    // The end of the car: a coupling and the marker lights.
+
+  // The lower half (or the whole of a one-row car).
+  const bodyTop = lower ? y : y + 1
+  if (!lower) {
+    ctx.fillStyle = '#e3e5e1'
+    ctx.fillRect(x, y + 1, TILE, 1)
+  }
+  ctx.fillStyle = '#767974'
+  ctx.fillRect(x, y + 13, TILE, 2)
+  ctx.fillStyle = '#b0b2ae'
+  for (let i = 1; i < TILE; i += 2) ctx.fillRect(x + i, lower ? y + 4 : y + 9, 1, lower ? 9 : 4)
+  if (door) {
+    ctx.fillStyle = '#5a5d59'
+    ctx.fillRect(x + 2, bodyTop, 12, lower ? 11 : 13)
+    if (!lower) {
+      ctx.fillStyle = '#26304a'
+      ctx.fillRect(x + 3, y + 3, 4, 5)
+      ctx.fillRect(x + 9, y + 3, 4, 5)
+    }
     ctx.fillStyle = '#12131a'
-    ctx.fillRect(left !== 'B' ? x : x + 14, y + 2, 2, 12)
+    ctx.fillRect(x + 7, bodyTop, 2, lower ? 11 : 13)
+    // The route bullet beside the door.
+    ctx.fillStyle = p.leaf
+    ctx.fillRect(x + 12, y + (lower ? 2 : 9), 3, 3)
+  } else if (!lower) {
+    ctx.fillStyle = '#26304a'
+    ctx.fillRect(x + 2, y + 3, 5, 5)
+    ctx.fillRect(x + 9, y + 3, 5, 5)
+  }
+  // The wheels, under the body.
+  ctx.fillStyle = '#12131a'
+  ctx.fillRect(x + 2, y + 13, 4, 3)
+  ctx.fillRect(x + 10, y + 13, 4, 3)
+  if (isEnd) {
+    ctx.fillStyle = '#12131a'
+    ctx.fillRect(left !== 'B' ? x : x + 14, bodyTop, 2, 15 - (bodyTop - y))
     const blink = Math.floor(frame / 20) % 2 === 0
     ctx.fillStyle = blink ? '#ff5a4a' : '#8f2320'
-    ctx.fillRect(left !== 'B' ? x + 2 : x + 12, y + 10, 2, 2)
+    ctx.fillRect(left !== 'B' ? x + 2 : x + 12, y + 8, 2, 2)
   }
 }
 
@@ -1377,4 +1439,233 @@ function endDoor(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette
   ctx.fillRect(x + 5, y + 3, 6, 5)
   ctx.fillStyle = '#12131a'
   ctx.fillRect(x + 10, y + 10, 1, 2)
+}
+
+// ======================================================================
+// The corner shop
+// ======================================================================
+
+/**
+ * A bodega, from inside. He shops by walking: bump a shelf and the thing on
+ * it is offered, bump the counter to pay. The cat is on the counter. The
+ * fridge hums at the back. There is a deli slicer somewhere.
+ */
+function bodegaTile(
+  ctx: CanvasRenderingContext2D,
+  char: TileChar,
+  x: number,
+  y: number,
+  col: number,
+  row: number,
+  p: Palette,
+  frame: number,
+  screen: Screen,
+): void {
+  switch (char) {
+    case '.':
+      return linoleum(ctx, x, y, col, row, p)
+    case '#':
+    case 'T':
+      return shopWall(ctx, x, y, col, row, p, screen)
+    case 'R':
+      linoleum(ctx, x, y, col, row, p)
+      return shelfUnit(ctx, x, y, col, row, p, screen)
+    case '*':
+      linoleum(ctx, x, y, col, row, p)
+      return counter(ctx, x, y, col, row, p, screen)
+    case '~':
+      return fridge(ctx, x, y, col, row, p, frame, screen)
+    case 'H':
+      return shopDoorInside(ctx, x, y, p)
+    case ',':
+      linoleum(ctx, x, y, col, row, p)
+      return newspaperStack(ctx, x, y)
+    case 'S':
+      linoleum(ctx, x, y, col, row, p)
+      ctx.fillStyle = '#b53a36'
+      ctx.fillRect(x, y + 2, TILE, 12)
+      ctx.fillStyle = '#d5433f'
+      ctx.fillRect(x, y + 3, TILE, 10)
+      return
+    case 'B':
+    case '=':
+    case 'A':
+      return linoleum(ctx, x, y, col, row, p)
+    case 'D':
+    case 'C':
+      return shopDoorInside(ctx, x, y, p)
+    case 'X':
+      return boardedDoor(ctx, x, y, p)
+    case 'p':
+      linoleum(ctx, x, y, col, row, p)
+      return newspaperStack(ctx, x, y)
+    case '^':
+      return shopDoorInside(ctx, x, y, p)
+  }
+}
+
+function linoleum(ctx: CanvasRenderingContext2D, x: number, y: number, col: number, row: number, p: Palette): void {
+  ctx.fillStyle = (col + row) % 2 === 0 ? p.ground : p.groundSpeckle
+  ctx.fillRect(x, y, TILE, TILE)
+  ctx.fillStyle = (col + row) % 2 === 0 ? p.groundSpeckle : p.ground
+  ctx.fillRect(x + 4, y + 11, 1, 1)
+}
+
+/** Painted wall, with a high shelf of stock along the top course. */
+function shopWall(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  col: number,
+  row: number,
+  p: Palette,
+  screen: Screen,
+): void {
+  ctx.fillStyle = p.wall
+  ctx.fillRect(x, y, TILE, TILE)
+  ctx.fillStyle = p.wallDark
+  ctx.fillRect(x, y + 15, TILE, 1)
+  // The top course facing the floor carries a shelf of goods.
+  const facing = !'#T'.includes(at(screen, col, row + 1)) && row < 2
+  if (!facing) {
+    ctx.fillStyle = p.wallLight
+    ctx.fillRect(x + 2, y + 3, 1, 1)
+    return
+  }
+  ctx.fillStyle = p.rockDark
+  ctx.fillRect(x, y + 12, TILE, 2)
+  goods(ctx, x, y + 4, tileHash(screen, col, row))
+}
+
+/** Cans, boxes and bottles in a row, the colours mixed by the hash. */
+function goods(ctx: CanvasRenderingContext2D, x: number, y: number, h: number): void {
+  const colours = ['#d5433f', '#3f74d6', '#e8bb2c', '#2f7a3c', '#e2883a', '#f6f3e7', '#9a55d1']
+  for (let i = 0; i < 4; i++) {
+    const c = colours[(h >> (i * 3)) % colours.length] as string
+    const tall = ((h >> (i + 7)) & 1) === 1
+    ctx.fillStyle = '#12131a'
+    ctx.fillRect(x + 1 + i * 4, y + (tall ? 0 : 2), 3, tall ? 8 : 6)
+    ctx.fillStyle = c
+    ctx.fillRect(x + 2 + i * 4, y + (tall ? 1 : 3), 1, tall ? 6 : 4)
+  }
+}
+
+/** A free-standing shelf unit, two shelves of goods, solid. */
+function shelfUnit(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  col: number,
+  row: number,
+  p: Palette,
+  screen: Screen,
+): void {
+  ctx.fillStyle = p.rockDark
+  ctx.fillRect(x, y, TILE, TILE)
+  ctx.fillStyle = p.rock
+  ctx.fillRect(x + 1, y + 1, 14, 14)
+  ctx.fillStyle = p.rockDark
+  ctx.fillRect(x + 1, y + 7, 14, 1)
+  ctx.fillRect(x + 1, y + 14, 14, 1)
+  const h = tileHash(screen, col, row)
+  goods(ctx, x, y - 1, h)
+  goods(ctx, x, y + 6, h >> 5)
+}
+
+/** The counter: yellow laminate, the register, and the lottery sign. */
+function counter(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  col: number,
+  row: number,
+  p: Palette,
+  screen: Screen,
+): void {
+  ctx.fillStyle = p.pathEdge
+  ctx.fillRect(x, y + 4, TILE, 12)
+  ctx.fillStyle = p.path
+  ctx.fillRect(x, y + 4, TILE, 10)
+  ctx.fillStyle = '#f7d968'
+  ctx.fillRect(x, y + 4, TILE, 1)
+  const first = at(screen, col - 1, row) !== '*'
+  if (first) {
+    // The register.
+    ctx.fillStyle = '#12131a'
+    ctx.fillRect(x + 3, y, 9, 6)
+    ctx.fillStyle = '#c8d0da'
+    ctx.fillRect(x + 4, y + 1, 7, 4)
+    ctx.fillStyle = '#3fb85f'
+    ctx.fillRect(x + 5, y + 2, 3, 1)
+  } else {
+    // A jar of something on the counter.
+    ctx.fillStyle = '#12131a'
+    ctx.fillRect(x + 6, y + 0, 5, 5)
+    ctx.fillStyle = '#e2883a'
+    ctx.fillRect(x + 7, y + 1, 3, 3)
+  }
+}
+
+/** The drinks fridge, lit from inside, the bottles in rows. */
+function fridge(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  col: number,
+  row: number,
+  p: Palette,
+  frame: number,
+  screen: Screen,
+): void {
+  ctx.fillStyle = '#12131a'
+  ctx.fillRect(x, y, TILE, TILE)
+  const hum = Math.floor(frame / 45) % 7 === 0
+  ctx.fillStyle = hum ? p.waterLight : p.water
+  ctx.fillRect(x + 1, y + 1, 14, 14)
+  ctx.fillStyle = '#9fc7d8'
+  ctx.fillRect(x + 1, y + 7, 14, 1)
+  ctx.fillRect(x + 1, y + 14, 14, 1)
+  const h = tileHash(screen, col, row)
+  const colours = ['#d5433f', '#3f74d6', '#e8bb2c', '#2f7a3c', '#f6f3e7']
+  for (let r = 0; r < 2; r++) {
+    for (let i = 0; i < 4; i++) {
+      ctx.fillStyle = '#12131a'
+      ctx.fillRect(x + 2 + i * 3, y + 2 + r * 7, 2, 5)
+      ctx.fillStyle = colours[(h >> (i + r * 4)) % colours.length] as string
+      ctx.fillRect(x + 2 + i * 3, y + 3 + r * 7, 2, 3)
+    }
+  }
+  // The door handle.
+  ctx.fillStyle = '#c8d0da'
+  ctx.fillRect(x + 14, y + 5, 1, 6)
+}
+
+/** The way out, from inside: glass door, the bell above it, the street beyond. */
+function shopDoorInside(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
+  ctx.fillStyle = p.wall
+  ctx.fillRect(x, y, TILE, TILE)
+  ctx.fillStyle = '#12131a'
+  ctx.fillRect(x + 2, y + 1, 12, 15)
+  ctx.fillStyle = '#b7b3a8'
+  ctx.fillRect(x + 3, y + 2, 10, 13)
+  ctx.fillStyle = '#7d9cc2'
+  ctx.fillRect(x + 3, y + 2, 10, 5)
+  ctx.fillStyle = '#12131a'
+  ctx.fillRect(x + 8, y + 2, 1, 13)
+  ctx.fillStyle = '#e8bb2c'
+  ctx.fillRect(x + 7, y + 0, 2, 1)
+  ctx.fillRect(x + 6, y + 9, 1, 2)
+}
+
+/** Today's papers, in a stack by the door. */
+function newspaperStack(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+  ctx.fillStyle = '#12131a'
+  ctx.fillRect(x + 2, y + 6, 12, 9)
+  ctx.fillStyle = '#e8e4d8'
+  ctx.fillRect(x + 3, y + 7, 10, 7)
+  ctx.fillStyle = '#9e9a8f'
+  ctx.fillRect(x + 3, y + 9, 10, 1)
+  ctx.fillRect(x + 3, y + 11, 10, 1)
+  ctx.fillStyle = '#12131a'
+  ctx.fillRect(x + 4, y + 8, 4, 1)
 }

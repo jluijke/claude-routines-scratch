@@ -16,6 +16,7 @@ const STREET = { setting: 'street' } as const
 const PARK = { setting: 'park' } as const
 const PLATFORM = { setting: 'platform' } as const
 const TRAIN = { setting: 'train' } as const
+const BODEGA = { setting: 'bodega' } as const
 
 export const SAMPLE_CITY: Screen[] = [
   {
@@ -108,15 +109,15 @@ export const SAMPLE_CITY: Screen[] = [
     tidy: true,
     rows: [
       '################',
-      '################',
       '^..R.......R...H',
-      '...............,',
-      '...R.......R....',
+      '...R.......R...,',
       'SSSSSSSSSSSSSSSS',
       'C~~~~~~~~~~~~~~C',
-      'C~~~~~~~~~~~~~~C',
+      'CBBBBBBBBBBBBBBC',
       'CBBBBBBBBBBBBBBC',
       'C~~~~~~~~~~~~~~C',
+      'C~~~~~~~~~~~~~~C',
+      '################',
       '################',
     ],
     exits: {},
@@ -134,20 +135,46 @@ export const SAMPLE_CITY: Screen[] = [
     rows: [
       '###H###H###H####',
       'RRR.RRRR.RRRRRRR',
+      '................',
       '.......*........',
       'D..............D',
       '.......*........',
+      '................',
       'RRRR.RRRR.RRRRRR',
       '###H###H###H####',
-      '~~~~~~~~~~~~~~~~',
-      '~~~~~~~~~~~~~~~~',
       '~~~~~~~~~~~~~~~~',
       '~~~~~~~~~~~~~~~~',
     ],
     exits: {},
     props: [
-      { sprite: 'scribe', col: 12, row: 3, talk: 'Showtime! What time is it? SHOWTIME.' },
-      { sprite: 'catA', col: 2, row: 3 },
+      { sprite: 'scribe', col: 12, row: 4, talk: 'Showtime! What time is it? SHOWTIME.' },
+      { sprite: 'hoodieA', col: 2, row: 2 },
+      { sprite: 'capA', col: 13, row: 6 },
+    ],
+  },
+  {
+    id: 'nyc-bodega',
+    name: 'Ray\'s Deli & Grocery',
+    region: 'East Village',
+    ...BODEGA,
+    tidy: true,
+    rows: [
+      '################',
+      '#RRRR..RRRR..~~#',
+      '#..............#',
+      '#RRRR..RRRR....#',
+      '#..............#',
+      '#RRRR..RRRR.***#',
+      '#..............#',
+      '#,.............#',
+      '#..............#',
+      '#######H########',
+      '################',
+    ],
+    exits: {},
+    props: [
+      { sprite: 'scribe', col: 13, row: 4, talk: 'Bandages, firecrackers, sandwiches. Cat is not for sale.' },
+      { sprite: 'catA', col: 12, row: 5 },
     ],
   },
 ]

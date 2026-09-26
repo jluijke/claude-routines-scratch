@@ -89,7 +89,7 @@ export interface Portal {
  * everywhere — solid, water, bush, door — and the setting decides how each is
  * drawn: hull panels or rock spires, deck plating or crater dust.
  */
-export type Setting = 'ship' | 'rock' | 'airlock' | 'street' | 'park' | 'platform' | 'train'
+export type Setting = 'ship' | 'rock' | 'airlock' | 'street' | 'park' | 'platform' | 'train' | 'bodega'
 
 /**
  * A chest that opens simply for being found. Every other chest in the game is
