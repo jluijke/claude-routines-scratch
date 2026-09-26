@@ -11,8 +11,19 @@ import { SCREEN_COLS, SCREEN_ROWS, TILE, TILES, type TileChar } from '../world/t
 import type { Atlas } from './atlas'
 import type { Screen } from '../world/screens'
 import { gateById } from '../gates'
+import { CITY_PALETTES, drawCityOverlay, drawCityTile, isCityTheme } from './city'
 
-export type Theme = 'overworld' | 'dungeon' | 'cave' | 'ship' | 'rock' | 'airlock'
+export type Theme =
+  | 'overworld'
+  | 'dungeon'
+  | 'cave'
+  | 'ship'
+  | 'rock'
+  | 'airlock'
+  | 'street'
+  | 'park'
+  | 'platform'
+  | 'train'
 
 /** The three looks of Level 2. Same tiles underneath, drawn as steel and stone. */
 const FUTURE_THEMES: readonly Theme[] = ['ship', 'rock', 'airlock']
@@ -171,6 +182,7 @@ export const PALETTES: Record<Theme, Palette> = {
   ship: SHIP,
   rock: ROCK,
   airlock: AIRLOCK,
+  ...CITY_PALETTES,
 }
 
 const DUNGEON_REGIONS = ['Sunken Hall', 'Hollow Keep', 'Ember Vault', 'Sunless Spire']
@@ -232,6 +244,9 @@ export function drawTiles(
       drawTile(ctx, char, x, y, col, row, p, theme, frame, line, screen)
     }
   }
+  // Anything a city screen paints across several tiles — a station name in
+  // the mosaic band — goes on after the tiles, so no tile has to know it.
+  if (isCityTheme(theme)) drawCityOverlay(ctx, screen, theme, frame)
 }
 
 function drawTile(
@@ -247,6 +262,9 @@ function drawTile(
   line: string,
   screen: Screen,
 ): void {
+  // The city paints its own ground: a sidewalk, a platform edge, a car floor.
+  if (isCityTheme(theme)) return drawCityTile(ctx, char, x, y, col, row, p, theme, frame, line, screen)
+
   // Everything sits on ground, so a tile with holes in it reads correctly.
   ground(ctx, x, y, col, row, p, theme)
 
@@ -351,7 +369,7 @@ function drawFutureTile(
 
 // --- pieces ---------------------------------------------------------------
 
-function ground(
+export function ground(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -447,7 +465,7 @@ function ground(
   if ((col * 3 + row * 5) % 7 === 0) ctx.fillRect(x + 10, y + 11, 2, 2)
 }
 
-function path(
+export function path(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -489,7 +507,7 @@ const TREE_ROWS = [
   '.....ddddd......',
 ]
 
-function tree(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
+export function tree(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
   const colours: Record<string, string> = {
     d: p.leafDark,
     D: p.leaf,
@@ -529,7 +547,7 @@ function hidingTree(ctx: CanvasRenderingContext2D, x: number, y: number, p: Pale
  * these can be cut or burned and a tree cannot, and he has to be able to tell
  * at a glance.
  */
-function bush(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
+export function bush(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
   ctx.fillStyle = p.leafDark
   ctx.fillRect(x + 2, y + 5, 12, 9)
   ctx.fillRect(x + 4, y + 3, 8, 2)
@@ -544,7 +562,7 @@ function bush(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): 
 }
 
 /** Blocky tan cliff, drawn as part of a mass rather than a lone boulder. */
-function cliff(
+export function cliff(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -578,7 +596,7 @@ function cliff(
 }
 
 /** Dungeon brickwork: two courses of blocks with mortar between. */
-function block(
+export function block(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -607,7 +625,7 @@ function block(
 }
 
 /** Same brick, visibly split — worth spending a bomb on. */
-function crackedWall(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
+export function crackedWall(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
   ctx.fillStyle = p.wallDark
   ctx.fillRect(x, y, TILE, TILE)
   ctx.fillStyle = p.rock
@@ -624,7 +642,7 @@ function crackedWall(ctx: CanvasRenderingContext2D, x: number, y: number, p: Pal
   ctx.fillRect(x + 11, y + 4, 2, 3)
 }
 
-function water(
+export function water(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -667,7 +685,7 @@ function bridge(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette)
 }
 
 /** A black arch cut into rock — the way into every cave and dungeon. */
-function caveMouth(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
+export function caveMouth(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
   ctx.fillStyle = p.rock
   ctx.fillRect(x, y, TILE, TILE)
   ctx.fillStyle = p.rockLight
@@ -696,7 +714,7 @@ function doorway(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette
   ctx.fillRect(x + 5, y + 5, 6, 11)
 }
 
-function stairs(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
+export function stairs(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
   ctx.fillStyle = p.rockDark
   ctx.fillRect(x, y, TILE, TILE)
   ctx.fillStyle = p.rockLight
@@ -704,7 +722,7 @@ function stairs(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette)
 }
 
 /** A knight statue, the kind that flanks a dungeon doorway. */
-function statue(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
+export function statue(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
   ctx.fillStyle = p.rockDark
   ctx.fillRect(x + 2, y + 1, 12, 15)
   ctx.fillStyle = p.rock
@@ -721,7 +739,7 @@ function statue(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette)
 // --- pieces of the future -------------------------------------------------
 
 /** A stable number for a tile of a screen, so decoration is fixed per place. */
-function tileHash(screen: Screen, col: number, row: number): number {
+export function tileHash(screen: Screen, col: number, row: number): number {
   let h = 2166136261
   for (const ch of screen.id) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0
   return (h + col * 7919 + row * 104729 + col * row * 977) >>> 0

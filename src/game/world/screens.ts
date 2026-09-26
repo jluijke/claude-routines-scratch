@@ -89,7 +89,7 @@ export interface Portal {
  * everywhere — solid, water, bush, door — and the setting decides how each is
  * drawn: hull panels or rock spires, deck plating or crater dust.
  */
-export type Setting = 'ship' | 'rock' | 'airlock'
+export type Setting = 'ship' | 'rock' | 'airlock' | 'street' | 'park' | 'platform' | 'train'
 
 /**
  * A chest that opens simply for being found. Every other chest in the game is
@@ -139,8 +139,13 @@ export interface Screen {
   shop?: ShopKind
   /** Which world this is part of. Absent means the land, Level 1. */
   level?: 2
-  /** Level 2 only: what the place is made of. */
+  /** Levels 2 and 3: what the place is made of. */
   setting?: Setting
+  /**
+   * Level 3 stations: what the mosaic band on the wall says, when it is not
+   * the screen's name. "W 4 ST" fits the band; "West 4th Street" does not.
+   */
+  mosaic?: string
   /**
    * Leave this screen exactly as authored — no trees grown in round the edge.
    *

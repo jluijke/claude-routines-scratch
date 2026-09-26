@@ -28,6 +28,7 @@ export type TileChar =
   | '*' // statue
   | 'X' // cracked wall — blow it open with a bomb
   | 'p' // a tree with something glinting in it — burn it with the candle
+  | 'A' // an arch overhead — walk under it (Level 3 only)
 
 export interface TileDef {
   solid: boolean
@@ -62,6 +63,9 @@ export const TILES: Record<TileChar, TileDef> = {
   // A tree, and solid like one — but it burns, and there is something in it.
   // Only a corner of the bottle shows, which is the whole point of hiding it.
   p: { solid: true, bush: true, colour: '#1f5c26', accent: '#2e7a33' },
+  // The span of an arch. The pillars either side are '*'; this is the open
+  // ground between them, with the arch drawn overhead.
+  A: { solid: false, colour: '#e8e4d8', accent: '#c9c2ad' },
 }
 
 export function tileAt(rows: readonly string[], col: number, row: number): TileChar {

@@ -25,6 +25,7 @@ export const PALETTE: Record<string, string> = {
   b: '#3f74d6', // blue
   B: '#27488f', // dark blue
   p: '#9a55d1', // purple
+  P: '#5e2f8a', // dark purple — the one car in the city that is not a cab
   o: '#e2883a', // orange
   y: '#e8bb2c', // gold
   Y: '#a9821a', // dark gold
@@ -2055,6 +2056,78 @@ function buildVariants(): Variants {
   return out as Variants
 }
 
+
+// --- the city ---------------------------------------------------------------
+
+/**
+ * A yellow cab from above, nose to the right. Two tiles long and one tall —
+ * a car the size of its lane is a box, and a box with a dot on it is not a
+ * taxi from across the screen. Wheels at the corners, the checker stripe
+ * down both flanks, the roof light in the middle.
+ */
+const CAR_ROWS = (body: string, trim: string) =>
+  [
+    '....kkkk........kkkk....',
+    '..kkkkkkkkkkkkkkkkkkkk..',
+    `.k${body.repeat(20)}k.`,
+    `k${body}${trim}${body}${trim}${body}${trim}${body}${trim}${body}${trim}${body}${trim}${body}${trim}${body}${trim}${body}${trim}${body}${trim}${body}${body}k`,
+    `k${body.repeat(21)}wk`,
+    `k${body}${body}kkkkkkkkkkkkkkkkk${body}${body}k`,
+    `k${body}${body}kzzzzzzzzzzzzzzzk${body}${body}k`,
+    `k${body}${body}kzzzzzzzyyzzzzzzk${body}${body}k`,
+    `k${body}${body}kzzzzzzzyyzzzzzzk${body}${body}k`,
+    `k${body}${body}kzzzzzzzzzzzzzzzk${body}${body}k`,
+    `k${body}${body}kkkkkkkkkkkkkkkkk${body}${body}k`,
+    `k${body.repeat(21)}wk`,
+    `k${body}${trim}${body}${trim}${body}${trim}${body}${trim}${body}${trim}${body}${trim}${body}${trim}${body}${trim}${body}${trim}${body}${trim}${body}${body}k`,
+    `.k${body.repeat(20)}k.`,
+    '..kkkkkkkkkkkkkkkkkkkk..',
+    '....kkkk........kkkk....',
+  ] as const
+
+const TAXI = defineSprite(24, 16, CAR_ROWS('y', 'k'))
+
+/** The one purple car. Walk into it when it stops, and it drives you somewhere. */
+const PURPLE_CAR = defineSprite(24, 16, CAR_ROWS('p', 'P'))
+
+const PIGEON_A = S([
+  '................',
+  '................',
+  '................',
+  '................',
+  '......kk........',
+  '.....kMMk.......',
+  '....kMMMMkk.....',
+  '...kMmmMMMMk....',
+  '..kMmmmMMMMMk...',
+  '..kMMMMMMMkkk...',
+  '...kkMMMMk......',
+  '.....kkkk.......',
+  '.....k..k.......',
+  '....ok..ok......',
+  '................',
+  '................',
+])
+
+const PIGEON_B = S([
+  '................',
+  '................',
+  '................',
+  '......kk........',
+  '.....kMMk.......',
+  '....kMMMMkk.....',
+  '...kMmmMMMMk....',
+  '..kMmmmMMMMMk...',
+  '..kMMMMMMMkkk...',
+  '...kkMMMMk......',
+  '.....kkkk.......',
+  '....k....k......',
+  '...ok....ok.....',
+  '................',
+  '................',
+  '................',
+])
+
 export const SPRITES = {
   ...buildVariants(),
   shooterA: SHOOTER_A,
@@ -2163,6 +2236,14 @@ export const SPRITES = {
   // The staff as it is drawn beside the hero, so the atlas has it by name.
   scytheRight: SCYTHE_RIGHT,
   scytheDown: SCYTHE_DOWN,
+
+  // --- the city -----------------------------------------------------------
+  taxi: TAXI,
+  taxiLeft: mirror(TAXI),
+  purpleCar: PURPLE_CAR,
+  purpleCarLeft: mirror(PURPLE_CAR),
+  pigeonA: PIGEON_A,
+  pigeonB: PIGEON_B,
 } as const
 
 export type SpriteName = keyof typeof SPRITES
