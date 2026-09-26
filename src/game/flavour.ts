@@ -37,6 +37,14 @@ export interface Flavour {
   noMap: string
   /** M underground, with no subway map in the pack. */
   noSubwayMap: string
+  /** What the purse is counted in. */
+  currency: string
+  /** A weapon used on something only love works on. */
+  notLikeThat: string
+  /** A guardian, loved enough. */
+  guardianLoved: (name: string) => string
+  /** The item key with a love bomb in hand and none left. */
+  noLove: string
   nothingToUse: string
   noItems: string
   defeated: string
@@ -86,6 +94,10 @@ const LAND: Flavour = {
   potionWearsOff: 'The potion wears off. They can see you again.',
   noMap: 'You have no map. There must be one somewhere.',
   noSubwayMap: 'You have no map of this place.',
+  currency: 'rupees',
+  notLikeThat: 'Not like that.',
+  guardianLoved: (name) => `${name} is beaten.`,
+  noLove: 'You have no love bombs.',
   nothingToUse: 'Nothing to use yet. Buy something at the shop.',
   noItems: 'You have no items to use yet.',
   defeated: 'You have run out of hearts. A villager carries you back to the square.',
@@ -134,6 +146,10 @@ const SHIP: Flavour = {
   potionWearsOff: 'The cloaking serum wears off. Their sensors can see you again.',
   noMap: 'You have no schematic of the ship. There must be one somewhere.',
   noSubwayMap: 'You have no schematic of this place.',
+  currency: 'rupees',
+  notLikeThat: 'NOT LIKE THAT.',
+  guardianLoved: (name) => `${name} IS BEATEN.`,
+  noLove: 'You have no love bombs.',
   nothingToUse: 'Nothing to use yet. Buy something at a computer.',
   noItems: 'You have no items to use yet.',
   defeated: 'You have run out of hearts. A medical drone carries you back to the bridge.',
@@ -180,6 +196,11 @@ const CITY: Flavour = {
   potionWearsOff: 'You take the hoodie off. They can see you again.',
   noMap: 'You have no map. The newsstand on Sheridan Square sells one.',
   noSubwayMap: 'You have no subway map. The booth at West 4th Street has them, free.',
+  currency: 'dollars',
+  notLikeThat: 'Not like that. Nothing you can swing or shoot touches him. Rosa said it: only love.',
+  guardianLoved: (name) =>
+    `${name} goes pink from the ears down. He is hugging a pigeon and telling it about his feelings. He is beaten.`,
+  noLove: 'You have no love bombs. Rosa sells them, on West 4th, twelve dollars each.',
   nothingToUse: 'Nothing to use yet. Buy something at the bodega.',
   noItems: 'You have no items to use yet.',
   defeated: 'You have run out of hearts. A cab driver takes you back to the square, and does not charge you.',

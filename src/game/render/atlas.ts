@@ -50,6 +50,12 @@ export class Atlas {
     }
   }
 
+  /** How big a sprite is, for anything that has to place one by its edges. */
+  size(name: SpriteName): { w: number; h: number } {
+    const spot = this.placed.get(name)
+    return spot ? { w: spot.width, h: spot.height } : { w: 16, h: 16 }
+  }
+
   /** Draws a sprite with its top-left at (x, y), optionally tinted. */
   draw(
     ctx: CanvasRenderingContext2D,

@@ -52,7 +52,36 @@ export function isBossKind(kind: EnemyKind): boolean {
  * archetypes underneath — same health, same speed, same habits — so a child
  * who learned to handle a shooter has learned to handle a drone.
  */
-export type EnemyLook = 'monster' | 'robot'
+export type EnemyLook = 'monster' | 'robot' | 'creature'
+
+/**
+ * The city's creatures, and its three guardians. The guardians are the
+ * three bosses of the level, drawn big, and the only thing in the game that
+ * love bombs are for.
+ */
+const CREATURE_SPRITES: Record<EnemyKind, [SpriteName, SpriteName]> = {
+  shooter: ['gatorA', 'gatorB'],
+  chaser: ['ratA', 'ratB'],
+  flyer: ['pigeonA', 'pigeonB'],
+  caster: ['wraithA', 'wraithB'],
+  boss1: ['guardianGold', 'guardianGold'],
+  boss2: ['guardianGrey', 'guardianGrey'],
+  boss3: ['guardianDark', 'guardianDark'],
+  boss4: ['guardianDark', 'guardianDark'],
+}
+
+/** Who the three guardians are, by the boss slot they sit in. */
+export const GUARDIAN_NAMES: Partial<Record<EnemyKind, string>> = {
+  boss1: 'Trump',
+  boss2: 'Putin',
+  boss3: 'Xi',
+}
+
+/**
+ * How much love each one takes. Not hearts of damage: love bombs landed.
+ * Nothing else touches them, so this is the whole length of the fight.
+ */
+const LOVE_NEEDED: Partial<Record<EnemyKind, number>> = { boss1: 12, boss2: 16, boss3: 20, boss4: 20 }
 
 const ROBOT_SPRITES: Record<EnemyKind, [SpriteName, SpriteName]> = {
   shooter: ['droneA', 'droneB'],
@@ -316,6 +345,8 @@ export class Enemy {
     this.x = col * TILE + (TILE - this.def.size) / 2
     this.y = row * TILE + (TILE - this.def.size) / 2
     this.hp = this.def.hp
+    // A guardian's health is love it has not had yet.
+    if (this.isGuardian) this.hp = LOVE_NEEDED[kind] ?? this.hp
     this.rng = new Rng(seed)
     this.cooldown = this.def.fireRate > 0 ? this.rng.int(30, this.def.fireRate) : 0
     // The phasing mech blinks on the caster's clock, but sooner the first time
@@ -376,9 +407,21 @@ export class Enemy {
     return this.def.boss === true
   }
 
+  /** One of the city's three: beaten only with love. */
+  get isGuardian(): boolean {
+    return this.look === 'creature' && this.def.boss === true
+  }
+
+  /** How far along it is to being loved: 0 untouched, 1 about to turn. */
+  get loved(): number {
+    const needed = LOVE_NEEDED[this.kind] ?? this.def.hp
+    return Math.max(0, Math.min(1, 1 - this.hp / needed))
+  }
+
   get sprite(): SpriteName {
     const first = Math.floor(this.phase / 14) % 2 === 0
     if (this.look === 'robot') return ROBOT_SPRITES[this.kind][first ? 0 : 1]
+    if (this.look === 'creature') return CREATURE_SPRITES[this.kind][first ? 0 : 1]
     return first ? this.def.spriteA : this.def.spriteB
   }
 

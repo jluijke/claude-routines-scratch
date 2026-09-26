@@ -29,6 +29,7 @@ export type ItemId =
   | 'heartContainer'
   | 'map'
   | 'subwayMap'
+  | 'loveBomb'
   | 'animalFood'
   | 'potion'
 
@@ -460,6 +461,24 @@ export const ITEMS: Record<ItemId, ItemDef> = {
       description: 'Every stop on the V line, and which one you are at. Press M underground.',
     },
   },
+  loveBomb: {
+    id: 'loveBomb',
+    name: 'Love Bomb',
+    category: 'tool',
+    // Sold only in the city, by Rosa. The land and the ship have nobody who
+    // needs loving into submission.
+    description: 'A heart that bursts into hearts. The only thing that works on the three of them.',
+    future: {
+      name: 'Affection Charge',
+      description: 'A heart that bursts into hearts. Nothing on the ship needs one.',
+    },
+    city: {
+      name: 'Love Bomb',
+      description: 'A heart that bursts into hearts. Press X to throw one. The only thing that works on the three of them.',
+      price: 12,
+    },
+    stackable: true,
+  },
   animalFood: {
     id: 'animalFood',
     name: 'Animal Food',
@@ -506,11 +525,14 @@ export const CASTAWAY_SHOP: ItemId[] = ['wings', 'recoveryHeart']
 /** The newsstand on Sheridan Square: the street map, and a hot dog. */
 export const NEWSSTAND: ItemId[] = ['map', 'recoveryHeart']
 
+/** Flowers by Rosa: love, by the bomb, and a bagel. */
+export const FLORIST: ItemId[] = ['loveBomb', 'recoveryHeart']
+
 /**
  * Items that occupy the B slot and are used with the item key. Ordered the way
  * the child cycles through them.
  */
-export const TOOL_SLOT: ItemId[] = ['bomb', 'blueCandle', 'bow', 'wings', 'bait', 'recoveryHeart']
+export const TOOL_SLOT: ItemId[] = ['bomb', 'blueCandle', 'bow', 'wings', 'bait', 'recoveryHeart', 'loveBomb']
 
 export function isTool(id: ItemId): boolean {
   return TOOL_SLOT.includes(id)

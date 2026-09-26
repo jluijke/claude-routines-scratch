@@ -748,7 +748,7 @@ function grantReward(gate: Gate): void {
   openShopPanel?.refresh()
 
   const lines: string[] = [gate.openMessage]
-  if (reward.rupees) lines.push(`+${reward.rupees} rupees.`)
+  if (reward.rupees) lines.push(`+${reward.rupees} ${flavourFor(state.level).currency}.`)
   if (reward.heartContainer) lines.push('Your maximum life has grown by one heart.')
   if (reward.item) lines.push(`You received the ${itemName(reward.item, state.level)}.`)
   world?.showMessage(lines.join(' '))

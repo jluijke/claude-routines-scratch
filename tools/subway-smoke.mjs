@@ -107,7 +107,7 @@ await wait(100)
 await walk('ArrowDown', 600)
 await wait(400)
 check('stepping onto the train asks which way', (await page.locator('.ride-prompt').count()) > 0)
-check('and Christopher Street is the end of the line: uptown only', (await page.getByRole('button', { name: /uptown to west 4th/i }).count()) === 1 && (await page.getByRole('button', { name: /downtown/i }).count()) === 0)
+check('and from Christopher Street it goes uptown to West 4th and downtown to Canal Street', (await page.getByRole('button', { name: /uptown to west 4th/i }).count()) === 1 && (await page.getByRole('button', { name: /downtown to canal/i }).count()) === 1)
 await clickIf(/stay on the platform/i)
 s = await world()
 check('staying puts him back on the platform', s.screen === 'nyc-sub-christopher-platform' && !s.ride)
@@ -128,7 +128,7 @@ for (let i = 0; i < 80 && !arrived; i++) {
   s = await world()
   if (s.ride?.phase === 'doors') arrived = true
 }
-check('after a while the doors open at the next stop', arrived && s.ride?.index === 3)
+check('after a while the doors open at the next stop', arrived && s.ride?.index === 4)
 // Step through a door.
 await page.evaluate(() => window.zsq.world.teleport('nyc-train-car', 4, 8))
 await wait(100)

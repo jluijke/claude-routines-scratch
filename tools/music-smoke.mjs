@@ -97,10 +97,12 @@ check('really back, not just claiming to be', await clockRuns())
 // An optional barrier, touched before he has finished a single exercise, used
 // to stop the music and then bail out with nothing on that path to start it
 // again. Driven through the real prompt, not a back door.
-await page.evaluate(() => window.zsq.goTo('forest-4', 7, 5))
-await page.waitForTimeout(350)
+// The chest is out in the field now, below and left of the hermit's pocket.
+// The hoodie, so a monster cannot shove him off the line he walks.
+await page.evaluate(() => { window.zsq.state.world.invisibleScreens = 99; window.zsq.goTo('forest-4', 5, 7) })
+await page.waitForTimeout(600)
 for (let i = 0; i < 14 && !(await page.$('.gate-prompt')); i++) {
-  await page.keyboard.down('ArrowUp'); await page.waitForTimeout(130); await page.keyboard.up('ArrowUp')
+  await page.keyboard.down('ArrowLeft'); await page.waitForTimeout(130); await page.keyboard.up('ArrowLeft')
 }
 check('the optional chest asks', Boolean(await page.$('.gate-prompt')))
 await page.getByRole('button', { name: /take the challenge|open it/i }).first().click()

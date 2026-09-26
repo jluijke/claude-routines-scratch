@@ -17,6 +17,7 @@ import {
   type ItemDef,
   type ItemId,
   NEWSSTAND,
+  FLORIST,
   itemPrice,
 } from '../items'
 import { gateById, type Gate } from '../gates'
@@ -51,6 +52,7 @@ function patter(item: ItemDef, save: SaveData, level: Level): string {
   // The bow is the one thing on the shelf that needs a word of instruction:
   // it is the only weapon that lives in the item slot rather than in his hand.
   if (item.id === 'bow') return flavourFor(level).bowPatter
+  if (item.id === 'loveBomb') return '"Aim for the heart. They all have one, somewhere. Press C until it is in your hand, then X."'
   return level === 2 ? `"${itemName(item.id, level).toUpperCase()}. GOOD CHOICE."` : `"${itemName(item.id, level)}. Good choice."`
 }
 
@@ -61,6 +63,7 @@ const TITLES: Record<Level, Record<ShopKind, string>> = {
     smith: 'The Smithy',
     castaway: 'The Castaway',
     pets: 'The Pet Cave',
+    florist: 'The Flower Cart',
   },
   2: {
     village: 'Ship Computer — Stores',
@@ -68,6 +71,7 @@ const TITLES: Record<Level, Record<ShopKind, string>> = {
     smith: 'Forge Console',
     castaway: 'Outpost Terminal',
     pets: 'Cyborg Bay Console',
+    florist: 'Hydroponics Console',
   },
   3: {
     village: "Ray's Deli & Grocery",
@@ -75,6 +79,7 @@ const TITLES: Record<Level, Record<ShopKind, string>> = {
     smith: 'Sheridan Hardware',
     castaway: 'The Newsstand',
     pets: 'The Pet Shop',
+    florist: 'Flowers by Rosa',
   },
 }
 
@@ -88,6 +93,7 @@ const GREETINGS: Record<Level, Record<ShopKind, string>> = {
     // Unused: the pet cave has its own panel, because choosing a friend is not
     // shopping. Here so the tables stay complete rather than optional.
     pets: '"They all want to come with you. Pick the one you like the look of."',
+    florist: '"Flowers. Nothing but flowers."',
   },
   2: {
     village: 'SHIP STORES ONLINE. RUPEES ACCEPTED. NO REFUNDS.',
@@ -96,6 +102,7 @@ const GREETINGS: Record<Level, Record<ShopKind, string>> = {
     castaway:
       'The pilot\'s voice comes out of the speaker. "Everyone who lands here needs the same thing, and I am the only one selling it. Three hundred. I am not sorry."',
     pets: 'SIX CYBORG COMPANIONS ONLINE.',
+    florist: 'HYDROPONICS ONLINE. NOTHING FOR SALE.',
   },
   3: {
     village: '"What can I get you? Sandwiches are in the back, and the cat is not for sale."',
@@ -103,6 +110,8 @@ const GREETINGS: Record<Level, Record<ShopKind, string>> = {
     smith: '"Hammers, cutters, and things that go bang. Dollars, and a steady mind."',
     castaway: '"Map of the Village, forty dollars. Hot dogs are from the cart, not from me, but I keep a few."',
     pets: '"You again? Same six as ever."',
+    florist:
+      '"Roses, tulips, and these." Rosa taps a box of pink hearts. "Twelve dollars each. Throw them at the three of them. It is the only thing that works, and I should know — I have thrown a few."',
   },
 }
 
@@ -124,6 +133,7 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
     kind === 'village' ? VILLAGE_SHOP
     : kind === 'secret' ? SECRET_SHOP
     : kind === 'castaway' ? (level === 3 ? NEWSSTAND : CASTAWAY_SHOP)
+    : kind === 'florist' ? FLORIST
     : SMITH_STOCK
 
   const rupeeLine = el('span', { class: 'shop-rupees' })
@@ -191,7 +201,7 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
             ? 'The computer wants to see you spell first'
             : 'The shopkeeper wants to see you spell first'
           : !affordable
-            ? `${price - save.player.rupees} rupees short`
+            ? `${price - save.player.rupees} ${flavourFor(level).currency} short`
             : ''
 
     // A missing prerequisite is a different kind of "no" from a spelling

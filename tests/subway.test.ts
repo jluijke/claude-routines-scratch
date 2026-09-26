@@ -29,6 +29,7 @@ import {
   TRAIN_CAR,
   type Ride,
 } from '../src/game/world/subway'
+import { splitLabel } from '../src/game/render/map'
 
 const screen = (id: string) => {
   const s = screenById(id)
@@ -37,8 +38,8 @@ const screen = (id: string) => {
 }
 
 describe('the line', () => {
-  it('runs through five stops, every one of them a platform', () => {
-    expect(STOPS.length).toBe(5)
+  it('runs through nine stops, every one of them a platform', () => {
+    expect(STOPS.length).toBe(9)
     for (const stop of STOPS) {
       const platform = screen(stop.id)
       expect(platform.setting).toBe('platform')
@@ -48,7 +49,7 @@ describe('the line', () => {
       expect(platform.rows[7]).toBe('BBBBBBBBBBBBBBBB')
       expect(platform.rows[8]?.startsWith('~')).toBe(true)
     }
-    expect(stopIndex('nyc-sub-w4-platform')).toBe(3)
+    expect(stopIndex('nyc-sub-w4-platform')).toBe(4)
     expect(stopIndex('nyc-washington-square')).toBe(-1)
   })
 
@@ -61,9 +62,9 @@ describe('the line', () => {
   })
 
   it('knows which station a mezzanine or passage belongs to', () => {
-    expect(stationIndex('nyc-sub-astor-mezz')).toBe(1)
-    expect(stationIndex('nyc-sub-astor-passage')).toBe(1)
-    expect(stationIndex('nyc-sub-astor-platform')).toBe(1)
+    expect(stationIndex('nyc-sub-astor-mezz')).toBe(2)
+    expect(stationIndex('nyc-sub-astor-passage')).toBe(2)
+    expect(stationIndex('nyc-sub-astor-platform')).toBe(2)
     expect(stationIndex(TRAIN_CAR)).toBe(-1)
     expect(stationIndex('nyc-bleecker')).toBe(-1)
     // Standing on the mezzanine counts as having been to the station.
@@ -79,7 +80,7 @@ describe('the line', () => {
 })
 
 describe('the stations', () => {
-  const keys = ['christopher', 'w4', 'astor', '2av', 'union']
+  const keys = ['59st', 'union', 'astor', '2av', 'w4', 'christopher', 'canal', 'atlantic', 'brighton']
 
   it('are each three screens deep: mezzanine, passage, platform', () => {
     for (const key of keys) {
@@ -131,13 +132,15 @@ describe('the stations', () => {
     }
   })
 
-  it('are not on the street map, and Union Square is only reached by train', () => {
+  it('are not on the street map, and the far ends are only reached by train', () => {
     const { cells } = overworldLayout(START_SCREENS[3])
     for (const id of cells.keys()) expect(id.startsWith('nyc-sub-')).toBe(false)
-    expect(cells.has('nyc-union-square')).toBe(false)
-    const square = screen('nyc-union-square')
-    expect(square.exits).toEqual({})
-    expect(square.treasure).toBeDefined()
+    for (const id of ['nyc-union-square', 'nyc-trump-green', 'nyc-columbus-park', 'nyc-atlantic-terminal', 'nyc-boardwalk']) {
+      expect(cells.has(id)).toBe(false)
+      expect(screen(id).exits).toEqual({})
+    }
+    expect(screen('nyc-union-square').treasure).toBeDefined()
+    expect(screen('nyc-atlantic-terminal').treasure).toBeDefined()
   })
 
   it('leave the other subway stairs off the streets that have no station', () => {
@@ -157,6 +160,12 @@ describe('the subway map', () => {
     expect(mezz.pickup?.item).toBe('subwayMap')
     // Before the turnstile, so it costs nothing to reach.
     expect(mezz.pickup?.row).toBeLessThan(6)
+  })
+
+  it('breaks a long name so it fits its slot', () => {
+    expect(splitLabel('14 ST-UNION SQ')).toEqual(['14 ST', 'UNION SQ'])
+    expect(splitLabel('BRIGHTON BEACH')).toEqual(['BRIGHTON', 'BEACH'])
+    expect(splitLabel('W 4 ST')).toEqual(['W 4 ST'])
   })
 })
 

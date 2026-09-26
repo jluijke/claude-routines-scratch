@@ -13,7 +13,7 @@
  * adjusted without a tracker.
  */
 
-export type TrackName = 'title' | 'overworld' | 'dungeon' | 'cave' | 'boss' | 'shop' | 'ship' | 'rock' | 'mech'
+export type TrackName = 'title' | 'overworld' | 'dungeon' | 'cave' | 'boss' | 'shop' | 'ship' | 'rock' | 'mech' | 'subway'
 
 interface Voice {
   steps: string[]
@@ -434,7 +434,72 @@ const MECH: Track = {
   ],
 }
 
+/**
+ * Underground. A low rumble that never quite stops, the way a station never
+ * does; a clack on the off-beat, like wheels over a joint; and a thin tune
+ * over it in a minor key, going somewhere.
+ */
+const SUBWAY: Track = {
+  tempo: 108,
+  voices: [
+    {
+      type: 'square',
+      gain: 0.03,
+      steps: [
+        'E4', '.', '.', 'G4', '.', '.', 'A4', '.',
+        'G4', '.', 'E4', '.', '.', '.', 'D4', '.',
+        'E4', '.', '.', 'G4', '.', '.', 'B4', '.',
+        'A4', '-', '-', '.', 'G4', '-', 'E4', '.',
+        'C5', '.', '.', 'B4', '.', '.', 'A4', '.',
+        'G4', '.', 'E4', '.', 'D4', '.', 'E4', '.',
+        'G4', '-', 'A4', '-', 'B4', '-', 'A4', '-',
+        'E4', '-', '-', '-', '.', '.', '.', '.',
+      ],
+    },
+    {
+      type: 'triangle',
+      gain: 0.07,
+      steps: [
+        'E1', '-', 'E1', '.', 'E1', '-', 'E1', '.',
+        'E1', '-', 'E1', '.', 'D1', '-', 'D1', '.',
+        'E1', '-', 'E1', '.', 'E1', '-', 'E1', '.',
+        'A1', '-', 'A1', '.', 'G1', '-', 'G1', '.',
+        'C2', '-', 'C2', '.', 'B1', '-', 'B1', '.',
+        'A1', '-', 'A1', '.', 'G1', '-', 'G1', '.',
+        'E1', '-', 'E1', '.', 'E1', '-', 'E1', '.',
+        'E1', '-', '-', '-', 'E1', '-', '-', '.',
+      ],
+    },
+    {
+      type: 'sawtooth',
+      gain: 0.012,
+      detune: -10,
+      steps: [
+        'E3', '-', '-', '-', '-', '-', '-', '-',
+        'E3', '-', '-', '-', 'D3', '-', '-', '-',
+        'E3', '-', '-', '-', '-', '-', '-', '-',
+        'A3', '-', '-', '-', 'G3', '-', '-', '-',
+        'C4', '-', '-', '-', 'B3', '-', '-', '-',
+        'A3', '-', '-', '-', 'G3', '-', '-', '-',
+        'E3', '-', '-', '-', '-', '-', '-', '-',
+        'E3', '-', '-', '-', '-', '-', '-', '.',
+      ],
+    },
+  ],
+  drums: [
+    '.', '.', 'x', '.', '.', '.', 'x', 'x',
+    '.', '.', 'x', '.', '.', '.', 'x', '.',
+    '.', '.', 'x', '.', '.', '.', 'x', 'x',
+    '.', '.', 'x', '.', '.', '.', 'x', '.',
+    '.', '.', 'x', '.', '.', '.', 'x', 'x',
+    '.', '.', 'x', '.', '.', '.', 'x', '.',
+    '.', '.', 'x', '.', 'x', '.', 'x', 'x',
+    '.', '.', 'x', '.', '.', '.', '.', '.',
+  ],
+}
+
 const TRACKS: Record<TrackName, Track> = {
+  subway: SUBWAY,
   title: TITLE,
   overworld: OVERWORLD,
   dungeon: DUNGEON,

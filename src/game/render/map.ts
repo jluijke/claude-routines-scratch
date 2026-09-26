@@ -378,7 +378,12 @@ export function drawSubwayMap(ctx: CanvasRenderingContext2D, view: SubwayView, f
   ctx.textAlign = 'left'
 }
 
-/** "14 ST-UNION SQ" is too wide for its slot on the line; it breaks at the dash. */
-function splitLabel(label: string): string[] {
-  return label.includes('-') ? label.split('-').map((s) => s.trim()) : [label]
+/** A name too wide for its slot on the line breaks at its dash, or at its space. */
+export function splitLabel(label: string): string[] {
+  if (label.includes('-')) return label.split('-').map((s) => s.trim())
+  if (label.length > 9 && label.includes(' ')) {
+    const at = label.lastIndexOf(' ')
+    return [label.slice(0, at), label.slice(at + 1)]
+  }
+  return [label]
 }

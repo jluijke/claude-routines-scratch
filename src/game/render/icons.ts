@@ -81,6 +81,8 @@ export function itemSprite(id: ItemId, level: Level = 1): SpriteName {
       return 'worldMap'
     case 'subwayMap':
       return 'subwayMap'
+    case 'loveBomb':
+      return 'loveBomb'
     case 'animalFood':
       return 'animalFood'
     case 'potion':
@@ -111,6 +113,8 @@ function cityItemSprite(id: ItemId): SpriteName | undefined {
       return 'bullets'
     case 'subwayMap':
       return 'subwayMap'
+    case 'loveBomb':
+      return 'loveBomb'
     default:
       return undefined
   }
@@ -143,6 +147,8 @@ function futureItemSprite(id: ItemId, tier: string): SpriteName {
       return 'schematic'
     case 'subwayMap':
       return 'subwayMap'
+    case 'loveBomb':
+      return 'loveBomb'
     case 'animalFood':
       return 'battery'
     case 'potion':

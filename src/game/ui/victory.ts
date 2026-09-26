@@ -27,10 +27,10 @@ export function showBossVictory(root: HTMLElement, options: VictoryOptions): () 
   const { level, dungeonName, defeated, total, world } = options
   const allDone = defeated >= total
   const left = total - defeated
-  const guardian = world === 2 ? 'mech' : 'dungeon boss'
+  const guardian = world === 2 ? 'mech' : world === 3 ? 'guardian' : 'dungeon boss'
 
   const onward = button(
-    allDone ? (world === 2 ? 'Finish the quest →' : 'On to the next world →') : 'Onward →',
+    allDone ? (world === 2 ? 'Finish the quest →' : world === 3 ? 'Finish the quest →' : 'On to the next world →') : 'Onward →',
     () => {
       close()
       options.onContinue()
@@ -62,15 +62,19 @@ export function showBossVictory(root: HTMLElement, options: VictoryOptions): () 
       el('h2', { class: 'victory-title' }, [
         world === 2 ? `Rock ${level} Cleared` : world === 3 ? `Guardian ${level} Loved` : `Quest Level ${level} Completed`,
       ]),
-      el('p', { class: 'victory-room' }, [`${dungeonName} cleared`]),
+      el('p', { class: 'victory-room' }, [world === 3 ? `${dungeonName} is loved` : `${dungeonName} cleared`]),
       crests,
       el('p', { class: 'victory-progress' }, [
         allDone
           ? world === 2
             ? `You have defeated all ${total} mechs. The ship is yours, and the future is safe!`
-            : `You have defeated all ${total} dungeon bosses. The way to the next world is open!`
-          : `You defeated the ${guardian}. Defeat all ${total} to ${world === 2 ? 'free the ship' : 'reach the next world'} — ` +
-            `${left} to go!`,
+            : world === 3
+              ? `You have loved all ${total} of them into being nice. The city is yours, and so is the present!`
+              : `You have defeated all ${total} dungeon bosses. The way to the next world is open!`
+          : world === 3
+            ? `You loved the ${guardian} into being nice. Love all ${total} to save the city — ${left} to go!`
+            : `You defeated the ${guardian}. Defeat all ${total} to ${world === 2 ? 'free the ship' : 'reach the next world'} — ` +
+              `${left} to go!`,
       ]),
       el('div', { class: 'gate-actions' }, [onward]),
     ]),

@@ -26,13 +26,21 @@ export const TRAIN_CAR = 'nyc-train-car'
 export const LINE_NAME = 'V'
 export const LINE_COLOUR = '#00933c'
 
-/** Uptown end first. Later stops go on the downtown end, into Brooklyn. */
+/**
+ * Uptown end first. Union Square to Christopher Street is the Village; the
+ * far ends are where the three guardians are: Trump up at 59th Street, Xi
+ * down at Canal Street, Putin out at Brighton Beach in Brooklyn.
+ */
 export const STOPS: readonly Stop[] = [
+  { id: 'nyc-sub-59st-platform', name: '5th Avenue – 59th Street', short: '5 AV-59 ST' },
   { id: 'nyc-sub-union-platform', name: '14th Street – Union Square', short: '14 ST-UNION SQ' },
   { id: 'nyc-sub-astor-platform', name: 'Astor Place', short: 'ASTOR PL' },
   { id: 'nyc-sub-2av-platform', name: 'Second Avenue', short: '2 AV' },
   { id: 'nyc-sub-w4-platform', name: 'West 4th Street', short: 'W 4 ST' },
   { id: 'nyc-sub-christopher-platform', name: 'Christopher Street', short: 'CHRISTOPHER ST' },
+  { id: 'nyc-sub-canal-platform', name: 'Canal Street', short: 'CANAL ST' },
+  { id: 'nyc-sub-atlantic-platform', name: 'Atlantic Avenue', short: 'ATLANTIC AV' },
+  { id: 'nyc-sub-brighton-platform', name: 'Brighton Beach', short: 'BRIGHTON BEACH' },
 ]
 
 /** Which stop a platform screen is, or -1 for anywhere that is not one. */

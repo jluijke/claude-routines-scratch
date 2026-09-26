@@ -17,7 +17,7 @@ import { drawHud, HUD_H } from './render/hud'
 import { drawSubwayMap, drawWorldMap } from './render/map'
 import { drawBarriers, drawDarkness, drawGlimmers, drawSpeech, drawTiles, themeFor, visibleTile } from './render/world'
 import { itemSprite } from './render/icons'
-import { Enemy, isBossKind, overlaps, ringBurst, type Projectile } from './entities/enemies'
+import { Enemy, GUARDIAN_NAMES, isBossKind, overlaps, ringBurst, type Projectile } from './entities/enemies'
 import { Player, PLAYER_SIZE, type Facing, BODY_INSET } from './entities/player'
 import { SCREEN_COLS, SCREEN_H, SCREEN_ROWS, SCREEN_W, TILE, TILES, isSolidChar, toTile, type TileChar } from './world/tiles'
 import { screenById, SCREENS, type EnemyKind, type Portal, type Prop, type Screen } from './world/screens'
@@ -135,7 +135,22 @@ interface Shot {
   life: number
   /** What it takes off. An arrow's worth unless a gun says otherwise. */
   damage?: number
+  /** A love bomb: the one thing a guardian feels. */
+  love?: boolean
 }
+
+/** A little heart drifting up off something that has just been loved. */
+interface Heart {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  life: number
+  big: boolean
+}
+
+const LOVE_SPEED = 150
+const LOVE_LIFE = 70
 
 /** How fast an arrow flies, in pixels a second. Well clear of a walking hero. */
 const ARROW_SPEED = 170
@@ -444,6 +459,10 @@ export class World {
   private magazine: Magazine | undefined
   /** Times the hammer has come down on this screen. For the checks. */
   private hammerBlows = 0
+  /** Hearts in the air, off a guardian who has just been loved. */
+  private hearts: Heart[] = []
+  /** A scratch canvas for tinting a sprite pink without tinting the room. */
+  private tintCanvas: HTMLCanvasElement | undefined
   /**
    * Tiles a barrier still stands on. Solid, whatever is drawn under them: a
    * keeper in a field was a prompt he could decline and then walk through,
@@ -520,7 +539,7 @@ export class World {
     // not written down, and a car with no ride is a room with no doors. He
     // wakes on the platform in the middle of the line instead.
     const stranded = this.screen.id === TRAIN_CAR
-    if (stranded) this.screen = screenById(STOPS[3]?.id ?? START_SCREENS[3]) as Screen
+    if (stranded) this.screen = screenById(STOPS.find((s) => s.id === 'nyc-sub-w4-platform')?.id ?? START_SCREENS[3]) as Screen
     this.player.x = save.player.x
     this.player.y = save.player.y
 
@@ -790,7 +809,7 @@ export class World {
     this.transition = 12
 
     const cleared = this.save.world.defeatedBosses
-    const look = (next.level ?? 1) === 2 ? 'robot' : 'monster'
+    const look = (next.level ?? 1) === 2 ? 'robot' : (next.level ?? 1) === 3 ? 'creature' : 'monster'
     for (const [index, spawn] of (next.spawns ?? []).entries()) {
       // A defeated boss stays defeated — all of them, not just the two that
       // existed when this was written. Asked of the archetype table rather than
@@ -889,8 +908,7 @@ export class World {
     if (screen.shop) return 'shop'
     if (theme === 'dungeon') return 'dungeon'
     if (theme === 'cave') return 'cave'
-    // Underground is underground, until the subway has a tune of its own.
-    if (theme === 'platform' || theme === 'train') return 'cave'
+    if (theme === 'platform' || theme === 'train') return 'subway'
     if (theme === 'ship') return 'ship'
     if (theme === 'rock' || theme === 'airlock') return 'rock'
     return 'overworld'
@@ -1115,6 +1133,7 @@ export class World {
     this.updatePet(step)
     this.updateProjectiles(step)
     this.updateShots(step)
+    this.updateHearts(step)
     this.updateDrops(step)
     this.updateBombs(step)
 
@@ -1468,7 +1487,7 @@ export class World {
     this.save.world.takenChests.push(treasure.id)
     this.save.player.rupees += treasure.rupees
     sfx.play('fanfare')
-    this.showMessage(`${treasure.message} +${treasure.rupees} rupees.`)
+    this.showMessage(`${treasure.message} +${treasure.rupees} ${this.words.currency}.`)
     this.callbacks.onChange()
   }
 
@@ -1947,13 +1966,29 @@ export class World {
    * out five times over, the sixth way of hitting something — and there will be
    * one — would have gone straight through the shield without anyone noticing.
    */
-  private strike(enemy: Enemy, amount: number): void {
+  private strike(enemy: Enemy, amount: number, source: 'weapon' | 'love' = 'weapon'): void {
     if (enemy.isShielded) {
       if (enemy.deflect()) sfx.play('shieldBlock')
       return
     }
+    // The guardians feel nothing he can swing, shoot or blow up. Said once
+    // per blow, so a child hammering at Trump finds out why it is not working.
+    if (enemy.isGuardian && source !== 'love') {
+      if (enemy.blockFlash <= 0) {
+        sfx.play('shieldBlock')
+        enemy.blockFlash = 20
+        this.showMessage(this.words.notLikeThat, 150)
+      }
+      return
+    }
     if (!enemy.hurt(amount)) return
-    sfx.play('enemyHit')
+    if (source === 'love') {
+      const at = enemy.centre()
+      this.burstHearts(at.x, at.y, enemy.isGuardian ? 8 : 4)
+      sfx.play('heart')
+    } else {
+      sfx.play('enemyHit')
+    }
     // Dead first: a blow big enough to take it past half and past nothing in
     // one go kills it, rather than splitting a corpse.
     if (enemy.isDead()) this.defeat(enemy)
@@ -2014,6 +2049,10 @@ export class World {
     if (enemy.isBoss && !stillGuarded) {
       if (!this.save.world.defeatedBosses.includes(this.screen.id)) {
         this.save.world.defeatedBosses.push(this.screen.id)
+      }
+      if (enemy.isGuardian) {
+        this.burstHearts(centre.x, centre.y, 40)
+        this.showMessage(this.words.guardianLoved(GUARDIAN_NAMES[enemy.kind] ?? 'He'), 400)
       }
       sfx.play('bossFanfare')
       this.refreshMusic()
@@ -2159,6 +2198,8 @@ export class World {
         return this.dropBait()
       case 'recoveryHeart':
         return this.eatHeart()
+      case 'loveBomb':
+        return this.throwLove()
       case 'wings':
         // They are not pressed, they are worn. Holding them is what matters,
         // and saying so here is where he will look for the answer.
@@ -2251,7 +2292,7 @@ export class World {
       const box = { x: shot.x, y: shot.y, w: SHOT_SIZE, h: SHOT_SIZE }
       const struck = this.enemies.find((enemy) => overlaps(box, enemy.box()))
       if (struck) {
-        this.strike(struck, shot.damage ?? ARROW_DAMAGE)
+        this.strike(struck, shot.damage ?? ARROW_DAMAGE, shot.love ? 'love' : 'weapon')
         continue
       }
       flying.push(shot)
@@ -2270,6 +2311,64 @@ export class World {
     for (const enemy of this.enemies) enemy.distract(spot.x, spot.y)
     this.showMessage(this.words.baitDropped, 120)
     this.callbacks.onChange()
+  }
+
+  /**
+   * A love bomb, thrown the way he is facing. It flies like an arrow and
+   * bursts into hearts on whatever it hits. Anything can be loved; the
+   * guardians can be beaten no other way.
+   */
+  private throwLove(): void {
+    if ((this.save.inventory.loveBomb ?? 0) <= 0) {
+      this.showMessage(this.words.noLove, 110)
+      return
+    }
+    // One in the air at a time, like an arrow: love is thrown, not sprayed.
+    if (this.shots.some((s) => s.love)) return
+    this.save.inventory.loveBomb = (this.save.inventory.loveBomb ?? 0) - 1
+    const centre = this.player.centre()
+    const away = this.pointAhead(centre, this.player.facing, 10)
+    const dx = this.player.facing === 'left' ? -1 : this.player.facing === 'right' ? 1 : 0
+    const dy = this.player.facing === 'up' ? -1 : this.player.facing === 'down' ? 1 : 0
+    this.shots.push({
+      x: away.x - SHOT_SIZE / 2,
+      y: away.y - SHOT_SIZE / 2,
+      vx: dx * LOVE_SPEED,
+      vy: dy * LOVE_SPEED,
+      facing: this.player.facing,
+      life: LOVE_LIFE,
+      damage: 1,
+      love: true,
+    })
+    sfx.play('heart')
+    this.callbacks.onChange()
+  }
+
+  /** Hearts off a spot: a few for a hit, a fountain for a guardian turned. */
+  private burstHearts(x: number, y: number, count: number): void {
+    for (let i = 0; i < count; i++) {
+      const angle = this.rng.next() * Math.PI * 2
+      const speed = 20 + this.rng.next() * 40
+      this.hearts.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 30,
+        life: 40 + this.rng.int(0, 40),
+        big: this.rng.chance(0.4),
+      })
+    }
+  }
+
+  private updateHearts(step: number): void {
+    if (this.hearts.length === 0) return
+    for (const heart of this.hearts) {
+      heart.x += heart.vx * step
+      heart.y += heart.vy * step
+      heart.vy -= 20 * step
+      heart.life -= 1
+    }
+    this.hearts = this.hearts.filter((h) => h.life > 0)
   }
 
   private eatHeart(): void {
@@ -2422,8 +2521,20 @@ export class World {
       // A mech gathering itself to charge judders on the spot. It is the only
       // warning he gets, and without it the charge is just an unfair death.
       const brace = enemy.isWindingUp ? (Math.floor(this.frame / 2) % 2 === 0 ? 1 : -1) : 0
-      if (!flashing && !blinking) this.atlas.draw(ctx, enemy.sprite, enemy.x + brace, enemy.y)
+      if (enemy.isGuardian) {
+        // Drawn big — the sprite is forty-eight to the body's thirty — and
+        // pinker with every love bomb that lands, so the fight can be read
+        // off him. A blow he shrugged off flashes white where it was turned.
+        if (!flashing) this.drawGuardian(ctx, enemy)
+      } else if (!flashing && !blinking) {
+        this.atlas.draw(ctx, enemy.sprite, enemy.x + brace, enemy.y)
+      }
       this.drawMechTells(ctx, enemy)
+    }
+
+    for (const heart of this.hearts) {
+      if (heart.life < 12 && Math.floor(this.frame / 3) % 2 === 0) continue
+      this.atlas.draw(ctx, heart.big ? 'heartBig' : 'heartSmall', Math.round(heart.x) - 4, Math.round(heart.y) - 4)
     }
 
     for (const shot of this.projectiles) {
@@ -2433,6 +2544,11 @@ export class World {
     // His own arrows, drawn pointing the way they are going and centred on
     // the little box that does the hitting.
     for (const shot of this.shots) {
+      if (shot.love) {
+        const bob = Math.floor(this.frame / 4) % 2
+        this.atlas.draw(ctx, 'loveBomb', shot.x + SHOT_SIZE / 2 - 8, shot.y + SHOT_SIZE / 2 - 8 - bob)
+        continue
+      }
       const sideways = shot.facing === 'left' || shot.facing === 'right'
       this.atlas.draw(
         ctx,
@@ -3219,6 +3335,41 @@ export class World {
     }
   }
 
+  /** A guardian, at full size, tinted pink by how much love it has had. */
+  private drawGuardian(ctx: CanvasRenderingContext2D, enemy: Enemy): void {
+    const sprite = enemy.sprite
+    const size = this.atlas.size(sprite)
+    const x = Math.round(enemy.x + (enemy.size - size.w) / 2)
+    const y = Math.round(enemy.y + enemy.size - size.h + 4)
+    const pink = enemy.loved
+    if (pink <= 0 && enemy.blockFlash <= 0) {
+      this.atlas.draw(ctx, sprite, x, y)
+      return
+    }
+    // Draw it alone on a scratch canvas, tint only its own pixels, then lay
+    // it into the room: tinting in place would have pinked the park too.
+    const scratch = this.tintCanvas ?? (this.tintCanvas = document.createElement('canvas'))
+    if (scratch.width !== size.w || scratch.height !== size.h) {
+      scratch.width = size.w
+      scratch.height = size.h
+    }
+    const sctx = scratch.getContext('2d')
+    if (!sctx) return this.atlas.draw(ctx, sprite, x, y)
+    sctx.clearRect(0, 0, size.w, size.h)
+    sctx.imageSmoothingEnabled = false
+    this.atlas.draw(sctx, sprite, 0, 0)
+    sctx.save()
+    sctx.globalCompositeOperation = 'source-atop'
+    if (enemy.blockFlash > 0) {
+      sctx.fillStyle = `rgba(255,255,255,${Math.min(0.8, enemy.blockFlash / 20)})`
+    } else {
+      sctx.fillStyle = `rgba(255,111,181,${0.15 + pink * 0.6})`
+    }
+    sctx.fillRect(0, 0, size.w, size.h)
+    sctx.restore()
+    ctx.drawImage(scratch, x, y)
+  }
+
   private drawPlayer(ctx: CanvasRenderingContext2D): void {
     // Flicker while invulnerable, the classic "you just got hit" signal.
     if (this.player.invulnerable > 0 && Math.floor(this.frame / 3) % 2 === 0) return
@@ -3450,6 +3601,13 @@ export class World {
       hammerBlows: this.hammerBlows,
       magazine: this.magazine ? { ...this.magazine } : undefined,
       stunned: this.enemies.filter((e) => e.stunned > 0).length,
+      guardians: this.enemies.filter((e) => e.isGuardian).map((e) => ({ kind: e.kind, hp: e.hp, loved: Number(e.loved.toFixed(2)) })),
+      loveBombs: this.save.inventory.loveBomb ?? 0,
+      guardianAt: (() => {
+        const g = this.enemies.find((e) => e.isGuardian)
+        return g ? { x: Math.round(g.centre().x), y: Math.round(g.centre().y) } : undefined
+      })(),
+      hearts_: this.hearts.length,
       weapon: this.cityWeaponHeld(),
       bursts: this.bursts.length,
       candleUsedHere: this.candleUsedHere,
@@ -3548,7 +3706,7 @@ export class World {
 
   /** Puts a monster on the screen where the checks want one. */
   debugSpawn(kind: EnemyKind, col: number, row: number): void {
-    const look = this.level === 2 ? 'robot' : 'monster'
+    const look = this.level === 2 ? 'robot' : this.level === 3 ? 'creature' : 'monster'
     this.enemies.push(new Enemy(kind, col, row, this.rng.int(1, 1e9), look))
   }
 

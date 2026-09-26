@@ -53,7 +53,7 @@ export interface Prop {
   solid?: boolean
 }
 
-export type ShopKind = 'village' | 'secret' | 'smith' | 'castaway' | 'pets'
+export type ShopKind = 'village' | 'secret' | 'smith' | 'castaway' | 'pets' | 'florist'
 
 export interface Portal {
   col: number

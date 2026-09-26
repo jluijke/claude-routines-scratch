@@ -51,11 +51,18 @@ export function drawHud(
     }
   }
 
-  // Rupee counter.
-  atlas.draw(ctx, 'rupee', SCREEN_W - 52, 4)
-  ctx.fillStyle = '#f6f3e7'
+  // The purse: rupees, or dollars in the city, where a rupee would be odd.
   ctx.font = '8px monospace'
   ctx.textBaseline = 'top'
+  if (state.level === 3) {
+    ctx.fillStyle = '#8fd39c'
+    ctx.font = 'bold 9px monospace'
+    ctx.fillText('$', SCREEN_W - 50, 4)
+    ctx.font = '8px monospace'
+  } else {
+    atlas.draw(ctx, 'rupee', SCREEN_W - 52, 4)
+  }
+  ctx.fillStyle = '#f6f3e7'
   ctx.fillText(String(rupees).padStart(4, '0'), SCREEN_W - 42, 5)
 
   // Where you are, and how far through the curriculum.

@@ -2699,6 +2699,127 @@ const LOVE_BOMB = S([
   '................',
 ])
 
+/**
+ * The creatures of the city. Same four habits as the land's monsters — a
+ * shooter, a chaser, a flyer, a caster — so a child who learned the land has
+ * learned the street: a rat runs at him, a pigeon flaps, an alligator up
+ * from the sewers spits, and the steam wraith from a manhole casts through
+ * walls and drifts.
+ */
+const RAT_A = S([
+  '................',
+  '................',
+  '................',
+  '....kk..........',
+  '...kaak.........',
+  '..kaaaakkkkkk...',
+  '.kaaaaaaaaaaakk.',
+  'kawaaaaaaaaaaaak',
+  'kaaaaaaaaaaaakk.',
+  '.kkaaaaaaaaaak..',
+  '...kaakkkkaak...',
+  '..kiik...kiik.k.',
+  '..kkk.....kkkk..',
+  '................',
+  '................',
+  '................',
+])
+
+const RAT_B = S([
+  '................',
+  '................',
+  '................',
+  '....kk..........',
+  '...kaak.........',
+  '..kaaaakkkkkk...',
+  '.kaaaaaaaaaaakk.',
+  'kawaaaaaaaaaaaak',
+  'kaaaaaaaaaaaakk.',
+  '.kkaaaaaaaaaak..',
+  '...kaakkkkaak..k',
+  '...kiik..kiikkk.',
+  '...kkk....kkk...',
+  '................',
+  '................',
+  '................',
+])
+
+const GATOR_A = S([
+  '................',
+  '................',
+  '................',
+  '.kkkkkkkkkkkkk..',
+  'kEEEEEEEEEEEEEk.',
+  'kEwEEEEEEEEEEEEk',
+  'kEEEEEEEEEEEEEk.',
+  '.kkwkwkwkwkwkk..',
+  '..kEEEEEEEEEEk..',
+  '.kEEEEEEEEEEEEk.',
+  '.kEkkEEEEEEkkEk.',
+  '..kk.kkkkkk.kk..',
+  '................',
+  '................',
+  '................',
+  '................',
+])
+
+const GATOR_B = S([
+  '................',
+  '................',
+  '................',
+  '.kkkkkkkkkkkkk..',
+  'kEEEEEEEEEEEEEk.',
+  'kEwEEEEEEEEEEEEk',
+  'kEEEEEEEEEEEEEk.',
+  '.kkkkkkkkkkkkk..',
+  '..kEEEEEEEEEEk..',
+  '.kEEEEEEEEEEEEk.',
+  '.kEkkEEEEEEkkEk.',
+  '..kk..kkkk..kk..',
+  '................',
+  '................',
+  '................',
+  '................',
+])
+
+const WRAITH_A = S([
+  '................',
+  '......kkkk......',
+  '.....kwwwwk.....',
+  '....kwwwwwwk....',
+  '....kwkwwkwk....',
+  '....kwwwwwwk....',
+  '...kwwwwwwwwk...',
+  '...kwwwwwwwwk...',
+  '..kwwwwwwwwwwk..',
+  '..kwwwkwwkwwwk..',
+  '...kwwwwwwwwk...',
+  '....kwkwwkwk....',
+  '.....k.kk.k.....',
+  '................',
+  '................',
+  '................',
+])
+
+const WRAITH_B = S([
+  '................',
+  '................',
+  '......kkkk......',
+  '.....kwwwwk.....',
+  '....kwwwwwwk....',
+  '....kwkwwkwk....',
+  '....kwwwwwwk....',
+  '...kwwwwwwwwk...',
+  '...kwwwwwwwwk...',
+  '..kwwwwwwwwwwk..',
+  '..kwwkwwwwkwwk..',
+  '...kwwwwwwwwk...',
+  '....k.kwwk.k....',
+  '......k..k......',
+  '................',
+  '................',
+])
+
 /** What comes off a guardian who is being loved: little hearts, two sizes. */
 const HEART_BIG = S8([
   '.kk.kk..',
@@ -2871,6 +2992,12 @@ export const SPRITES = {
   bulletUp: flipVertical(BULLET_DOWN),
   sprayA: SPRAY_A,
   sprayB: SPRAY_B,
+  ratA: RAT_A,
+  ratB: RAT_B,
+  gatorA: GATOR_A,
+  gatorB: GATOR_B,
+  wraithA: WRAITH_A,
+  wraithB: WRAITH_B,
   guardianGold: GUARDIAN_GOLD,
   guardianGrey: GUARDIAN_GREY,
   guardianDark: GUARDIAN_DARK,
