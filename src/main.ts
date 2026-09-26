@@ -183,7 +183,7 @@ function enterWorld(): void {
 
   world = new World(stage, state, {
     onGate: (gate) => handleGate(gate),
-    onShop: (kind) => openShop(kind),
+    onShop: (kind, placeName) => openShop(kind, placeName),
     onChange: () => persist(),
     onDefeat: () => handleDefeat(),
     onMessage: () => {},
@@ -782,7 +782,7 @@ function teardownWorldCanvasOnly(): void {
  */
 let openShopPanel: { close: () => void; refresh: () => void } | undefined
 
-function openShop(kind: ShopKind): void {
+function openShop(kind: ShopKind, placeName?: string): void {
   world?.setPaused(true)
   if (kind === 'pets') {
     openShopPanel = showPetShop(root, {
@@ -802,6 +802,9 @@ function openShop(kind: ShopKind): void {
   }
   openShopPanel = showShop(root, {
     kind,
+    // In the city every shop has its own name over the door, and two delis
+    // share a kind: the panel says the one he walked into.
+    ...(state.level === 3 && placeName ? { title: placeName } : {}),
     level: state.level,
     save: state,
     onGateRequest: (gate) => {

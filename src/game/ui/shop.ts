@@ -117,6 +117,8 @@ const GREETINGS: Record<Level, Record<ShopKind, string>> = {
 
 export interface ShopOptions {
   kind: ShopKind
+  /** The name over the door, where it is not the kind's usual title. */
+  title?: string
   /** Which world's names and prices to show — the same items either way. */
   level: Level
   save: SaveData
@@ -149,7 +151,7 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
     // On the ship it is a computer screen, and it looks like one: the same
     // panel with a monitor bezel and a scanline over it.
     el('section', { class: `shop panel-game${level === 2 ? ' computer' : ''}` }, [
-      el('h2', { class: 'panel-title' }, [TITLES[level][kind]]),
+      el('h2', { class: 'panel-title' }, [options.title ?? TITLES[level][kind]]),
       el('p', { class: 'shop-greeting' }, [GREETINGS[level][kind]]),
       // Up here with the greeting, not under the list. The village shelf is
       // long enough that a reply printed at the bottom lands well off the

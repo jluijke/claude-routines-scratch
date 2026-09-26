@@ -379,7 +379,7 @@ const BLOCKS: Screen[] = [
     name: 'Washington Square South',
     region: SQUARE,
     set: ['3,7=H', '12,7=H', '2,3=,', '13,3=*', '11,6=,'],
-    portals: [door(3, 7, 'nyc-bodega'), door(12, 7, 'nyc-pawn')],
+    portals: [door(3, 7, 'nyc-deli-square'), door(12, 7, 'nyc-pawn')],
     props: [
       { sprite: 'scribe', col: 5, row: 3, talk: 'Hot dog, a dollar. Mustard, no ketchup. That is not a suggestion, that is the law.' },
       { sprite: 'pigeonB', col: 9, row: 3 },
@@ -652,6 +652,23 @@ const INTERIORS: Screen[] = [
     props: [
       { sprite: 'scribe', col: 13, row: 4, talk: 'Bandages, firecrackers, sandwiches. Cat is not for sale.' },
       { sprite: 'catA', col: 12, row: 5 },
+    ],
+  },
+  // The deli on the corner of the square. Sunny rings you up; Annie makes
+  // the sandwiches, and is better at it than Ray, and will say so.
+  {
+    id: 'nyc-deli-square',
+    name: "Sunny & Annie's Deli",
+    region: SQUARE,
+    ...BODEGA,
+    rows: SHOP_ROWS,
+    exits: {},
+    shop: 'village',
+    portals: [wayOut('nyc-washington-south', 3, 6)],
+    props: [
+      { sprite: 'scribe', col: 13, row: 4, talk: 'Sunny, at the till: "Welcome to Sunny & Annie\'s! Annie makes the sandwiches. I just take the money and tell the jokes."' },
+      { sprite: 'scribe', col: 3, row: 2, talk: 'Annie, behind the counter: "Best egg-and-cheese on the square. Better than Ray\'s, and you can tell him I said so."' },
+      { sprite: 'catB', col: 12, row: 5 },
     ],
   },
   {

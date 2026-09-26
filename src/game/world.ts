@@ -88,7 +88,7 @@ export interface WorldCallbacks {
   /** The hero touched a sealed barrier. Resolve true once it should open. */
   onGate: (gate: Gate) => void
   /** The hero walked into a shop. */
-  onShop: (kind: ShopKind) => void
+  onShop: (kind: ShopKind, placeName?: string) => void
   /** Something worth saving happened. */
   onChange: () => void
   /** The hero ran out of hearts. */
@@ -864,7 +864,7 @@ export class World {
     this.dressTheHaven(next)
     this.sealed = this.sealedTiles(this.openedTiles())
     music.play(this.trackFor(next))
-    if (next.shop) this.callbacks.onShop(next.shop)
+    if (next.shop) this.callbacks.onShop(next.shop, next.name)
   }
 
   /**
