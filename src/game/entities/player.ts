@@ -135,8 +135,8 @@ export class Player {
     return Math.max(0.25, 1 - (tunic + ring) * 0.25)
   }
 
-  attack(): void {
-    if (this.attackTimer <= 0) this.attackTimer = ATTACK_FRAMES
+  attack(frames = ATTACK_FRAMES): void {
+    if (this.attackTimer <= 0) this.attackTimer = frames
   }
 
   /**

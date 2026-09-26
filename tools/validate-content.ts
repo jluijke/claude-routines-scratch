@@ -24,8 +24,7 @@ import {
   walledInFeatures,
   strandedFeatures,
   unmarkedDoors,
-  unreachableDoors,
-} from '../src/game/world/analysis'
+  unreachableDoors, pointlessBarriers, } from '../src/game/world/analysis'
 import { ITEMS, SECRET_SHOP, VILLAGE_SHOP } from '../src/game/items'
 import { buildQueue, MAX_QUESTIONS } from '../src/spelling/scheduler'
 import { emptyMasteryStore } from '../src/spelling/mastery'
@@ -319,6 +318,7 @@ for (const screen of SCREENS) {
   for (const problem of walledInFeatures(screen)) fail(`Walled in: ${problem}`)
   for (const problem of strandedFeatures(screen)) fail(`Stranded: ${problem}`)
   for (const problem of trappingGates(screen)) fail(`Barrier: ${problem}`)
+  for (const problem of pointlessBarriers(screen, (id) => gateById(id)?.kind)) fail(`Barrier: ${problem}`)
 }
 
 for (const [gateId, screens] of gateUsage) {

@@ -242,25 +242,25 @@ export const AUTHORED_FUTURE: Screen[] = [
     ...SHIP,
     rows: [
       'TTTTTTTTTTTTTTTT',
-      'T..............T',
+      'T............p.T',
       'T.RR.RR.RR.RR..T',
       'T.RR.RR.RR.RR..T',
       'T..............T',
       'T..............T',
       'T.RR.RR.RR.RR..T',
       'T.RR.RR.RR.RR..T',
-      'T.......p......T',
+      'TTTTTTT==TTTTTTT',
       'T..............T',
       'TTTTTTT..TTTTTTT',
     ],
     exits: { down: 'ship-corridor-2' },
-    gates: [{ gateId: 'ship-mess-guard', col: 13, row: 4 }],
+    gates: [{ gateId: 'ship-mess-guard', col: 7, row: 8, opens: [{ col: 7, row: 8 }, { col: 8, row: 8 }], guards: 'up' }],
     // A sealed panel among the tables, with something glinting behind it. The
     // first of the two serums, and the screwdriver is the way to it.
     pickup: {
       id: 'mess-serum',
-      col: 8,
-      row: 8,
+      col: 13,
+      row: 1,
       item: 'potion',
       message:
         'The panel comes off and a vial rolls out, cold and faintly humming. ' +
@@ -349,19 +349,22 @@ export const AUTHORED_FUTURE: Screen[] = [
       'T..............T',
       'T..............T',
       '................',
-      'T..............T',
-      'T....,,,,......T',
-      'T..RR......RR..T',
-      'T..............T',
+      'T....TT==TT....T',
+      'T....T,,,,T....T',
+      'T..RRT.....TRR.T',
+      'T....TTTTTT....T',
       'TTTTTTTTTTTTTTTT',
     ],
     exits: { up: 'ship-corridor-1', left: 'ship-cargo-1', right: 'ship-engine-1' },
     gates: [
-      { gateId: 'ship-cargo-guard', col: 9, row: 3 },
+      { gateId: 'ship-cargo-guard', col: 7, row: 6, opens: [{ col: 7, row: 6 }, { col: 8, row: 6 }] },
       { gateId: 'ship-cargo-chest', col: 4, row: 6 },
     ],
     // Airlock two, behind the loose cabling at the bottom: the screwdriver
     // finds it, the way the candle finds the forest grotto.
+    // Not marked guardedBy: the airlock's own way back lands inside the bay,
+    // which that check counts as a way round. The barrier rule proves the
+    // droid is the only way in from the corridor.
     portals: [{ col: 6, row: 7, to: 'airlock-2', spawnCol: 7, spawnRow: 8 }],
     spawns: [
       { kind: 'chaser', col: 11, row: 4 },
@@ -376,12 +379,12 @@ export const AUTHORED_FUTURE: Screen[] = [
     rows: [
       'TTTTTTT..TTTTTTT',
       'T......,,......T',
-      'T..............T',
-      'T....=SSS~~~~~~~',
-      'T....=SSS~~~~~~~',
-      'T....=SSSS~~~~~~',
-      'T....=SSS~~~~~~~',
-      'T....=SSS~~~~~~~',
+      'TTTTTT====TTTTTT',
+      'T.....SSS~~~~~~~',
+      'T.....SSS~~~~~~~',
+      'T.....SSSS~~~~~~',
+      'T.....SSS~~~~~~~',
+      'T.....SSS~~~~~~~',
       'T..............T',
       'T..............T',
       'TTTTTTTTTTTTTTTT',
@@ -390,14 +393,13 @@ export const AUTHORED_FUTURE: Screen[] = [
     gates: [
       {
         gateId: 'ship-launch-passage',
-        col: 5,
-        row: 5,
+        col: 6,
+        row: 2,
         opens: [
-          { col: 5, row: 3 },
-          { col: 5, row: 4 },
-          { col: 5, row: 5 },
-          { col: 5, row: 6 },
-          { col: 5, row: 7 },
+          { col: 6, row: 2 },
+          { col: 7, row: 2 },
+          { col: 8, row: 2 },
+          { col: 9, row: 2 },
         ],
       },
     ],
@@ -423,7 +425,7 @@ export const AUTHORED_FUTURE: Screen[] = [
         talk: 'There is an outpost out there past the bay doors. Nobody has been across since the robots came.',
       },
     ],
-    spawns: [{ kind: 'flyer', col: 3, row: 2 }],
+    spawns: [{ kind: 'flyer', col: 3, row: 4 }],
   },
 
   // ---------------------------------------------------------- engineering
@@ -537,7 +539,7 @@ export const AUTHORED_FUTURE: Screen[] = [
       'T..RR......RR..T',
       'T..............T',
       'T..............T',
-      'T..............T',
+      'TTTTTTT==TTTTTTT',
       'T..RR......RR..T',
       'T..............T',
       'T..........X...T',
@@ -547,7 +549,7 @@ export const AUTHORED_FUTURE: Screen[] = [
     exits: { up: 'ship-engine-2' },
     gates: [
       { gateId: 'ship-lower-chest', col: 4, row: 4 },
-      { gateId: 'ship-lower-guard', col: 7, row: 3 },
+      { gateId: 'ship-lower-guard', col: 7, row: 5, opens: [{ col: 7, row: 5 }, { col: 8, row: 5 }] },
     ],
     // The smugglers' hold, behind a cracked bulkhead: the bomb shop of the ship.
     portals: [{ col: 11, row: 8, to: 'ship-smugglers-hold', spawnCol: 7, spawnRow: 8 }],
@@ -653,20 +655,20 @@ export const AUTHORED_FUTURE: Screen[] = [
     ...SHIP,
     rows: [
       'TTTTTTTTTTTTTTTT',
-      'T..*..*..*..*..T',
-      'T..............T',
-      '...*..*..*..*..T',
-      'T..............T',
-      'T..............T',
-      'T..*..*..*..*..T',
-      'T..............T',
-      'T.....,........T',
-      'T..............T',
+      'T..*..*..*.T*..T',
+      'T..........T...T',
+      '...*..*..*.T*..T',
+      'T..........T...T',
+      'T..........=...T',
+      'T..*..*..*.T*..T',
+      'T..........T...T',
+      'T.....,....T.=.T',
+      'T..........T...T',
       'TTTTTTTTTTTTTTTT',
     ],
     exits: { left: 'ship-lab-2' },
     gates: [
-      { gateId: 'ship-lab-guard', col: 10, row: 5 },
+      { gateId: 'ship-lab-guard', col: 11, row: 5 },
       { gateId: 'ship-specimen-chest', col: 13, row: 8 },
     ],
     // The maintenance bay: a hidden room under the cabling, with a chest.
@@ -915,7 +917,7 @@ export const AUTHORED_FUTURE: Screen[] = [
   // tile *above* the hatch he came through — one more frame of the same key
   // and he is straight back inside. Airlocks one and two both did that.
   airlock('airlock-1', 'Airlock One', { to: 'ship-corridor-2', spawnCol: 11, spawnRow: 9 }, { to: 'rock-1-landing', spawnCol: 13, spawnRow: 5 }),
-  airlock('airlock-2', 'Airlock Two', { to: 'ship-cargo-2', spawnCol: 6, spawnRow: 9 }, { to: 'rock-2-landing', spawnCol: 13, spawnRow: 5 }),
+  airlock('airlock-2', 'Airlock Two', { to: 'ship-cargo-2', spawnCol: 6, spawnRow: 8 }, { to: 'rock-2-landing', spawnCol: 13, spawnRow: 5 }),
   airlock('airlock-3', 'Airlock Three', { to: 'ship-engine-2', spawnCol: 3, spawnRow: 9 }, { to: 'rock-3-landing', spawnCol: 13, spawnRow: 5 }),
   airlock('airlock-4', 'Airlock Four', { to: 'ship-reactor', spawnCol: 7, spawnRow: 6 }, { to: 'rock-4-landing', spawnCol: 13, spawnRow: 5 }),
 

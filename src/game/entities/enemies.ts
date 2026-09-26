@@ -243,6 +243,8 @@ export class Enemy {
   readonly def: Archetype
   readonly look: EnemyLook
   hurtTimer = 0
+  /** Frames it stands stunned, after the box hammer lands near it. */
+  stunned = 0
   private cooldown: number
   private dirX = 0
   private dirY = 1
@@ -448,6 +450,11 @@ export class Enemy {
   ): void {
     this.phase += 1
     if (this.hurtTimer > 0) this.hurtTimer -= 1
+    // Stunned, it stands there: no walking, no shooting, until it clears.
+    if (this.stunned > 0) {
+      this.stunned -= 1
+      return
+    }
     if (this.baitTimer > 0) this.baitTimer -= 1
     if (this.blockFlash > 0) this.blockFlash -= 1
     if (this.openTimer > 0) this.openTimer -= 1

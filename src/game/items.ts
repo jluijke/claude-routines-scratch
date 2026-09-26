@@ -137,6 +137,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     city: {
       name: 'Pistol',
       description: 'Short reach, six shots, then a click-clack while it reloads.',
+      gate: 'nyc-pistol',
     },
   },
   goldenSword: {
@@ -155,7 +156,8 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     gate: 'smith-golden',
     city: {
       name: 'Rifle',
-      description: 'Long reach: the whole screen. Fewer shots before the reload.',
+      description: 'Long reach: the whole screen. Three shots before the reload, and each one hits hard.',
+      gate: 'nyc-rifle',
     },
   },
   woodenShield: {

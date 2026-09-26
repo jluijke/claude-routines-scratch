@@ -23,6 +23,8 @@ export type SfxName =
   | 'bark'
   | 'shieldBlock'
   | 'stomp'
+  | 'gunshot'
+  | 'reload'
 
 interface Tone {
   kind?: 'tone'
@@ -68,6 +70,16 @@ const PATCHES: Record<SfxName, Sound[]> = {
   shieldBlock: [
     { freq: 1400, at: 0, duration: 0.04, type: 'square', slideTo: 1900, gain: 0.12 },
     { freq: 900, at: 0.04, duration: 0.1, type: 'triangle', slideTo: 1100, gain: 0.08 },
+  ],
+  // A shot: a hard crack of noise and a thump under it, over in a tenth of a second.
+  gunshot: [
+    { kind: 'noise', at: 0, duration: 0.06, from: 3000, to: 800, gain: 0.2, q: 2 },
+    { freq: 140, at: 0, duration: 0.08, type: 'square', slideTo: 50, gain: 0.14 },
+  ],
+  // Click-clack: two dry clicks, the second a little lower.
+  reload: [
+    { freq: 1800, at: 0, duration: 0.03, type: 'square', gain: 0.08 },
+    { freq: 1300, at: 0.12, duration: 0.03, type: 'square', gain: 0.08 },
   ],
   // Something heavy arriving. Used for the charge that ends in a wall.
   stomp: [

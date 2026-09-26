@@ -31,6 +31,25 @@ import { hopOffset, petByKind, petFrames } from './pets'
 import type { ShopKind } from './ui/shop'
 import { TOTAL_EXERCISES } from '../content/exercises'
 import { flavourFor, type Flavour } from './flavour'
+import {
+  ammoLabel,
+  burstDirections,
+  cityWeapon,
+  fullMagazine,
+  GUNS,
+  HAMMER_STUN_FRAMES,
+  HAMMER_STUN_RADIUS,
+  HAMMER_SWING_FRAMES,
+  isFirearm,
+  MACHINE_GUN_BURST,
+  MACHINE_GUN_DAMAGE,
+  MACHINE_GUN_RANGE,
+  MACHINE_GUN_SPEED,
+  pullTrigger,
+  tickMagazine,
+  type Firearm,
+  type Magazine,
+} from './weapons'
 import { START_SCREENS } from './levels'
 import {
   beginRide,
@@ -114,6 +133,8 @@ interface Shot {
   vy: number
   facing: Facing
   life: number
+  /** What it takes off. An arrow's worth unless a gun says otherwise. */
+  damage?: number
 }
 
 /** How fast an arrow flies, in pixels a second. Well clear of a walking hero. */
@@ -419,6 +440,16 @@ export class World {
   private boardingDeclined = false
   /** The direction prompt is up. */
   private pendingBoard = false
+  /** The gun in his hand in the city, and what is left in it. */
+  private magazine: Magazine | undefined
+  /** Times the hammer has come down on this screen. For the checks. */
+  private hammerBlows = 0
+  /**
+   * Tiles a barrier still stands on. Solid, whatever is drawn under them: a
+   * keeper in a field was a prompt he could decline and then walk through,
+   * and so were two lengths of police tape.
+   */
+  private sealed = new Set<string>()
   /** Set from the moment he picks something up until the sign is dismissed. */
   private discovery: Discovery | undefined
   /** The animal, on the screens it comes to. */
@@ -600,6 +631,7 @@ export class World {
     // down the stairs it wants its three words again.
     if (gate.kind === 'turnstile') {
       this.turnstilePasses.add(gate.id)
+      this.sealed = this.sealedTiles(this.openedTiles())
       sfx.play('gateOpen')
       this.showMessage(gate.openMessage)
       this.pendingGate = undefined
@@ -618,6 +650,7 @@ export class World {
     sfx.play('gateOpen')
     this.showMessage(gate.openMessage)
     this.pendingGate = undefined
+    this.sealed = this.sealedTiles(this.openedTiles())
     // Step the hero back so they are not standing inside the doorway.
     this.stepAwayFromGate(gate.id)
     this.ensureFree()
@@ -770,6 +803,7 @@ export class World {
       this.save.world.visitedScreens.push(id)
     }
     this.dressTheHaven(next)
+    this.sealed = this.sealedTiles(this.openedTiles())
     music.play(this.trackFor(next))
     if (next.shop) this.callbacks.onShop(next.shop)
   }
@@ -865,6 +899,20 @@ export class World {
   /** Called after a boss dies, so the room stops sounding urgent. */
   private refreshMusic(): void {
     music.play(this.trackFor(this.screen))
+  }
+
+  /** Every tile of every barrier on this screen that has not opened. */
+  private sealedTiles(opened: ReadonlySet<string>): Set<string> {
+    const sealed = new Set<string>()
+    for (const placement of this.screen.gates ?? []) {
+      // A chest is walked into, not through; it sits in the open by design.
+      if (gateById(placement.gateId)?.kind === 'chest') continue
+      for (const tile of placement.opens ?? [{ col: placement.col, row: placement.row }]) {
+        const key = `${tile.col},${tile.row}`
+        if (!opened.has(key)) sealed.add(key)
+      }
+    }
+    return sealed
   }
 
   private openedTiles(): Set<string> {
@@ -1013,17 +1061,16 @@ export class World {
       }
     }
 
-    if (state.attack) {
-      this.player.attack()
-      sfx.play('swordSwing')
-    }
+    if (state.attack) this.swingOrFire()
     if (state.useItem) this.useItem()
     if (state.cycleItem) this.cycleTool()
 
     const opened = this.openedTiles()
+    this.sealed = this.sealedTiles(opened)
     const blocked = this.blockedHere()
 
     this.player.update(step, dx, dy, blocked, this.inVacuum())
+    this.updateWeapon()
     this.clampToScreen()
     // Belt and braces: nothing should ever put him inside a wall, but if
     // something does, he is out of it on the next frame rather than for good.
@@ -1094,6 +1141,7 @@ export class World {
     if (col < 0 || row < 0 || col >= 16 || row >= 11) return true
     if (opened.has(`${col},${row}`)) return false
     if (this.solidProps.has(`${col},${row}`)) return true
+    if (this.sealed.has(`${col},${row}`)) return true
     const char = ((this.screen.rows[row] ?? '')[col] ?? '#') as TileChar
     return isSolidChar(char, canCrossWater)
   }
@@ -1684,7 +1732,7 @@ export class World {
   // ------------------------------------------------------------------ combat
 
   private resolveCombat(): void {
-    const sword = this.player.swordBox()
+    const sword = this.meleeBox()
     const playerBox = { x: this.player.x, y: this.player.y, w: PLAYER_SIZE, h: PLAYER_SIZE }
 
     // The Scythe cuts a ring of lightning right round him, so anything close
@@ -1709,6 +1757,130 @@ export class World {
         }
       }
     }
+  }
+
+  // ----------------------------------------------------------------- weapons
+
+  /** What the sword slot holds in the city, or undefined anywhere else. */
+  private cityWeaponHeld() {
+    return this.level === 3 ? cityWeapon(this.player.loadout.sword) : undefined
+  }
+
+  /**
+   * The rectangle that hits things. A gun raised to fire uses the same timer
+   * as a swing, so the hero is drawn holding it out — but it cuts nothing.
+   */
+  private meleeBox(): { x: number; y: number; w: number; h: number } | undefined {
+    if (isFirearm(this.cityWeaponHeld())) return undefined
+    return this.player.swordBox()
+  }
+
+  /**
+   * The attack button. A sword or a knife swings; the hammer swings slowly;
+   * a gun fires the way he is facing, if there is anything in it.
+   */
+  private swingOrFire(): void {
+    const weapon = this.cityWeaponHeld()
+    if (isFirearm(weapon)) return this.fireGun(weapon)
+    if (weapon === 'hammer') {
+      if (this.player.isAttacking) return
+      this.player.attack(HAMMER_SWING_FRAMES)
+      sfx.play('swordSwing')
+      return
+    }
+    this.player.attack()
+    sfx.play('swordSwing')
+  }
+
+  /**
+   * Every frame: the hammer comes down partway through its swing and the
+   * street shakes, and a gun's reload and cooldown run.
+   */
+  private updateWeapon(): void {
+    const weapon = this.cityWeaponHeld()
+    if (weapon === 'hammer' && this.player.attackTimer === HAMMER_SWING_FRAMES - 8) this.hammerLands()
+    if (this.magazine) {
+      const before = this.magazine.reload
+      this.magazine = tickMagazine(this.magazine)
+      if (before === 1 && this.magazine.reload === 0) {
+        sfx.play('reload')
+        this.showMessage('Loaded.', 40)
+      }
+    }
+  }
+
+  /** The hammer hits the street: everything jolts, and anything close stands stunned. */
+  private hammerLands(): void {
+    this.hammerBlows += 1
+    this.shake = SHAKE_FRAMES
+    sfx.play('stomp')
+    const box = this.player.swordBox()
+    const at = box ? { x: box.x + box.w / 2, y: box.y + box.h / 2 } : this.player.centre()
+    for (const enemy of this.enemies) {
+      // The guardians are not the sort of thing a hammer rattles.
+      if (isBossKind(enemy.kind)) continue
+      const c = enemy.centre()
+      if (Math.hypot(c.x - at.x, c.y - at.y) <= HAMMER_STUN_RADIUS + enemy.size / 2) {
+        enemy.stunned = Math.max(enemy.stunned, HAMMER_STUN_FRAMES)
+      }
+    }
+  }
+
+  private fireGun(weapon: Firearm): void {
+    const mag = this.magazine?.weapon === weapon ? this.magazine : fullMagazine(weapon)
+    const { mag: next, result } = pullTrigger(mag)
+    this.magazine = next
+    if (result === 'fired') {
+      const spec = GUNS[weapon]
+      const dx = this.player.facing === 'left' ? -1 : this.player.facing === 'right' ? 1 : 0
+      const dy = this.player.facing === 'up' ? -1 : this.player.facing === 'down' ? 1 : 0
+      this.spawnBullet(dx, dy, spec.speed, spec.range, spec.damage)
+      // The gun comes up for a moment, so the shot reads as his.
+      this.player.attack(8)
+      sfx.play('gunshot')
+      if (next.reload > 0) this.showMessage('Click-clack. Reloading.', 60)
+      return
+    }
+    if (result === 'empty') {
+      sfx.play('reload')
+      this.showMessage('Click-clack. Reloading.', 60)
+    }
+  }
+
+  private spawnBullet(dx: number, dy: number, speed: number, range: number, damage: number): void {
+    const centre = this.player.centre()
+    const away = this.pointAhead(centre, this.player.facing, 10)
+    this.shots.push({
+      x: away.x - SHOT_SIZE / 2,
+      y: away.y - SHOT_SIZE / 2,
+      vx: dx * speed,
+      vy: dy * speed,
+      facing: this.player.facing,
+      life: Math.ceil((range / speed) * 60),
+      damage,
+    })
+  }
+
+  /**
+   * The machine gun: three bullets a press in a fan, and no waiting for the
+   * last one to land. It eats bullets three at a time, which is what makes
+   * the hardware store worth walking back to.
+   */
+  private burst(): void {
+    const held = this.save.inventory.arrows ?? 0
+    if (held <= 0) {
+      this.showMessage(this.words.noArrows, 110)
+      return
+    }
+    const count = Math.min(MACHINE_GUN_BURST, held)
+    this.save.inventory.arrows = held - count
+    const dx = this.player.facing === 'left' ? -1 : this.player.facing === 'right' ? 1 : 0
+    const dy = this.player.facing === 'up' ? -1 : this.player.facing === 'down' ? 1 : 0
+    for (const dir of burstDirections(dx, dy, count)) {
+      this.spawnBullet(dir.dx, dir.dy, MACHINE_GUN_SPEED, MACHINE_GUN_RANGE, MACHINE_GUN_DAMAGE)
+    }
+    sfx.play('gunshot')
+    this.callbacks.onChange()
   }
 
   /**
@@ -2035,6 +2207,7 @@ export class World {
    * worth aiming, and a child who can hold the button down never learns to.
    */
   private loose(): void {
+    if (this.level === 3) return this.burst()
     if ((this.save.inventory.arrows ?? 0) <= 0) {
       this.showMessage(this.words.noArrows, 110)
       return
@@ -2078,7 +2251,7 @@ export class World {
       const box = { x: shot.x, y: shot.y, w: SHOT_SIZE, h: SHOT_SIZE }
       const struck = this.enemies.find((enemy) => overlaps(box, enemy.box()))
       if (struck) {
-        this.strike(struck, ARROW_DAMAGE)
+        this.strike(struck, shot.damage ?? ARROW_DAMAGE)
         continue
       }
       flying.push(shot)
@@ -2263,7 +2436,7 @@ export class World {
       const sideways = shot.facing === 'left' || shot.facing === 'right'
       this.atlas.draw(
         ctx,
-        `${this.level === 2 ? 'bolt' : 'arrowFly'}${capitalise(shot.facing)}` as SpriteName,
+        `${this.level === 2 ? 'bolt' : this.level === 3 ? 'bullet' : 'arrowFly'}${capitalise(shot.facing)}` as SpriteName,
         shot.x + SHOT_SIZE / 2 - (sideways ? 8 : 4),
         shot.y + SHOT_SIZE / 2 - (sideways ? 4 : 8),
       )
@@ -2349,6 +2522,15 @@ export class World {
       totalExercises: TOTAL_EXERCISES,
       level: this.level,
       weaponLabel: this.words.weaponLabel,
+      // "Kitchen Knife" is a KNIFE and "Box Hammer" a HAMMER: the city names
+      // its weapons by their last word, where the land named swords by their
+      // metal. And a gun says what is left in it.
+      ...(this.cityWeaponHeld()
+        ? {
+            weaponName: itemName(this.player.loadout.sword as ItemId, this.level).split(' ').pop() ?? '',
+            ammo: this.magazine?.weapon === this.cityWeaponHeld() ? ammoLabel(this.magazine) : isFirearm(this.cityWeaponHeld()) ? ammoLabel(fullMagazine(this.cityWeaponHeld() as Firearm)) : '',
+          }
+        : {}),
       // The bow is one thing he owns for good; what is worth counting is what
       // it fires, so the slot shows arrows rather than a permanent "x1".
       ...(tool
@@ -2608,6 +2790,8 @@ export class World {
 
   /** The blade he swings, pointing a given way: steel in the land, light on the ship. */
   private bladeSprite(pose: string): SpriteName {
+    const city = this.cityWeaponHeld()
+    if (city) return `${city}${pose}` as SpriteName
     const bladeTier = capitalise(materialOf(this.player.loadout.sword ?? 'woodenSword'))
     return `sword${this.level === 2 ? 'Future' : ''}${bladeTier}${pose}` as SpriteName
   }
@@ -3261,6 +3445,12 @@ export class World {
       projectiles: this.projectiles.length,
       shots: this.shots.length,
       arrows: this.save.inventory.arrows ?? 0,
+      shake: this.shake,
+      attackTimer: this.player.attackTimer,
+      hammerBlows: this.hammerBlows,
+      magazine: this.magazine ? { ...this.magazine } : undefined,
+      stunned: this.enemies.filter((e) => e.stunned > 0).length,
+      weapon: this.cityWeaponHeld(),
       bursts: this.bursts.length,
       candleUsedHere: this.candleUsedHere,
       level: this.level,
@@ -3349,6 +3539,17 @@ export class World {
   debugPlace(x: number, y: number): void {
     this.player.x = x
     this.player.y = y
+  }
+
+  /** Empties the screen of monsters, so a check can shoot at one it placed itself. */
+  debugClearEnemies(): void {
+    this.enemies = []
+  }
+
+  /** Puts a monster on the screen where the checks want one. */
+  debugSpawn(kind: EnemyKind, col: number, row: number): void {
+    const look = this.level === 2 ? 'robot' : 'monster'
+    this.enemies.push(new Enemy(kind, col, row, this.rng.int(1, 1e9), look))
   }
 
   /** Jumps straight to a screen. Used by the debug menu and the end-to-end checks. */

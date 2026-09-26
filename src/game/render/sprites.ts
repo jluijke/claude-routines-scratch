@@ -2220,6 +2220,232 @@ const HAMMER_DOWN = defineSprite(8, 16, [
   '........',
 ])
 
+/**
+ * The kitchen knife, held out the way the sword is: a short bright blade on a
+ * black handle. It is the wooden sword's slot, and reaches exactly as far.
+ */
+const KNIFE_RIGHT = defineSprite(16, 8, [
+  '................',
+  '................',
+  '.kkkkkkkkkkkkkk.',
+  'kzzzzkmwwwwwwwwk',
+  'kzzzzkmmmmmmwk..',
+  '.kkkkkkkkkkkk...',
+  '................',
+  '................',
+])
+
+const KNIFE_DOWN = defineSprite(8, 16, [
+  '..kkkk..',
+  '.kzzzzk.',
+  '.kzzzzk.',
+  '.kzzzzk.',
+  '.kkkkkk.',
+  '..kmwk..',
+  '..kmwk..',
+  '..kmwk..',
+  '..kmwk..',
+  '..kmwk..',
+  '..kmwk..',
+  '..kmwk..',
+  '..kmwk..',
+  '...kwk..',
+  '....k...',
+  '........',
+])
+
+/** The pistol, held out in front. Short, black, a flash at the muzzle when it fires. */
+const PISTOL_RIGHT = defineSprite(16, 8, [
+  '................',
+  '..kkkkkkkkkk....',
+  '.kzMMMMMMMMMk...',
+  '.kzMMMMMMMMMMk..',
+  '.kkkkkMMMkkkk...',
+  '....kMMk........',
+  '....kkkk........',
+  '................',
+])
+
+const PISTOL_DOWN = defineSprite(8, 16, [
+  '........',
+  '.kkkkk..',
+  '.kMzMk..',
+  '.kMzMk..',
+  '.kMMMk..',
+  '.kMMMk..',
+  '.kMMMk..',
+  '.kMMMk..',
+  '.kMMMk..',
+  '.kMMMk..',
+  '.kMMMk..',
+  '.kMMMk..',
+  '..kkk...',
+  '........',
+  '........',
+  '........',
+])
+
+/** The rifle: long, wooden stock, a barrel the length of a tile. */
+const RIFLE_RIGHT = defineSprite(16, 8, [
+  '................',
+  '................',
+  'kkkkkkkkkkkkkkkk',
+  'knnnnkMMMMMMMMMk',
+  'knnnkkMMMMMMMMMk',
+  'kkkkkkkkkkkkkkkk',
+  '................',
+  '................',
+])
+
+const RIFLE_DOWN = defineSprite(8, 16, [
+  '..kkkk..',
+  '..knnk..',
+  '..knnk..',
+  '..knnk..',
+  '..kkkk..',
+  '..kMMk..',
+  '..kMMk..',
+  '..kMMk..',
+  '..kMMk..',
+  '..kMMk..',
+  '..kMMk..',
+  '..kMMk..',
+  '..kMMk..',
+  '..kMMk..',
+  '..kkkk..',
+  '........',
+])
+
+/** The knife on a shelf, held diagonally like the sword icon. */
+const KNIFE_ICON = S([
+  '................',
+  '............kk..',
+  '...........kwk..',
+  '..........kwmk..',
+  '.........kwmk...',
+  '........kwmk....',
+  '.......kwmk.....',
+  '......kwmk......',
+  '.....kwmk.......',
+  '....kkmk........',
+  '...kzzk.........',
+  '..kzzk..........',
+  '.kzzk...........',
+  'kzzk............',
+  'kkk.............',
+  '................',
+])
+
+/** The pistol and the rifle on the hardware store's shelf. */
+const PISTOL_ICON = S([
+  '................',
+  '................',
+  '................',
+  '..kkkkkkkkkkkk..',
+  '.kMMMMMMMMMMMMk.',
+  '.kMzzMMMMMMMMMk.',
+  '.kMMMMMMMMMMMkk.',
+  '..kkkkkkMMMk....',
+  '.......kMMMk....',
+  '.......kMMk.....',
+  '......kMMMk.....',
+  '......kMMk......',
+  '......kkkk......',
+  '................',
+  '................',
+  '................',
+])
+
+const RIFLE_ICON = S([
+  '..............kk',
+  '.............kMk',
+  '............kMMk',
+  '...........kMMk.',
+  '..........kMMk..',
+  '.........kMMk...',
+  '........kMMk....',
+  '.......kMMk.....',
+  '......kMMk......',
+  '.....knnk.......',
+  '....knnnk.......',
+  '...knnnnk.......',
+  '..knnnkkk.......',
+  '.knnnk..........',
+  'kkkkk...........',
+  '................',
+])
+
+/** The machine gun: the bow's slot, three bullets a press. */
+const MACHINE_GUN_ICON = S([
+  '................',
+  '................',
+  '..kkkkkkkkkkkkk.',
+  '.kMMMMMMMMMMMMMk',
+  '.kMzzMMMMMMMMMMk',
+  '.kMMMMMMMMMMkkk.',
+  '..kkkkMMMkkk....',
+  '.....kMMk.......',
+  '....kMMMk.......',
+  '....kMMk........',
+  '...kMMMk........',
+  '...kkkk.........',
+  '................',
+  '................',
+  '................',
+  '................',
+])
+
+/** A box of bullets: what the machine gun and the hardware store count in. */
+const BULLETS_ICON = S([
+  '................',
+  '................',
+  '...kkkkkkkkkk...',
+  '..kyyyyyyyyyyk..',
+  '.kyyMyyMyyMyyyk.',
+  '.kyyMyyMyyMyyyk.',
+  '.kyyMyyMyyMyyyk.',
+  '.kyyyyyyyyyyyyk.',
+  '.kRRRRRRRRRRRRk.',
+  '.kRRRRRRRRRRRRk.',
+  '.kRRwwwwwwwwRRk.',
+  '.kRRRRRRRRRRRRk.',
+  '..kkkkkkkkkkkk..',
+  '................',
+  '................',
+  '................',
+])
+
+/** A bullet in the air: brass, and a trail, drawn going right and down. */
+const BULLET_RIGHT = defineSprite(16, 8, [
+  '................',
+  '................',
+  '................',
+  '......yyykyyw...',
+  '........kyyyw...',
+  '................',
+  '................',
+  '................',
+])
+
+const BULLET_DOWN = defineSprite(8, 16, [
+  '........',
+  '........',
+  '........',
+  '........',
+  '........',
+  '........',
+  '...yk...',
+  '...yy...',
+  '...yy...',
+  '...ky...',
+  '...yy...',
+  '...ww...',
+  '........',
+  '........',
+  '........',
+  '........',
+])
+
 /** The box hammer as it sits in the HUD and on a shop shelf. */
 const BOX_HAMMER_ICON = S([
   '................',
@@ -2622,6 +2848,27 @@ export const SPRITES = {
   hammerDown: HAMMER_DOWN,
   hammerUp: flipVertical(HAMMER_DOWN),
   boxHammer: BOX_HAMMER_ICON,
+  knifeRight: KNIFE_RIGHT,
+  knifeLeft: mirror(KNIFE_RIGHT),
+  knifeDown: KNIFE_DOWN,
+  knifeUp: flipVertical(KNIFE_DOWN),
+  pistolRight: PISTOL_RIGHT,
+  pistolLeft: mirror(PISTOL_RIGHT),
+  pistolDown: PISTOL_DOWN,
+  pistolUp: flipVertical(PISTOL_DOWN),
+  rifleRight: RIFLE_RIGHT,
+  rifleLeft: mirror(RIFLE_RIGHT),
+  rifleDown: RIFLE_DOWN,
+  rifleUp: flipVertical(RIFLE_DOWN),
+  knifeIcon: KNIFE_ICON,
+  pistolIcon: PISTOL_ICON,
+  rifleIcon: RIFLE_ICON,
+  machineGun: MACHINE_GUN_ICON,
+  bullets: BULLETS_ICON,
+  bulletRight: BULLET_RIGHT,
+  bulletLeft: mirror(BULLET_RIGHT),
+  bulletDown: BULLET_DOWN,
+  bulletUp: flipVertical(BULLET_DOWN),
   sprayA: SPRAY_A,
   sprayB: SPRAY_B,
   guardianGold: GUARDIAN_GOLD,

@@ -1497,7 +1497,10 @@ export function drawBarriers(
   openedTiles: ReadonlySet<string>,
   frame: number,
 ): void {
-  const future = isFutureTheme(themeFor(screen))
+  const theme = themeFor(screen)
+  const future = isFutureTheme(theme)
+  // In the city a seal is a length of police tape.
+  const city = isCityTheme(theme)
   // A turnstile stands on seal tiles, but it is steel and not runes: the
   // seal-tile pass leaves its tiles to the barrier pass below.
   const turnstiles = new Set<string>()
@@ -1513,7 +1516,8 @@ export function drawBarriers(
     for (let col = 0; col < SCREEN_COLS; col++) {
       if (line[col] !== '=') continue
       if (openedTiles.has(`${col},${row}`) || turnstiles.has(`${col},${row}`)) continue
-      drawRuneSeal(ctx, atlas, col, row, frame, future)
+      if (city) drawPoliceTape(ctx, screen, col, row, frame)
+      else drawRuneSeal(ctx, atlas, col, row, frame, future)
     }
   }
 
@@ -1543,7 +1547,8 @@ export function drawBarriers(
         // the second door looks like a way round him.
         for (const tile of placement.opens ?? []) {
           if (tile.col === placement.col && tile.row === placement.row) continue
-          drawRuneSeal(ctx, atlas, tile.col, tile.row, frame, future)
+          if (city) drawPoliceTape(ctx, screen, tile.col, tile.row, frame)
+          else drawRuneSeal(ctx, atlas, tile.col, tile.row, frame, future)
         }
         break
 
@@ -1555,7 +1560,8 @@ export function drawBarriers(
         for (const tile of placement.opens ?? [{ col: placement.col, row: placement.row }]) {
           // Skip anything the seal-tile pass above already painted.
           if ((screen.rows[tile.row] ?? '')[tile.col] === '=') continue
-          drawRuneSeal(ctx, atlas, tile.col, tile.row, frame, future)
+          if (city) drawPoliceTape(ctx, screen, tile.col, tile.row, frame)
+          else drawRuneSeal(ctx, atlas, tile.col, tile.row, frame, future)
         }
         break
 
@@ -1610,6 +1616,49 @@ function drawRuneSeal(
   ctx.fillStyle = '#57d2c6'
   ctx.fillRect(col * TILE + 1, row * TILE + 1, TILE - 2, TILE - 2)
   ctx.restore()
+}
+
+/**
+ * Police tape: a yellow band with black lettering, strung between posts,
+ * running the way the line of tiles runs. It flutters a little. The tile
+ * underneath stays what it was, road or sidewalk, because tape is tape.
+ */
+function drawPoliceTape(ctx: CanvasRenderingContext2D, screen: Screen, col: number, row: number, frame: number): void {
+  const x = col * TILE
+  const y = row * TILE
+  const sealed = (c: number, r: number): boolean => {
+    const char = (screen.rows[r] ?? '')[c]
+    if (char === '=') return true
+    return (screen.gates ?? []).some((g) => (g.opens ?? [{ col: g.col, row: g.row }]).some((t) => t.col === c && t.row === r))
+  }
+  // The line runs up and down if a tape tile sits above or below, else across.
+  const vertical = sealed(col, row - 1) || sealed(col, row + 1)
+  const flutter = Math.floor(frame / 10 + col + row) % 2
+  ctx.fillStyle = '#12131a'
+  if (vertical) {
+    ctx.fillRect(x + 6, y, 5, TILE)
+    ctx.fillStyle = '#f2c12e'
+    ctx.fillRect(x + 7 + flutter, y, 3, TILE)
+    ctx.fillStyle = '#12131a'
+    for (let i = 2; i < TILE; i += 5) ctx.fillRect(x + 7 + flutter, y + i, 3, 2)
+  } else {
+    ctx.fillRect(x, y + 6, TILE, 5)
+    ctx.fillStyle = '#f2c12e'
+    ctx.fillRect(x, y + 7 + flutter, TILE, 3)
+    ctx.fillStyle = '#12131a'
+    for (let i = 2; i < TILE; i += 5) ctx.fillRect(x + i, y + 7 + flutter, 2, 3)
+  }
+  // A post at either end of the run.
+  const endOfRun = vertical ? !sealed(col, row - 1) || !sealed(col, row + 1) : !sealed(col - 1, row) || !sealed(col + 1, row)
+  if (endOfRun) {
+    ctx.fillStyle = '#12131a'
+    ctx.fillRect(x + 6, y + 2, 4, 12)
+    ctx.fillStyle = '#e2883a'
+    ctx.fillRect(x + 7, y + 3, 2, 10)
+    ctx.fillStyle = '#f6f3e7'
+    ctx.fillRect(x + 7, y + 5, 2, 1)
+    ctx.fillRect(x + 7, y + 9, 2, 1)
+  }
 }
 
 /** A spark travelling across a locked chest, so it catches the eye. */

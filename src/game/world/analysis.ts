@@ -647,3 +647,125 @@ export function walledInFeatures(screen: Screen): string[] {
   }
   return problems
 }
+
+// ----------------------------------------------------- barriers that matter
+
+/**
+ * Barriers that block nothing.
+ *
+ * A spelling barrier is a promise: past it is somewhere you could not get
+ * before. Two police tapes in the city broke that promise — they lay across a
+ * road with the sidewalk open either side, so a child who said "not right
+ * now" walked round them, and one who spelled found nothing he had earned.
+ * The validator had no rule for it, because every barrier in the land
+ * happened to sit in a one-tile gap.
+ *
+ * For every way onto the screen — each edge he can arrive by, each door he
+ * can land from — this walks the screen with the barrier standing and again
+ * with it open, and asks what the second walk reaches that the first did
+ * not. From at least one way in, that has to include something worth having:
+ * an edge out, a door, a chest, a pickup, someone to talk to, another
+ * barrier, or the barrier's own tile when that is a doorway (a dungeon door
+ * *is* the thing behind it). Otherwise the barrier is decoration with an
+ * exercise attached, which is the worst kind.
+ *
+ * Chests are their own reward and are not asked; shop and smith barriers live
+ * in the shop panel; a cracked wall or a sack of food is found rather than
+ * passed; the turnstiles guard the platform by construction and are proved
+ * by `bypassableBarriers`.
+ */
+export function pointlessBarriers(
+  screen: Screen,
+  kindOf: (gateId: string) => string | undefined,
+  screens: readonly Screen[] = SCREENS,
+): string[] {
+  const problems: string[] = []
+  const gates = screen.gates ?? []
+  const skip = new Set(['chest', 'shop', 'smith', 'wall', 'food', 'turnstile'])
+
+  for (const placement of gates) {
+    const kind = kindOf(placement.gateId)
+    if (!kind || skip.has(kind)) continue
+    const own = new Set(sealedTiles(placement))
+    // Every other barrier is taken as already open: a door behind a door is
+    // judged on what it opens, not on whether the first door is shut.
+    const others = new Set(gates.filter((g) => g !== placement).flatMap(sealedTiles))
+
+    const ways: [number, number][][] = [
+      ...(Object.keys(screen.exits ?? {}) as Direction[]).map((d) => entryTiles(screen, d)),
+      ...doorArrivals(screen, screens).map((t) => [t]),
+    ].filter((w) => w.length > 0)
+    if (ways.length === 0) continue
+
+    const worthwhile = ways.some((starts) => {
+      const shut = reachableWith(screen, starts, own, others)
+      const open = reachableWith(screen, starts, new Set(), new Set([...own, ...others]))
+      const gained = [...open].filter((key) => !shut.has(key))
+      return gained.some((key) => {
+        const [c, r] = key.split(',').map(Number) as [number, number]
+        if (r === 0 && screen.exits?.up) return true
+        if (r === SCREEN_ROWS - 1 && screen.exits?.down) return true
+        if (c === 0 && screen.exits?.left) return true
+        if (c === SCREEN_COLS - 1 && screen.exits?.right) return true
+        if ((screen.portals ?? []).some((p) => p.col === c && p.row === r)) return true
+        if (screen.treasure && screen.treasure.col === c && screen.treasure.row === r) return true
+        if (screen.pickup && screen.pickup.col === c && screen.pickup.row === r) return true
+        if ((screen.props ?? []).some((p) => (p.terminal || p.talk) && p.col === c && p.row === r)) return true
+        // Another barrier's tile: this one is the way to it.
+        if (others.has(key)) return true
+        // A door is a place in itself: opening it is the point.
+        const char = ((screen.rows[r] ?? '')[c] ?? '#') as TileChar
+        if (own.has(key) && TILES[char]?.portal) return true
+        // Something to find beside it: a tree with a bottle in it, a wall to
+        // blow open. Both are solid, so it is standing next to them that counts.
+        const findable = (cc: number, rr: number): boolean => {
+          const ch = ((screen.rows[rr] ?? '')[cc] ?? '#') as TileChar
+          return ch === 'p' || TILES[ch]?.cracked === true
+        }
+        if ([[0, 0], [0, 1], [0, -1], [1, 0], [-1, 0]].some(([dc, dr]) => findable(c + (dc as number), r + (dr as number)))) return true
+        return false
+      })
+    })
+    if (!worthwhile) {
+      problems.push(
+        `${screen.id}: barrier "${placement.gateId}" (${kind}) blocks nothing — from every way in, everything past it can be reached with it shut`,
+      )
+    }
+  }
+  return problems
+}
+
+/** Everything walkable from the starts, with `blocked` as walls and `open` as floor whatever is drawn there. */
+function reachableWith(
+  screen: Screen,
+  starts: [number, number][],
+  blocked: ReadonlySet<string>,
+  open: ReadonlySet<string>,
+): Set<string> {
+  const seen = new Set<string>()
+  const queue: [number, number][] = []
+  const free = (c: number, r: number): boolean => {
+    const key = `${c},${r}`
+    if (blocked.has(key)) return false
+    if (open.has(key)) return c >= 0 && r >= 0 && c < SCREEN_COLS && r < SCREEN_ROWS
+    return !isSolid(screen, c, r)
+  }
+  for (const [c, r] of starts) {
+    const key = `${c},${r}`
+    if (!free(c, r) || seen.has(key)) continue
+    seen.add(key)
+    queue.push([c, r])
+  }
+  while (queue.length > 0) {
+    const [c, r] = queue.shift() as [number, number]
+    for (const [dc, dr] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+      const nc = c + (dc as number)
+      const nr = r + (dr as number)
+      const key = `${nc},${nr}`
+      if (seen.has(key) || !free(nc, nr)) continue
+      seen.add(key)
+      queue.push([nc, nr])
+    }
+  }
+  return seen
+}

@@ -1070,6 +1070,21 @@ const GATE_LIST: Gate[] = [
     reward: { rupees: 30 },
   },
 
+  {
+    id: 'nyc-pistol',
+    kind: 'shop',
+    message: 'The man at the hardware counter keeps a hand on the pistol. "Six shots and a reload. Show me a steady head first."',
+    openMessage: '"Steady enough. Mind where you point it."',
+    reward: { rupees: 50 },
+  },
+  {
+    id: 'nyc-rifle',
+    kind: 'shop',
+    message: '"The rifle reaches the far end of the block. Prove you have earned that kind of reach."',
+    openMessage: '"Earned. Three shots, and make them count."',
+    reward: { rupees: 80, heartContainer: true },
+  },
+
   // --- the subway: the fare is three words, every time ----------------------
   ...[
     ['christopher', 'The turnstile at Christopher Street. No card, no coins. A screen above it says: SPELL THREE WORDS.'],

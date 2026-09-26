@@ -51,6 +51,10 @@ function capitalise(word: string): string {
 export function itemSprite(id: ItemId, level: Level = 1): SpriteName {
   const tier = capitalise(materialOf(id))
   if (level === 2) return futureItemSprite(id, tier)
+  if (level === 3) {
+    const city = cityItemSprite(id)
+    if (city) return city
+  }
   if (ITEMS[id].category === 'sword') return `swordIcon${tier}` as SpriteName
   if (ITEMS[id].category === 'shield') return `shield${tier}` as SpriteName
 
@@ -83,6 +87,32 @@ export function itemSprite(id: ItemId, level: Level = 1): SpriteName {
       return 'potion'
     default:
       return 'heart'
+  }
+}
+
+/**
+ * The same item, as the city draws it: a knife, a hammer and two guns for the
+ * four swords, a machine gun for the bow, a box of bullets for the arrows.
+ * Anything not listed keeps the land's picture — a heart is a heart.
+ */
+function cityItemSprite(id: ItemId): SpriteName | undefined {
+  switch (id) {
+    case 'woodenSword':
+      return 'knifeIcon'
+    case 'metalSword':
+      return 'boxHammer'
+    case 'bronzeSword':
+      return 'pistolIcon'
+    case 'goldenSword':
+      return 'rifleIcon'
+    case 'bow':
+      return 'machineGun'
+    case 'arrows':
+      return 'bullets'
+    case 'subwayMap':
+      return 'subwayMap'
+    default:
+      return undefined
   }
 }
 

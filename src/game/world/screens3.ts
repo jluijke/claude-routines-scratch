@@ -60,11 +60,30 @@ const GRID: Record<string, [number, number]> = {
 
 type Exits = Screen['exits']
 
-/** The exits a block has: whichever neighbours exist on the grid. */
+/**
+ * Pairs of neighbours with no street between them: a building runs the
+ * whole block instead. These make the two police tapes real. Sixth Avenue
+ * and Broadway each cross three streets, and a tape on one crossing is only
+ * a tape if the other two are closed — otherwise he walks a block round it
+ * and the spelling was for nothing. So the square and the four blocks round
+ * it are a pocket, and the only ways out of it west and east are the two
+ * taped crossings.
+ */
+const CLOSED: [string, string][] = [
+  ['nyc-w8th', 'nyc-sixth-ave-north'],
+  ['nyc-bleecker', 'nyc-sixth-ave-south'],
+  ['nyc-fifth-ave', 'nyc-astor-place'],
+  ['nyc-washington-south', 'nyc-broadway-south'],
+]
+
+/** The exits a block has: whichever neighbours exist on the grid, and are not closed off. */
 function exitsOf(id: string): Exits {
   const [x, y] = GRID[id] as [number, number]
-  const find = (dx: number, dy: number): string | undefined =>
-    Object.entries(GRID).find(([, [gx, gy]]) => gx === x + dx && gy === y + dy)?.[0]
+  const closed = (other: string): boolean => CLOSED.some(([a, b]) => (a === id && b === other) || (a === other && b === id))
+  const find = (dx: number, dy: number): string | undefined => {
+    const found = Object.entries(GRID).find(([, [gx, gy]]) => gx === x + dx && gy === y + dy)?.[0]
+    return found && !closed(found) ? found : undefined
+  }
   const exits: Exits = {}
   const up = find(0, -1)
   const down = find(0, 1)
@@ -287,8 +306,17 @@ const BLOCKS: Screen[] = [
       { sprite: 'scribe', col: 10, row: 8, talk: 'Sixth Avenue. Four lanes and nobody slows down. Wait for the little man.' },
     ],
     spawns: rats([5, 8], [10, 7]),
-    // Police tape across the cross street, on the square's side.
-    gates: [{ gateId: 'nyc-sixth-ave-tape', col: 11, row: 4, opens: [{ col: 11, row: 4 }, { col: 11, row: 5 }] }],
+    // Police tape across the cross street, sidewalk to sidewalk, on the
+    // square's side: the West Village is on the far side of it.
+    gates: [
+      {
+        gateId: 'nyc-sixth-ave-tape',
+        col: 11,
+        row: 4,
+        opens: [3, 4, 5, 6].map((row) => ({ col: 11, row })),
+        guards: 'right',
+      },
+    ],
   }, 4, 'up'),
   avenue({
     id: 'nyc-sixth-ave-south',
@@ -374,8 +402,17 @@ const BLOCKS: Screen[] = [
     region: EAST,
     set: ['5,8=,', '10,8=,', '5,1=*'],
     spawns: rats([5, 2], [10, 8]),
-    // Police tape across the cross street, on the square's side.
-    gates: [{ gateId: 'nyc-broadway-tape', col: 4, row: 4, opens: [{ col: 4, row: 4 }, { col: 4, row: 5 }] }],
+    // Police tape across the cross street, sidewalk to sidewalk, on the
+    // square's side: the East Village is on the far side of it.
+    gates: [
+      {
+        gateId: 'nyc-broadway-tape',
+        col: 4,
+        row: 4,
+        opens: [3, 4, 5, 6].map((row) => ({ col: 4, row })),
+        guards: 'left',
+      },
+    ],
   }, 4, 'down'),
   avenue({
     id: 'nyc-broadway-south',

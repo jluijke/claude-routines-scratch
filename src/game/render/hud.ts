@@ -18,6 +18,10 @@ export interface HudState {
   /** Which world, for naming things: a sword in the land, a weapon on the ship. */
   level: 1 | 2 | 3
   weaponLabel: string
+  /** Overrides the material word: the city names weapons, not metals. */
+  weaponName?: string
+  /** What is left in a gun, or RELOADING. */
+  ammo?: string
 }
 
 export function drawHud(
@@ -65,8 +69,10 @@ export function drawHud(
   ctx.fillStyle = '#5d6472'
   // Before he finds one there is no sword to name, and reading ITEMS for a
   // missing id crashed the whole render loop.
-  const sword = player.loadout.sword ? material(itemName(player.loadout.sword, state.level)) : 'NONE'
-  ctx.fillText(`${state.weaponLabel} ${sword}`, 4, 32)
+  const sword = player.loadout.sword
+    ? state.weaponName?.toUpperCase() ?? material(itemName(player.loadout.sword, state.level))
+    : 'NONE'
+  ctx.fillText(`${state.weaponLabel} ${sword}${state.ammo ? ` ${state.ammo}` : ''}`, 4, 32)
 
   // The B slot, so he can see what the item button will do before pressing it.
   if (state.tool) {
