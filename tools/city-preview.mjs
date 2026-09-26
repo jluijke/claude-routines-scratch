@@ -76,21 +76,6 @@ const shots = await page.evaluate(async () => {
     out.hammer = canvas.toDataURL('image/png')
   }
 
-  // --- the people: a line-up on the sidewalk, with him for scale ----------
-  {
-    const [canvas, ctx] = make(16 * 8, 40, 5)
-    const street = { ...avenue, rows: ['................', '................', '................'] }
-    ctx.save()
-    ctx.translate(0, 8)
-    drawTiles(ctx, street, new Set(), 12)
-    ctx.restore()
-    const row = [
-      ['heroWoodenDownA', 0], ['hoodieA', 1], ['hoodieB', 2], ['suitA', 3], ['suitB', 4], ['capA', 5], ['capB', 6],
-    ]
-    for (const [name, i] of row) blit(ctx, SPRITES[name], 8 + i * 17, 14)
-    out.people = canvas.toDataURL('image/png')
-  }
-
   // --- the hydrant: blown open, spraying across the avenue ----------------
   {
     const crop = { x: 96, y: 16, w: 128, h: 112 }
@@ -106,8 +91,8 @@ const shots = await page.evaluate(async () => {
     ctx.fillRect(11 * TILE + 4, 3 * TILE + 5, 22, 2)
     ctx.fillStyle = '#c9e6f2'
     ctx.fillRect(11 * TILE + 10, 3 * TILE + 3, 4, 1)
-    // A hoodie washed off his feet, and a cab skidded to a stop.
-    blit(ctx, SPRITES.hoodieB, 12 * TILE + 6, 3 * TILE - 2)
+    // A rat washed off its feet.
+    blit(ctx, SPRITES.chaserA, 12 * TILE + 6, 3 * TILE - 2)
     blit(ctx, SPRITES.heroWoodenRightA, 8 * TILE + 2, 2 * TILE + 2)
     out.spray = canvas.toDataURL('image/png')
   }

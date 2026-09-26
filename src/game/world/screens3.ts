@@ -148,8 +148,7 @@ export const SAMPLE_CITY: Screen[] = [
     exits: {},
     props: [
       { sprite: 'scribe', col: 12, row: 4, talk: 'Showtime! What time is it? SHOWTIME.' },
-      { sprite: 'hoodieA', col: 2, row: 2 },
-      { sprite: 'capA', col: 13, row: 6 },
+      { sprite: 'catA', col: 2, row: 2 },
     ],
   },
   {
