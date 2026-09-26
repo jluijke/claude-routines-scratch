@@ -43,8 +43,32 @@ import { exercise37 } from './37-proofreader'
 import { exercise38 } from './38-listen-and-write'
 import { exercise39 } from './39-dont-trust-spellcheck'
 import { exercise40 } from './40-the-spelling-mystery'
+import { exercise41 } from './41-squashed-words'
+import { exercise42 } from './42-wont-is-weird'
+import { exercise43 } from './43-some-any-every'
+import { exercise44 } from './44-weather-words'
+import { exercise45 } from './45-say-it-write-it'
+import { exercise46 } from './46-rain-train'
+import { exercise47 } from './47-night-light'
+import { exercise48 } from './48-loud-cloud'
+import { exercise49 } from './49-bossy-r'
+import { exercise50 } from './50-stormy-paws'
+import { exercise51 } from './51-quick-kick'
+import { exercise52 } from './52-tricky-words'
+import { exercise53 } from './53-whistle-phone'
+import { exercise54 } from './54-table-top'
+import { exercise55 } from './55-always-almost'
+import { exercise56 } from './56-sea-or-see'
+import { exercise57 } from './57-whose-is-it'
+import { exercise58 } from './58-teacher-actor'
+import { exercise59 } from './59-story-time'
+import { exercise60 } from './60-the-big-city-spell'
 
-/** The 40-exercise progression, in order. */
+/**
+ * The progression, in order. The first forty are the original curriculum;
+ * 41 to 60 are the second pack, Year 3 mostly and Year 4 now and then, built
+ * around contractions, compound words and dictation.
+ */
 export const EXERCISES: Exercise[] = [
   exercise1, exercise2, exercise3, exercise4, exercise5,
   exercise6, exercise7, exercise8,
@@ -56,9 +80,13 @@ export const EXERCISES: Exercise[] = [
   exercise29, exercise30, exercise31, exercise32,
   exercise33, exercise34, exercise35, exercise36,
   exercise37, exercise38, exercise39, exercise40,
+  exercise41, exercise42, exercise43, exercise44, exercise45,
+  exercise46, exercise47, exercise48, exercise49, exercise50,
+  exercise51, exercise52, exercise53, exercise54, exercise55,
+  exercise56, exercise57, exercise58, exercise59, exercise60,
 ]
 
-export const TOTAL_EXERCISES = 40
+export const TOTAL_EXERCISES = EXERCISES.length
 
 export function exerciseById(id: number): Exercise | undefined {
   return EXERCISES.find((e) => e.id === id)

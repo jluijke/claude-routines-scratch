@@ -55,7 +55,7 @@ describe('every rule in the game can be said', () => {
   ]
 
   it('has the whole set', () => {
-    expect(rules.length).toBe(46)
+    expect(rules.length).toBe(66)
   })
 
   it('leaves no slash, arrow or quoted pattern for the voice to stumble on', () => {

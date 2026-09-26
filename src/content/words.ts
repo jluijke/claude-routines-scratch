@@ -248,6 +248,76 @@ const level5Words: Spec[] = [
   'to-geth-er', 'per-haps', 'a-gainst', 'be-lieve', 'oc-ca-sion', 'straight',
 ]
 
+// --- Level 6: City Spellers (exercises 41 to 60) --------------------------
+const level6Words: Spec[] = [
+  // contractions with 's, 'll, 've, 're
+  "it['s]", "he['s]", "that['s]", "what['s]", "there['s]", "you['ll]", "she['ll]", "he['ll]",
+  "we['ve]", "they['ve]", "you['ve]", "you['re]",
+  // contractions with n't
+  "does-n['t]", "are-n['t]", "were-n['t]", "should-n['t]", "wo[n't]", "has-n['t]",
+  'does', 'should', 'were', 'was', 'has',
+  // some-, any-, every-, no-
+  'some-[thing]', 'some-[one]', 'some-[where]', 'some-[times]', 'some-[bod-y]',
+  'an-y-[thing]', 'an-y-[one]', 'an-y-[where]',
+  'ev-ery-[bod-y]', 'ev-ery-[where]', 'ev-ery-[thing]', 'ev-ery-[one]',
+  'no-[thing]', 'no-[bod-y]', 'no-[where]',
+  // weather compounds
+  'sun-[shine]', 'sun-[set]', 'sun-[burn]', 'rain-[coat]', 'rain-[drop]', 'rain-[fall]',
+  'snow-[flake]', 'snow-[ball]', 'thun-der-[storm]', 'wind-[mill]', 'moon-[light]', 'day-[light]',
+  // ai and ay
+  'r[ai]n', 'tr[ai]n', 'p[ai]nt', 'sn[ai]l', 'w[ai]t', 'r[ai]l', 'p[ai]n', 'ch[ai]n', 'tr[ai]l',
+  'd[ai]-sy', 'pl[ay]', 'st[ay]', 'a-w[ay]', 'tr[ay]', 'cr[ay]-on', 'Sun-d[ay]', 'sw[ay]',
+  // igh, y, i_e
+  'n[igh]t', 'l[igh]t', 'br[igh]t', 'h[igh]', 'f[igh]t', 't[igh]t', 'fl[igh]t', 'fr[igh]t',
+  'fr[igh]t-en', 'l[igh]t-ning', 'fl[y]', 'sk[y]', 'cr[y]', 'dr[y]', 'b[i]ke', 't[i]me', 'k[i]te', 'sl[i]de',
+  // ou and ow
+  'cl[ou]d', 'l[ou]d', 'r[ou]nd', 'sh[ou]t', 'm[ou]th', 'gr[ou]nd', 'm[ou]n-tain',
+  'c[ow]', 't[ow]n', 'br[ow]n', 'cr[ow]d', 'd[ow]n', '[ow]l', 't[ow]-el', 'fl[ow]-er',
+  // er, ir, ur
+  'h[er]', 'f[er]n', 'h[er]d', 'b[ir]d', 'g[ir]l', 'f[ir]st', 'sh[ir]t', 'th[ir]s-ty', 'b[ir]th',
+  't[ur]n', 'b[ur]n', 'n[ur]se', 'ch[ur]ch', 'p[ur]-ple', 'h[ur]t', 'Th[ur]s-day',
+  // or, ore, aw
+  'f[or]k', 'h[or]se', 'st[or]m', 'sh[or]t', 'c[or]n', 'm[ore]', 'sh[ore]', 'st[ore]', 'be-f[ore]',
+  's[aw]', 'p[aw]', 'dr[aw]', 'cl[aw]', 'y[aw]n', 'cr[aw]l', 'str[aw]',
+  // c, k, ck
+  'du[ck]', 'so[ck]', 'clo[ck]', 'bla[ck]', 'tri[ck]', 'po[ck]-et', 'ro[ck]-et', 'sti[ck]',
+  '[k]ite', '[k]et-tle', '[k]it-ten', '[k]ey', '[k]ing',
+  '[c]up', '[c]ot', '[c]at', '[c]ake', '[c]a-mel',
+  // tricky words
+  's[ai]d', 'fr[ie]nd', 'be-c[au]se', 'p[eo]-ple', 'a-g[ai]n', 'lau[gh]', 'b[u]-sy', 'm[a]-ny', '[o]nce',
+  // wh and ph
+  '[wh]en', '[wh]ere', '[wh]ich', '[wh]ite', '[wh]eel', '[wh]ale', '[wh]at', '[wh]y',
+  '[ph]one', '[ph]o-to', 'dol-[ph]in', 'el-e-[ph]ant', 'al-[ph]a-bet',
+  // -le
+  'ta-[ble]', 'ap-[ple]', 'lit-[tle]', 'mid-[dle]', 'bot-[tle]', 'can-[dle]', 'puz-[zle]',
+  'jun-[gle]', 'tur-[tle]', 'bub-[ble]', 'pad-[dle]', 'bee-[tle]',
+  // al-
+  '[al]-ways', '[al]-most', '[al]-so', '[al]-read-y', '[al]-to-geth-er',
+  // simple homophones
+  ['meat', { sentence: 'We had meat and vegetables for dinner.', confusions: ['meet'] }],
+  ['meet', { sentence: 'I will meet you at the gate.', confusions: ['meat'] }],
+  ['sun', { sentence: 'The sun was shining all day.', confusions: ['son'] }],
+  ['son', { sentence: 'The farmer has one son and two daughters.', confusions: ['sun'] }],
+  ['bee', { sentence: 'A bee buzzed around the flowers.', confusions: ['be'] }],
+  ['be', { sentence: 'I will be there soon.', confusions: ['bee'] }],
+  ['tail', { sentence: 'The dog wagged its tail.', confusions: ['tale'] }],
+  ['tale', { sentence: 'Grandpa told us a tale about a dragon.', confusions: ['tail'] }],
+  ['mail', { sentence: 'The postman brought the mail.', confusions: ['male'] }],
+  ['male', { sentence: 'A male lion has a big mane.', confusions: ['mail'] }],
+  ['pair', { sentence: 'I bought a new pair of shoes.', confusions: ['pear'] }],
+  ['pear', { sentence: 'I ate a juicy pear.', confusions: ['pair'] }],
+  ['night', { sentence: 'We saw the stars last night.', confusions: ['knight'] }],
+  ['knight', { sentence: 'The knight rode a white horse.', confusions: ['night'] }],
+  // owning apostrophe
+  "dog['s]", "cat['s]", "girl['s]", "Mum['s]", "Tom['s]", "sis-ter['s]", "broth-er['s]", "teach-er['s]",
+  // -er and -or people
+  'teach-[er]', 'farm-[er]', 'paint-[er]', 'sing-[er]', 'play-[er]', 'driv-[er]', 'bak-[er]',
+  'act-[or]', 'doc-t[or]', 'vis-it-[or]', 'sail-[or]', 'in-vent-[or]',
+  // words the sentences lean on
+  'green', 'bike', 'lunch', 'eggs', 'shell', 'found', 'in-side', 'to-day', 'left',
+  'play-ground', 'shoe', 'shin-y', 'flew', 'in-to', 'rain-ing', 'an-y-way',
+]
+
 export const WORD_BANK = buildWordBank([
   ...syllableWords,
   ...eeWords,
@@ -262,4 +332,5 @@ export const WORD_BANK = buildWordBank([
   ...level3Words,
   ...level4Words,
   ...level5Words,
+  ...level6Words,
 ])

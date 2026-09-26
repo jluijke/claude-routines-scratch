@@ -192,7 +192,7 @@ export interface RuleReveal {
 export interface Exercise {
   id: number
   title: string
-  level: 1 | 2 | 3 | 4 | 5
+  level: 1 | 2 | 3 | 4 | 5 | 6
   levelName: string
   targetMinutes: number
   /** Concepts this exercise teaches. Each needs an unaided correct answer. */
