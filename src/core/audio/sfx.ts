@@ -25,6 +25,7 @@ export type SfxName =
   | 'stomp'
   | 'gunshot'
   | 'reload'
+  | 'zap'
 
 interface Tone {
   kind?: 'tone'
@@ -75,6 +76,15 @@ const PATCHES: Record<SfxName, Sound[]> = {
   gunshot: [
     { kind: 'noise', at: 0, duration: 0.06, from: 3000, to: 800, gain: 0.2, q: 2 },
     { freq: 140, at: 0, duration: 0.08, type: 'square', slideTo: 50, gain: 0.14 },
+  ],
+  // The taser: a buzzing crackle. A harsh sawtooth wobbling between two
+  // pitches, with a hiss of noise over it.
+  zap: [
+    { kind: 'noise', at: 0, duration: 0.18, from: 5000, to: 2500, gain: 0.1, q: 1 },
+    { freq: 220, at: 0, duration: 0.04, type: 'sawtooth', slideTo: 330, gain: 0.1 },
+    { freq: 330, at: 0.04, duration: 0.04, type: 'sawtooth', slideTo: 200, gain: 0.1 },
+    { freq: 240, at: 0.08, duration: 0.04, type: 'sawtooth', slideTo: 360, gain: 0.1 },
+    { freq: 360, at: 0.12, duration: 0.06, type: 'sawtooth', slideTo: 120, gain: 0.08 },
   ],
   // Click-clack: two dry clicks, the second a little lower.
   reload: [

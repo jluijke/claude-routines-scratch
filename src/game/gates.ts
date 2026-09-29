@@ -1063,6 +1063,13 @@ const GATE_LIST: Gate[] = [
     optional: true,
   },
   {
+    id: 'nyc-taser',
+    kind: 'shop',
+    message: 'The man at the hardware counter taps the taser in its case. It crackles. "Not a toy. Spell me a few words and it is yours to buy."',
+    openMessage: '"All right. Point it at rats, not people."',
+    reward: { rupees: 20 },
+  },
+  {
     id: 'nyc-hammer',
     kind: 'shop',
     message: 'The man at the hardware counter puts a hand on the box hammer. "This thing shakes the street. Show me you are careful first."',

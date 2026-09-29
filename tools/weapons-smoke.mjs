@@ -1,7 +1,9 @@
 /**
  * Level 3, stage 4: the weapons.
  *
- * The knife swings like the wooden sword. The box hammer swings slow, shakes
+ * The knife swings like the wooden sword. The taser crackles two squares
+ * ahead: a rat in it flashes as a skeleton and is gone, a gator stands
+ * buzzing. The box hammer swings slow, shakes
  * the street and stuns a rat beside it. The pistol fires six and reloads; the
  * rifle fires three and reaches further. The machine gun fires three a press
  * and eats three bullets. A bullet kills a rat. Each weapon is photographed
@@ -25,7 +27,7 @@ const walk = async (key, ms) => { await page.keyboard.down(key); await wait(ms);
 const shot = (name) => page.locator('.game-canvas').screenshot({ path: `${OUT}/weapon-${name}.png` })
 const arm = (sword) => page.evaluate((id) => {
   const inv = window.zsq.state.inventory
-  for (const s of ['woodenSword', 'metalSword', 'bronzeSword', 'goldenSword']) delete inv[s]
+  for (const s of ['woodenSword', 'taser', 'metalSword', 'bronzeSword', 'goldenSword']) delete inv[s]
   if (id) inv[id] = 1
   window.zsq.world.equipBest()
   window.zsq.world.refreshFromSave?.()
@@ -60,6 +62,58 @@ await wait(60)
 s = await world()
 check('and it swings rather than shoots', s.shots === 0 && s.sword !== undefined)
 await shot('knife')
+
+// ------------------------------------------------------------ the taser
+// After the knife and before the hammer: with the knife and the taser, the
+// taser is in his hand; with the hammer as well, the hammer.
+const bestOf = (ids) => page.evaluate((list) => {
+  const inv = window.zsq.state.inventory
+  for (const s of ['woodenSword', 'taser', 'metalSword', 'bronzeSword', 'goldenSword']) delete inv[s]
+  for (const id of list) inv[id] = 1
+  window.zsq.world.equipBest()
+  return window.zsq.world.debugState().weapon
+}, ids)
+check('the taser beats the knife', (await bestOf(['woodenSword', 'taser'])) === 'taser')
+check('and the hammer beats the taser', (await bestOf(['woodenSword', 'taser', 'metalSword'])) === 'hammer')
+await arm('taser')
+await page.evaluate((r) => window.zsq.world.teleport(r, 6, 5), ROOM)
+await clearRoom()
+await wait(600)
+check('the taser is its own weapon', (await world()).weapon === 'taser')
+await page.evaluate(() => { window.zsq.world.debugSpawn?.('chaser', 8, 5) })
+await walk('ArrowRight', 40)
+let fried = false
+let skeletonShot = false
+for (let i = 0; i < 12 && !fried; i++) {
+  await page.keyboard.press('z')
+  await wait(30)
+  s = await world()
+  if (s.ratsFried > 0) {
+    fried = true
+    // A frame or two in, while it is flashing between rat and bones.
+    await wait(50)
+    await shot('taser-fry')
+    skeletonShot = true
+  }
+  await wait(220)
+}
+check('a zap fries the rat', fried)
+check('and there is a skeleton to see', skeletonShot && (await world()).enemies === 0)
+await wait(900)
+check('and a moment later it is only smoke, then nothing', (await world()).fried === 0)
+// A gator is too big to fry: it takes the zap and stands buzzing.
+await clearRoom()
+await page.evaluate(() => { window.zsq.world.debugSpawn?.('shooter', 8, 5) })
+let buzzing = false
+for (let i = 0; i < 10 && !buzzing; i++) {
+  await page.keyboard.press('z')
+  await wait(40)
+  s = await world()
+  if (s.shocked > 0 && s.stunned > 0) buzzing = true
+  await wait(200)
+}
+check('a gator is stunned by it instead', buzzing)
+await shot('taser-gator')
 
 // ------------------------------------------------------------ the hammer
 await arm('metalSword')

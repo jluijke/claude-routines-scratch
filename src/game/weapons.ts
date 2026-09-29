@@ -3,7 +3,8 @@
  *
  * The land has four swords and the game has four sword slots, so the city
  * keeps the slots and changes what is in them: a kitchen knife, a box hammer,
- * a pistol and a rifle. The knife swings like the wooden sword. The hammer
+ * a pistol and a rifle — and one the land never had, a taser, bought after
+ * the knife and before the hammer. The knife swings like the wooden sword. The hammer
  * swings slow and shakes the street. The two guns do not swing at all: they
  * fire a bullet the way he is facing, so many to a magazine, and then he
  * stands there while it reloads. The machine gun is the bow's slot: three
@@ -15,7 +16,7 @@
 import type { ItemId } from './items'
 import { TILE } from './world/tiles'
 
-export type CityWeapon = 'knife' | 'hammer' | 'pistol' | 'rifle'
+export type CityWeapon = 'knife' | 'taser' | 'hammer' | 'pistol' | 'rifle'
 export type Firearm = 'pistol' | 'rifle'
 
 /** The sword slot each city weapon sits in. */
@@ -23,6 +24,8 @@ export function cityWeapon(sword: ItemId | undefined): CityWeapon | undefined {
   switch (sword) {
     case 'woodenSword':
       return 'knife'
+    case 'taser':
+      return 'taser'
     case 'metalSword':
       return 'hammer'
     case 'bronzeSword':
@@ -59,6 +62,24 @@ export const GUNS: Record<Firearm, GunSpec> = {
   // The whole screen, and hits like a sword swing from the smith. Three in the
   // magazine, and a slower hand.
   rifle: { magazine: 3, range: 16 * TILE, speed: 320, damage: 4, reloadFrames: 90, cooldown: 24 },
+}
+
+/**
+ * The taser: a crackle two squares long out of the front of it. A rat caught
+ * in it lights up like an X-ray and is gone; anything bigger stands there
+ * buzzing for a second and a half, which is time enough to walk round it.
+ */
+export const TASER_REACH = 2 * TILE
+export const TASER_WIDTH = 10
+export const TASER_FRAMES = 12
+export const TASER_DAMAGE = 1
+export const TASER_STUN_FRAMES = 90
+/** How long a fried rat flashes between rat and skeleton before it is smoke. */
+export const FRY_FRAMES = 44
+
+/** Whether a blow from the taser fries it outright: the city's rats, and only them. */
+export function friedByTaser(look: string, kind: string): boolean {
+  return look === 'creature' && kind === 'chaser'
 }
 
 /** The hammer: a slow swing, and the street shakes when it lands. */

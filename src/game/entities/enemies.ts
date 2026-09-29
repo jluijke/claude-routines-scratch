@@ -289,6 +289,8 @@ export class Enemy {
   hurtTimer = 0
   /** Frames it stands stunned, after the box hammer lands near it. */
   stunned = 0
+  /** Frames it buzzes after the taser: drawn shaking, with sparks. */
+  shocked = 0
   /** Frames it runs away from him for, after a bite. */
   private retreatTimer = 0
   private cooldown: number
@@ -533,6 +535,7 @@ export class Enemy {
   ): void {
     this.phase += 1
     if (this.hurtTimer > 0) this.hurtTimer -= 1
+    if (this.shocked > 0) this.shocked -= 1
     // Stunned, it stands there: no walking, no shooting, until it clears.
     if (this.stunned > 0) {
       this.stunned -= 1

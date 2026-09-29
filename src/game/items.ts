@@ -12,6 +12,7 @@ export type ItemId =
   | 'metalSword'
   | 'bronzeSword'
   | 'goldenSword'
+  | 'taser'
   | 'woodenShield'
   | 'metalShield'
   | 'bronzeShield'
@@ -159,6 +160,27 @@ export const ITEMS: Record<ItemId, ItemDef> = {
       name: 'Rifle',
       description: 'Long reach: the whole screen. Three shots before the reload, and each one hits hard.',
       gate: 'nyc-rifle',
+    },
+  },
+  taser: {
+    id: 'taser',
+    name: 'Taser',
+    category: 'sword',
+    // City only: no land price, so the smithy and the forge never stock it.
+    // It sits between the knife and the hammer, and loses the hand to the
+    // hammer the way the knife loses it to the taser.
+    description: 'Two prongs and a crackle. Nothing in the land needs one.',
+    future: {
+      name: 'Stun Prod',
+      description: 'Two prongs and a crackle. Nothing on the ship needs one.',
+    },
+    power: 1,
+    requires: 'woodenSword',
+    city: {
+      name: 'Taser',
+      description: 'Zaps two squares ahead. Rats light up like an X-ray; everything else stands stunned.',
+      price: 35,
+      gate: 'nyc-taser',
     },
   },
   woodenShield: {

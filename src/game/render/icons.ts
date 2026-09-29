@@ -93,14 +93,16 @@ export function itemSprite(id: ItemId, level: Level = 1): SpriteName {
 }
 
 /**
- * The same item, as the city draws it: a knife, a hammer and two guns for the
- * four swords, a machine gun for the bow, a box of bullets for the arrows.
+ * The same item, as the city draws it: a knife, a taser, a hammer and two guns
+ * for the swords, a machine gun for the bow, a box of bullets for the arrows.
  * Anything not listed keeps the land's picture — a heart is a heart.
  */
 function cityItemSprite(id: ItemId): SpriteName | undefined {
   switch (id) {
     case 'woodenSword':
       return 'knifeIcon'
+    case 'taser':
+      return 'taserIcon'
     case 'metalSword':
       return 'boxHammer'
     case 'bronzeSword':

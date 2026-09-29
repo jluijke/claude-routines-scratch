@@ -2336,6 +2336,65 @@ const KNIFE_ICON = S([
   '................',
 ])
 
+/**
+ * The taser, held out in front: a yellow body, a black grip, and two prongs
+ * with a blue spark between them. Turned for the other three ways.
+ */
+const TASER_RIGHT = defineSprite(16, 8, [
+  '................',
+  '.kkkkkkkkkk.....',
+  'kyyyyyyyyyykkk..',
+  'kyzzzzyyyyyk.cLk',
+  'kyyyyyyyyyykkk..',
+  '.kkkkyyykkk.....',
+  '....kyyyk.......',
+  '....kkkkk.......',
+])
+
+/** The taser on the shelf, crackling. */
+const TASER_ICON = S([
+  '................',
+  '................',
+  '...........L....',
+  '............c..L',
+  '.kkkkkkkkkk..cc.',
+  'kyyyyyyyyyykkkL.',
+  'kyzzzzyyyyyk.cc.',
+  'kyyyyyyyyyykkk..',
+  '.kkkkyyyykk..c..',
+  '....kyyyyk....L.',
+  '....kyyyyk......',
+  '....kyyyyk......',
+  '....kYYYYk......',
+  '....kkkkkk......',
+  '................',
+  '................',
+])
+
+/**
+ * A rat mid-zap, as a cartoon X-ray: the same outline as the rat, dark inside,
+ * with the skull, the spine and the ribs in bone. It flashes against the
+ * ordinary rat for a moment and then there is only smoke.
+ */
+const RAT_SKELETON = S([
+  '................',
+  '................',
+  '................',
+  '....kk..........',
+  '...kxxk.........',
+  '..kxxxxkkkkkk...',
+  '.kxxxxzxzxzxzkk.',
+  'kxkxxxxxxxxxxxxk',
+  'kxxxxxzxzxzxzkk.',
+  '.kkxkzzzzzzzzk..',
+  '...kxkkkkkkxk...',
+  '..kxxk...kxxk.k.',
+  '..kkk.....kkkk..',
+  '................',
+  '................',
+  '................',
+])
+
 /** The pistol and the rifle on the hardware store's shelf. */
 const PISTOL_ICON = S([
   '................',
@@ -3047,6 +3106,9 @@ export const SPRITES = {
   rifleDown: RIFLE_DOWN,
   rifleUp: flipVertical(RIFLE_DOWN),
   knifeIcon: KNIFE_ICON,
+  ...fourWays('taser', TASER_RIGHT),
+  taserIcon: TASER_ICON,
+  ratSkeleton: RAT_SKELETON,
   pistolIcon: PISTOL_ICON,
   rifleIcon: RIFLE_ICON,
   machineGun: MACHINE_GUN_ICON,

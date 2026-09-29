@@ -29,7 +29,8 @@ import { itemIcon, spriteCanvas } from '../render/icons'
 export type { ShopKind } from '../world/screens'
 import type { ShopKind } from '../world/screens'
 
-const SMITH_STOCK: ItemId[] = ['metalSword', 'bronzeSword', 'goldenSword']
+// The taser has a price only in the city, so the smithy and the forge skip it.
+const SMITH_STOCK: ItemId[] = ['taser', 'metalSword', 'bronzeSword', 'goldenSword']
 
 /**
  * What the shopkeeper says as he hands it over.

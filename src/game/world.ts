@@ -46,6 +46,13 @@ import {
   MACHINE_GUN_RANGE,
   MACHINE_GUN_SPEED,
   pullTrigger,
+  FRY_FRAMES,
+  friedByTaser,
+  TASER_DAMAGE,
+  TASER_FRAMES,
+  TASER_REACH,
+  TASER_STUN_FRAMES,
+  TASER_WIDTH,
   tickMagazine,
   type Firearm,
   type Magazine,
@@ -446,6 +453,9 @@ export class World {
   private bombs: Bomb[] = []
   /** Arrows and bolts in the air. At most one, by design. */
   private shots: Shot[] = []
+  /** Rats the taser caught, flashing between rat and skeleton before they are smoke. */
+  private fried: { x: number; y: number; frames: number }[] = []
+  private taserZaps = 0
   private bursts: Burst[] = []
   /** The candle lights one flame per room, as the blue one always did. */
   private candleUsedHere = false
@@ -491,6 +501,7 @@ export class World {
   private magazine: Magazine | undefined
   /** Times the hammer has come down on this screen. For the checks. */
   private hammerBlows = 0
+  private ratsFried = 0
   /** Hearts in the air, off a guardian who has just been loved. */
   private hearts: Heart[] = []
   /** A scratch canvas for tinting a sprite pink without tinting the room. */
@@ -825,6 +836,7 @@ export class World {
     this.bombs = []
     this.bursts = []
     this.shots = []
+    this.fried = []
     this.candleUsedHere = false
     // Load-bearing: teleport, respawn and the dev console all come through
     // here, and a flight left over from another screen would draw the hero at
@@ -1137,6 +1149,8 @@ export class World {
 
     this.player.update(step, dx, dy, blocked, this.inVacuum())
     this.updateWeapon()
+    for (const f of this.fried) f.frames -= 1
+    this.fried = this.fried.filter((f) => f.frames > 0)
     this.clampToScreen()
     // Belt and braces: nothing should ever put him inside a wall, but if
     // something does, he is out of it on the next frame rather than for good.
@@ -2023,7 +2037,8 @@ export class World {
       const inArc = arc !== undefined && Math.hypot(at.x - arc.x, at.y - arc.y) <= SCYTHE_RADIUS + enemy.size / 2
 
       if ((sword && overlaps(sword, box)) || inArc) {
-        this.strike(enemy, this.player.swordDamage)
+        if (this.cityWeaponHeld() === 'taser') this.tase(enemy)
+        else this.strike(enemy, this.player.swordDamage)
       }
 
       // Walking through a monster is exactly that, while the potion holds.
@@ -2052,8 +2067,29 @@ export class World {
    * as a swing, so the hero is drawn holding it out — but it cuts nothing.
    */
   private meleeBox(): { x: number; y: number; w: number; h: number } | undefined {
-    if (isFirearm(this.cityWeaponHeld())) return undefined
+    const weapon = this.cityWeaponHeld()
+    if (isFirearm(weapon)) return undefined
+    if (weapon === 'taser') return this.taserBox()
     return this.player.swordBox()
+  }
+
+  /** The crackle: two squares out of the front of him, narrow, while the trigger is held. */
+  private taserBox(): { x: number; y: number; w: number; h: number } | undefined {
+    if (!this.player.isAttacking) return undefined
+    const { x, y } = this.player
+    const cx = x + PLAYER_SIZE / 2
+    const cy = y + PLAYER_SIZE / 2
+    const half = TASER_WIDTH / 2
+    switch (this.player.facing) {
+      case 'up':
+        return { x: cx - half, y: y - TASER_REACH, w: TASER_WIDTH, h: TASER_REACH }
+      case 'down':
+        return { x: cx - half, y: y + PLAYER_SIZE, w: TASER_WIDTH, h: TASER_REACH }
+      case 'left':
+        return { x: x - TASER_REACH, y: cy - half, w: TASER_REACH, h: TASER_WIDTH }
+      case 'right':
+        return { x: x + PLAYER_SIZE, y: cy - half, w: TASER_REACH, h: TASER_WIDTH }
+    }
   }
 
   /**
@@ -2067,6 +2103,13 @@ export class World {
       if (this.player.isAttacking) return
       this.player.attack(HAMMER_SWING_FRAMES)
       sfx.play('swordSwing')
+      return
+    }
+    if (weapon === 'taser') {
+      if (this.player.isAttacking) return
+      this.player.attack(TASER_FRAMES)
+      this.taserZaps += 1
+      sfx.play('zap')
       return
     }
     this.player.attack()
@@ -2255,6 +2298,28 @@ export class World {
     // one go kills it, rather than splitting a corpse.
     if (enemy.isDead()) this.defeat(enemy)
     else if (enemy.wantsSplit) this.splitMech(enemy)
+  }
+
+  /**
+   * The taser lands. A rat lights up like an X-ray and is gone — it is left
+   * behind as a flashing skeleton for a moment, which is the joke. Anything
+   * bigger takes a heart and stands buzzing long enough to walk round. The
+   * guardians shrug it off like everything else that is not love.
+   */
+  private tase(enemy: Enemy): void {
+    const rat = friedByTaser(enemy.look, enemy.kind)
+    const before = enemy.hp
+    this.strike(enemy, rat ? enemy.hp : TASER_DAMAGE)
+    if (enemy.hp === before) return
+    if (rat && enemy.isDead()) {
+      this.fried.push({ x: enemy.x, y: enemy.y, frames: FRY_FRAMES })
+      this.ratsFried += 1
+      return
+    }
+    if (!enemy.isDead()) {
+      enemy.stunned = Math.max(enemy.stunned, TASER_STUN_FRAMES)
+      enemy.shocked = TASER_STUN_FRAMES
+    }
   }
 
   /**
@@ -2868,11 +2933,19 @@ export class World {
         // pinker with every love bomb that lands, so the fight can be read
         // off him. A blow he shrugged off flashes white where it was turned.
         if (!flashing) this.drawGuardian(ctx, enemy)
+      } else if (enemy.shocked > 0) {
+        // Buzzing: it shakes on the spot and crackles, however it was hit.
+        const buzz = Math.floor(this.frame / 2) % 2 === 0 ? 1 : -1
+        this.atlas.draw(ctx, enemy.sprite, enemy.x + buzz, enemy.y)
+        const c = enemy.centre()
+        this.drawSparks(ctx, c.x, c.y, enemy.size / 2 + 2, 3)
       } else if (!flashing && !blinking) {
         this.atlas.draw(ctx, enemy.sprite, enemy.x + brace, enemy.y)
       }
       this.drawMechTells(ctx, enemy)
     }
+
+    for (const f of this.fried) this.drawFriedRat(ctx, f)
 
     for (const heart of this.hearts) {
       if (heart.life < 12 && Math.floor(this.frame / 3) % 2 === 0) continue
@@ -3677,6 +3750,102 @@ export class World {
     }
   }
 
+  /**
+   * A rat the taser caught. First it flickers between itself and its own
+   * skeleton, fast, shaking, with a yellow flash behind it — the cartoon
+   * X-ray. Then the skeleton alone, standing there a beat too long, before it
+   * falls to a puff of smoke.
+   */
+  private drawFriedRat(ctx: CanvasRenderingContext2D, f: { x: number; y: number; frames: number }): void {
+    const age = FRY_FRAMES - f.frames
+    const cx = f.x + 8
+    const cy = f.y + 8
+    if (age < 26) {
+      const bones = Math.floor(age / 3) % 2 === 0
+      const shake = Math.floor(age / 2) % 2 === 0 ? 1 : -1
+      if (bones) {
+        ctx.save()
+        ctx.globalAlpha = 0.55
+        ctx.fillStyle = '#fff6a8'
+        ctx.beginPath()
+        ctx.arc(cx, cy + 1, 11, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.restore()
+      }
+      this.atlas.draw(ctx, bones ? 'ratSkeleton' : 'ratA', f.x + shake, f.y - (age < 6 ? 2 : 0))
+      this.drawSparks(ctx, cx, cy + 1, 11, 4)
+      return
+    }
+    if (age < 36) {
+      this.atlas.draw(ctx, 'ratSkeleton', f.x, f.y)
+      return
+    }
+    // Smoke: three grey puffs rising and fading.
+    const t = (age - 36) / (FRY_FRAMES - 36)
+    ctx.save()
+    ctx.globalAlpha = 0.8 * (1 - t)
+    ctx.fillStyle = '#9a9aa4'
+    for (const [dx, r] of [[-4, 3], [0, 4], [4, 3]] as const) {
+      ctx.beginPath()
+      ctx.arc(cx + dx, cy + 2 - t * 8 - (dx === 0 ? 2 : 0), r + t * 2, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.restore()
+  }
+
+  /** Little zigzags of electricity round a point, different every couple of frames. */
+  private drawSparks(ctx: CanvasRenderingContext2D, cx: number, cy: number, radius: number, count: number): void {
+    const seed = Math.floor(this.frame / 2)
+    ctx.save()
+    ctx.lineWidth = 1
+    for (let i = 0; i < count; i++) {
+      const angle = ((seed * 7 + i * 97) % 360) * (Math.PI / 180)
+      const x0 = cx + Math.cos(angle) * (radius - 3)
+      const y0 = cy + Math.sin(angle) * (radius - 3)
+      const x1 = cx + Math.cos(angle + 0.3) * (radius + 2)
+      const y1 = cy + Math.sin(angle + 0.3) * (radius + 2)
+      ctx.strokeStyle = i % 2 === 0 ? '#ffe45c' : '#9fe8ff'
+      ctx.beginPath()
+      ctx.moveTo(Math.round(x0) + 0.5, Math.round(y0) + 0.5)
+      ctx.lineTo(Math.round((x0 + x1) / 2 + 2) + 0.5, Math.round((y0 + y1) / 2 - 2) + 0.5)
+      ctx.lineTo(Math.round(x1) + 0.5, Math.round(y1) + 0.5)
+      ctx.stroke()
+    }
+    ctx.restore()
+  }
+
+  /** The taser's crackle: a jagged bolt from the prongs out to the end of its reach. */
+  private drawTaserBolt(ctx: CanvasRenderingContext2D): void {
+    const box = this.taserBox()
+    if (!box) return
+    const horizontal = this.player.facing === 'left' || this.player.facing === 'right'
+    const forward = this.player.facing === 'right' || this.player.facing === 'down' ? 1 : -1
+    // Where the reach begins: the edge of his body on the side he faces.
+    const origin = horizontal ? (forward > 0 ? box.x : box.x + box.w) : forward > 0 ? box.y : box.y + box.h
+    const across = horizontal ? box.y + box.h / 2 : box.x + box.w / 2
+    // The bolt leaves from the prongs, past the taser drawn over the first tile.
+    const start = 13
+    const seed = Math.floor(this.frame / 2)
+    const points: { x: number; y: number }[] = []
+    for (let i = 0; i <= 6; i++) {
+      const along = origin + forward * (start + ((TASER_REACH - start) * i) / 6)
+      const wobble = i === 0 ? 0 : (((seed + i * 3) % 5) - 2) * 1.5
+      points.push(horizontal ? { x: along, y: across + wobble } : { x: across + wobble, y: along })
+    }
+    for (const [colour, width, alpha] of [['#9fe8ff', 3, 0.6], ['#fffbe0', 1, 1]] as const) {
+      ctx.save()
+      ctx.strokeStyle = colour
+      ctx.lineWidth = width
+      ctx.globalAlpha = alpha
+      ctx.beginPath()
+      points.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)))
+      ctx.stroke()
+      ctx.restore()
+    }
+    const tip = points[points.length - 1] as { x: number; y: number }
+    this.drawSparks(ctx, tip.x, tip.y, 4, 2)
+  }
+
   /** A guardian, at full size, tinted pink by how much love it has had. */
   private drawGuardian(ctx: CanvasRenderingContext2D, enemy: Enemy): void {
     const sprite = enemy.sprite
@@ -3806,6 +3975,7 @@ export class World {
         this.atlas.draw(ctx, blade, centreX - 4, sword.y + sword.h - 16)
         break
     }
+    if (this.cityWeaponHeld() === 'taser') this.drawTaserBolt(ctx)
   }
 
   /**
@@ -3878,7 +4048,9 @@ export class World {
 
     // The fallback must not be a sword: it used to hand him a wooden one even
     // with an empty inventory, and then write it into the save.
-    const sword = best(['goldenSword', 'bronzeSword', 'metalSword', 'woodenSword'], undefined)
+    // The taser ties the knife on power and loses to the hammer; the order
+    // breaks the tie, so it goes in after the hammer and before the knife.
+    const sword = best(['goldenSword', 'bronzeSword', 'metalSword', 'taser', 'woodenSword'], undefined)
     if (sword) this.player.loadout.sword = sword
     this.player.loadout.shield = best(['magicalShield', 'bronzeShield', 'metalShield', 'woodenShield'], 'woodenShield')
     const tunic = (['redTunic', 'blueTunic'] as ItemId[]).filter(owned)[0]
@@ -3957,6 +4129,10 @@ export class World {
       shake: this.shake,
       attackTimer: this.player.attackTimer,
       hammerBlows: this.hammerBlows,
+      taserZaps: this.taserZaps,
+      ratsFried: this.ratsFried,
+      fried: this.fried.length,
+      shocked: this.enemies.filter((e) => e.shocked > 0).length,
       magazine: this.magazine ? { ...this.magazine } : undefined,
       stunned: this.enemies.filter((e) => e.stunned > 0).length,
       enemyCentres: this.enemies.filter((e) => !e.isBoss).map((e) => {

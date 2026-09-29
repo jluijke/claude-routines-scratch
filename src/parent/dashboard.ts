@@ -121,7 +121,11 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
   // Everything a shopkeeper stocks, plus the map — which no shop sells, and
   // which you would otherwise have to bomb your way to before you could test
   // the map screen at all.
-  const sellable = Object.values(ITEMS).filter((item) => item.price !== undefined || item.id === 'map' || item.id === 'subwayMap')
+  // The city sells a few things of its own (the taser, love bombs), priced
+  // only there, so they are on the list too.
+  const sellable = Object.values(ITEMS).filter(
+    (item) => item.price !== undefined || item.city?.price !== undefined || item.id === 'map' || item.id === 'subwayMap',
+  )
 
   // Named as the world he is in names them: a parent testing the ship should
   // see the lightsaber on the list, not the metal sword it used to be.
@@ -130,7 +134,9 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
     el('option', { value: '' }, ['Choose an item…']),
     ...sellable.map((item) =>
       el('option', { value: item.id }, [
-        item.price === undefined ? `${named(item.id)} — found, never sold` : `${named(item.id)} — ${item.price} rupees`,
+        (item.price ?? item.city?.price) === undefined
+          ? `${named(item.id)} — found, never sold`
+          : `${named(item.id)} — ${item.price ?? item.city?.price} ${item.price === undefined ? 'dollars' : 'rupees'}`,
       ]),
     ),
   ])

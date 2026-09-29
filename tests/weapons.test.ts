@@ -17,8 +17,12 @@ import {
   pullTrigger,
   tickMagazine,
   MACHINE_GUN_BURST,
+  friedByTaser,
+  TASER_REACH,
   type Magazine,
 } from '../src/game/weapons'
+import { itemGate, itemPrice, ITEMS } from '../src/game/items'
+import { gateById } from '../src/game/gates'
 import { TILE } from '../src/game/world/tiles'
 
 describe('the four slots', () => {
@@ -29,6 +33,11 @@ describe('the four slots', () => {
     expect(cityWeapon('goldenSword')).toBe('rifle')
     expect(cityWeapon(undefined)).toBeUndefined()
     expect(cityWeapon('bow')).toBeUndefined()
+  })
+
+  it('put the taser in a slot of its own, and it is not a gun', () => {
+    expect(cityWeapon('taser')).toBe('taser')
+    expect(isFirearm('taser')).toBe(false)
   })
 
   it('know which ones are guns', () => {
@@ -129,5 +138,33 @@ describe('the machine gun', () => {
     expect(burstDirections(1, 0, 1).length).toBe(1)
     expect(burstDirections(1, 0, 1)[0]?.dx).toBeCloseTo(1)
     expect(burstDirections(1, 0, 2).length).toBe(2)
+  })
+})
+
+describe('the taser', () => {
+  it('is sold only in the city, after the knife, for a spelling proof', () => {
+    expect(itemPrice('taser', 1)).toBeUndefined()
+    expect(itemPrice('taser', 2)).toBeUndefined()
+    expect(itemPrice('taser', 3)).toBeGreaterThan(0)
+    expect(ITEMS.taser.requires).toBe('woodenSword')
+    const gate = itemGate('taser', 3)
+    expect(gate).toBeDefined()
+    expect(gateById(gate as string)).toBeDefined()
+  })
+
+  it('sits between the knife and the hammer', () => {
+    expect(ITEMS.taser.power).toBeGreaterThanOrEqual(ITEMS.woodenSword.power ?? 0)
+    expect(ITEMS.taser.power).toBeLessThan(ITEMS.metalSword.power ?? 0)
+  })
+
+  it('reaches two squares', () => {
+    expect(TASER_REACH).toBe(2 * TILE)
+  })
+
+  it('fries the city\'s rats and nothing else', () => {
+    expect(friedByTaser('creature', 'chaser')).toBe(true)
+    expect(friedByTaser('creature', 'shooter')).toBe(false)
+    expect(friedByTaser('creature', 'boss1')).toBe(false)
+    expect(friedByTaser('monster', 'chaser')).toBe(false)
   })
 })
