@@ -1471,6 +1471,8 @@ const MIDTOWN_SCREENS: Screen[] = [
     exits: { left: 'nyc-trump-green', down: 'nyc-56th-street' },
     set: ['11,7=#', '11,8=#', '11,9=#', '10,1=*', '5,9=,'],
     props: [
+      // The name over the door, in gold. There is no missing it, which is the point of it.
+      { sprite: 'trumpSign', col: 11, row: 5 },
       // The doorman stands in the way of the door, and that is the door.
       { sprite: 'scribe', col: 10, row: 8, solid: true, talk: 'Residents only. Sir. The tower does not take visitors. ...The service door is round the back, on 56th, but you did not hear that from me.' },
       { sprite: 'pigeonA', col: 5, row: 2 },

@@ -2803,6 +2803,36 @@ const SNIPER_ICON = S([
   '................',
 ])
 
+/** The name on the front of the tower, in gold, the way it is on the real one. */
+const TRUMP_SIGN = defineSprite(64, 26, [
+  'yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyY',
+  'ykkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkY',
+  'ykkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkY',
+  'ykkyyyyyyyyyykkyyyyyyyykkkkyykkkkkkyykkyykkkkkkyykkyyyyyyyykkkkY',
+  'ykkyyyyyyyyyyYkyyyyyyyyYkkkyyYkkkkkyyYkyyYkkkkkyyYkyyyyyyyyYkkkY',
+  'ykkkYYYyyYYYYYkyyYYYYYYyykkyyYkkkkkyyYkyyyykkyyyyYkyyYYYYYYyykkY',
+  'ykkkkkkyyYkkkkkyyYkkkkkyyYkyyYkkkkkyyYkyyyyYkyyyyYkyyYkkkkkyyYkY',
+  'ykkkkkkyyYkkkkkyyYkkkkkyyYkyyYkkkkkyyYkyyYYyykYyyYkyyYkkkkkyyYkY',
+  'ykkkkkkyyYkkkkkyyYkkkkkyyYkyyYkkkkkyyYkyyYkyyYkyyYkyyYkkkkkyyYkY',
+  'ykkkkkkyyYkkkkkyyyyyyyykYYkyyYkkkkkyyYkyyYkyyYkyyYkyyyyyyyykYYkY',
+  'ykkkkkkyyYkkkkkyyyyyyyyYkkkyyYkkkkkyyYkyyYkyyYkyyYkyyyyyyyyYkkkY',
+  'ykkkkkkyyYkkkkkyyYYyyYYYkkkyyYkkkkkyyYkyyYkkYYkyyYkyyYYYYYYYkkkY',
+  'ykkkkkkyyYkkkkkyyYkyyYkkkkkyyYkkkkkyyYkyyYkkkkkyyYkyyYkkkkkkkkkY',
+  'ykkkkkkyyYkkkkkyyYkkYyykkkkyyYkkkkkyyYkyyYkkkkkyyYkyyYkkkkkkkkkY',
+  'ykkkkkkyyYkkkkkyyYkkkyyYkkkyyYkkkkkyyYkyyYkkkkkyyYkyyYkkkkkkkkkY',
+  'ykkkkkkyyYkkkkkyyYkkkkYyykkkYyyyyyykYYkyyYkkkkkyyYkyyYkkkkkkkkkY',
+  'ykkkkkkyyYkkkkkyyYkkkkkyyYkkkyyyyyyYkkkyyYkkkkkyyYkyyYkkkkkkkkkY',
+  'ykkkkkkkYYkkkkkkYYkkkkkkYYkkkkYYYYYYkkkkYYkkkkkkYYkkYYkkkkkkkkkY',
+  'ykkkkkkkkkkkkkkkkyyyyykkyyykkykkkykyyyyykyyyykkkkkkkkkkkkkkkkkkY',
+  'ykkkkkkkkkkkkkkkkkYyYYYykYYykyYkkyYyYYYYYyYYYykkkkkkkkkkkkkkkkkY',
+  'ykkkkkkkkkkkkkkkkkkyYkkyYkkyYyYkkyYyYkkkkyYkkyYkkkkkkkkkkkkkkkkY',
+  'ykkkkkkkkkkkkkkkkkkyYkkyYkkyYyYykyYyyyykkyyyykYkkkkkkkkkkkkkkkkY',
+  'ykkkkkkkkkkkkkkkkkkyYkkyYkkyYyYyYyYyYYYYkyYyYYkkkkkkkkkkkkkkkkkY',
+  'ykkkkkkkkkkkkkkkkkkyYkkyYkkyYyykyyYyYkkkkyYkykkkkkkkkkkkkkkkkkkY',
+  'ykkkkkkkkkkkkkkkkkkyYkkkyyykYyYYkyYyyyyykyYkkykkkkkkkkkkkkkkkkkY',
+  'yYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY',
+])
+
 /** The pistol and the rifle on the hardware store's shelf. */
 const PISTOL_ICON = S([
   '................',
@@ -3550,6 +3580,7 @@ export const SPRITES = {
   binoculars: BINOCULARS,
   ferry: FERRY,
   liftDoor: LIFT_DOOR,
+  trumpSign: TRUMP_SIGN,
   cabinet: CABINET,
   tripod: TRIPOD,
   ticketIcon: TICKET_ICON,
