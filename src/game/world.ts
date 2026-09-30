@@ -25,7 +25,7 @@ import { beginSniper, critterRise, sniperSummary, SPOTS, tickSniper, type Sniper
 import { Fireworks } from './render/fireworks'
 import { overworldLayout, stepBackFromGate } from './world/analysis'
 import { gateById, type Gate } from './gates'
-import { isTool, ITEMS, itemName, materialOf, TOOL_SLOT, type ItemId } from './items'
+import { isTool, ITEMS, itemName, materialOf, nextWeapon, TOOL_SLOT, WEAPON_ORDER, type ItemId } from './items'
 import { dropMultiplier, opensFreely } from './pacing'
 import type { Level, SaveData } from '../core/save'
 import { Traffic, greenAxis } from './traffic'
@@ -1240,6 +1240,7 @@ export class World {
     if (state.attack) this.swingOrFire()
     if (state.useItem && !this.lookAround()) this.useItem()
     if (state.cycleItem) this.cycleTool()
+    if (state.cycleWeapon) this.cycleWeapon()
 
     const opened = this.openedTiles()
     this.sealed = this.sealedTiles(opened)
@@ -1853,8 +1854,7 @@ export class World {
     // tops up to one rather than to two.
     const held = this.save.inventory[pickup.item] ?? 0
     this.save.inventory[pickup.item] = ITEMS[pickup.item].stackable ? held + 1 : Math.max(held, 1)
-    // The rifle is a thing he holds, and the tripod is where it goes: into his hands straight away.
-    if (pickup.item === 'sniperRifle') this.save.player.equippedTool = 'sniperRifle'
+    this.holdNew([pickup.item])
     this.equipBest()
     sfx.play('itemGet')
     // Held up over his head rather than mentioned in the message bar. Each
@@ -2641,6 +2641,43 @@ export class World {
     sfx.play('select')
     this.showMessage(`${itemName(next, this.level)} ready.`, 70)
     this.callbacks.onChange()
+  }
+
+  /** Steps to the next weapon he owns. The strongest is not always the one for the job. */
+  cycleWeapon(): void {
+    const owned = WEAPON_ORDER.filter((id) => (this.save.inventory[id] ?? 0) > 0)
+    if (owned.length === 0) {
+      this.showMessage('You have no weapon.', 80)
+      return
+    }
+    if (owned.length === 1) {
+      this.showMessage(`The ${itemName(owned[0] as ItemId, this.level)} is the only weapon you have.`, 90)
+      return
+    }
+    const next = nextWeapon(owned, this.player.loadout.sword)
+    if (!next) return
+    this.player.loadout.sword = next
+    this.magazine = undefined
+    this.syncSave()
+    sfx.play('select')
+    this.showMessage(`${itemName(next, this.level)} in hand.`, 70)
+    this.callbacks.onChange()
+  }
+
+  /**
+   * Something new has come into his hands — found, bought, or handed over
+   * by the parent panel — and it goes straight into use: a weapon into the
+   * sword slot, a tool into the B slot. Whichever was there before is a
+   * key press away, not gone.
+   */
+  holdNew(items: readonly ItemId[]): void {
+    const weapons = WEAPON_ORDER.filter((id) => items.includes(id) && (this.save.inventory[id] ?? 0) > 0)
+    const strongest = weapons[weapons.length - 1]
+    if (strongest) this.player.loadout.sword = strongest
+    const tool = TOOL_SLOT.find((id) => items.includes(id) && (this.save.inventory[id] ?? 0) > 0)
+    if (tool) this.save.player.equippedTool = tool
+    this.magazine = undefined
+    this.equipBest()
   }
 
   /** Uses whatever is in the B slot. */
@@ -4676,12 +4713,18 @@ export class World {
     const best = <T extends ItemId | undefined>(ids: ItemId[], fallback: T): ItemId | T =>
       ids.filter(owned).sort((a, b) => (ITEMS[b].power ?? 0) - (ITEMS[a].power ?? 0))[0] ?? fallback
 
-    // The fallback must not be a sword: it used to hand him a wooden one even
-    // with an empty inventory, and then write it into the save.
-    // The taser ties the knife on power and loses to the hammer; the order
-    // breaks the tie, so it goes in after the hammer and before the knife.
-    const sword = best(['goldenSword', 'bronzeSword', 'metalSword', 'taser', 'woodenSword'], undefined)
-    if (sword) this.player.loadout.sword = sword
+    // The weapon in his hand stays in his hand while he still owns it — he
+    // may have chosen it with the weapon key. Only a hand with nothing in
+    // it, or holding something gone, takes the strongest he owns. The
+    // fallback must not be a sword: it used to hand him a wooden one even
+    // with an empty inventory, and then write it into the save. The taser
+    // ties the knife on power and loses to the hammer; the order breaks the
+    // tie, so it goes in after the hammer and before the knife.
+    const held = this.player.loadout.sword
+    if (!held || !owned(held)) {
+      const sword = best(['goldenSword', 'bronzeSword', 'metalSword', 'taser', 'woodenSword'], undefined)
+      if (sword) this.player.loadout.sword = sword
+    }
     this.player.loadout.shield = best(['magicalShield', 'bronzeShield', 'metalShield', 'woodenShield'], 'woodenShield')
     const tunic = (['redTunic', 'blueTunic'] as ItemId[]).filter(owned)[0]
     if (tunic) this.player.loadout.tunic = tunic
@@ -4760,6 +4803,8 @@ export class World {
       attackTimer: this.player.attackTimer,
       hammerBlows: this.hammerBlows,
       taserZaps: this.taserZaps,
+      held: this.player.loadout.sword,
+      tool: this.selectedTool(),
       sinceArrival: this.sinceArrival,
       awake: [...this.awake],
       lifting: this.lifting ? { frames: this.lifting.frames, to: this.lifting.portal.to } : undefined,

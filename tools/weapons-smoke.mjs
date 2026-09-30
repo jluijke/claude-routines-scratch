@@ -64,13 +64,14 @@ check('and it swings rather than shoots', s.shots === 0 && s.sword !== undefined
 await shot('knife')
 
 // ------------------------------------------------------------ the taser
-// After the knife and before the hammer: with the knife and the taser, the
-// taser is in his hand; with the hammer as well, the hammer.
+// After the knife and before the hammer: handed the knife and the taser at
+// once, the taser is in his hand; handed the hammer as well, the hammer.
+// (What is already in his hand stays there: Q is how he chooses.)
 const bestOf = (ids) => page.evaluate((list) => {
   const inv = window.zsq.state.inventory
   for (const s of ['woodenSword', 'taser', 'metalSword', 'bronzeSword', 'goldenSword']) delete inv[s]
   for (const id of list) inv[id] = 1
-  window.zsq.world.equipBest()
+  window.zsq.world.holdNew(list)
   return window.zsq.world.debugState().weapon
 }, ids)
 check('the taser beats the knife', (await bestOf(['woodenSword', 'taser'])) === 'taser')

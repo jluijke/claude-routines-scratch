@@ -12,6 +12,8 @@ export interface InputState {
   useItem: boolean
   /** Step to the next item in the B slot. */
   cycleItem: boolean
+  /** Step to the next weapon he owns. */
+  cycleWeapon: boolean
   confirm: boolean
   /** Show the controls, and pause while they are up. */
   help: boolean
@@ -35,6 +37,7 @@ const MOVE_KEYS: Record<string, [number, number]> = {
 const ATTACK_KEYS = new Set([' ', 'z', 'Z', 'Enter', '0'])
 const ITEM_KEYS = new Set(['x', 'X', 'Shift', '5'])
 const CYCLE_KEYS = new Set(['c', 'C', 'Tab', '.'])
+const WEAPON_KEYS = new Set(['q', 'Q', 'v', 'V'])
 const MAP_KEYS = new Set(['m', 'M'])
 // Not 'P'. It used to be, and the parent dashboard is Ctrl/Cmd+Shift+P — so one
 // keypress meant both "show the child the controls" and "open the parent panel",
@@ -52,6 +55,7 @@ export const BINDINGS: { keys: string[]; what: string; group: 'Moving' | 'Doing'
   { group: 'Doing', keys: ['Space', 'Z'], what: 'Swing your sword' },
   { group: 'Doing', keys: ['X'], what: 'Use the item in the B slot' },
   { group: 'Doing', keys: ['C', 'Tab'], what: 'Swap to your next item' },
+  { group: 'Doing', keys: ['Q', 'V'], what: 'Swap to your next weapon' },
   { group: 'The rest', keys: ['Esc', 'H'], what: 'This list, and pause the game' },
   { group: 'The rest', keys: ['M'], what: 'Your map — once you have found one' },
   { group: 'The rest', keys: ['N'], what: 'Music on and off' },
@@ -64,6 +68,7 @@ export class Input {
   private itemEdge = false
   private helpEdge = false
   private cycleEdge = false
+  private weaponEdge = false
   private mapEdge = false
   private target: { x: number; y: number } | undefined
   private pointerHeld = false
@@ -154,6 +159,7 @@ export class Input {
       ATTACK_KEYS.has(event.key) ||
       ITEM_KEYS.has(event.key) ||
       CYCLE_KEYS.has(event.key) ||
+      WEAPON_KEYS.has(event.key) ||
       HELP_KEYS.has(event.key) ||
       MAP_KEYS.has(event.key)
     ) {
@@ -167,6 +173,7 @@ export class Input {
     if (ITEM_KEYS.has(event.key)) this.itemEdge = true
     if (HELP_KEYS.has(event.key)) this.helpEdge = true
     if (CYCLE_KEYS.has(event.key)) this.cycleEdge = true
+    if (WEAPON_KEYS.has(event.key)) this.weaponEdge = true
     if (MAP_KEYS.has(event.key)) this.mapEdge = true
   }
 
@@ -222,6 +229,7 @@ export class Input {
       attack: this.attackEdge,
       useItem: this.itemEdge,
       cycleItem: this.cycleEdge,
+      cycleWeapon: this.weaponEdge,
       confirm: this.held.has('Enter'),
       help: this.helpEdge,
       map: this.mapEdge,
@@ -232,6 +240,7 @@ export class Input {
     this.itemEdge = false
     this.helpEdge = false
     this.cycleEdge = false
+    this.weaponEdge = false
     this.mapEdge = false
     return state
   }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ITEMS, TOOL_SLOT, itemName, type ItemId } from '../src/game/items'
+import { ITEMS, KEPT_ITEMS, nextWeapon, TOOL_SLOT, WEAPON_ORDER, itemName, type ItemId } from '../src/game/items'
 
 const ids = Object.keys(ITEMS) as ItemId[]
 
@@ -29,5 +29,40 @@ describe('anything he can buy, he can hold', () => {
       expect(itemName(id, 1).length).toBeGreaterThan(0)
       expect(itemName(id, 2).length).toBeGreaterThan(0)
     }
+  })
+})
+
+describe('everything he can own has somewhere to be', () => {
+  // The fault this covers: the taser was handed over from the parent panel
+  // and was nowhere — a weapon, but weaker than the hammer he already
+  // held, so it was never in his hand and no key could put it there.
+  it('is a weapon, something worn, a tool in the slot, or on the kept list', () => {
+    for (const id of ids) {
+      const item = ITEMS[id]
+      const worn = item.category === 'shield' || item.category === 'tunic' || item.category === 'ring'
+      const weapon = WEAPON_ORDER.includes(id)
+      const tool = TOOL_SLOT.includes(id)
+      const kept = KEPT_ITEMS.includes(id)
+      expect(
+        [worn, weapon, tool, kept].filter(Boolean).length,
+        `${id} must be exactly one of: worn, a weapon, a tool, or kept`,
+      ).toBe(1)
+    }
+  })
+
+  it('every sword is a weapon he can swap to', () => {
+    for (const id of ids) if (ITEMS[id].category === 'sword') expect(WEAPON_ORDER).toContain(id)
+  })
+
+  it('the weapon key walks the weapons he owns, weakest first, and round again', () => {
+    expect(nextWeapon([], undefined)).toBeUndefined()
+    expect(nextWeapon(['woodenSword'], undefined)).toBe('woodenSword')
+    expect(nextWeapon(['woodenSword'], 'woodenSword')).toBe('woodenSword')
+    const owned: ItemId[] = ['metalSword', 'woodenSword', 'taser']
+    expect(nextWeapon(owned, 'woodenSword')).toBe('taser')
+    expect(nextWeapon(owned, 'taser')).toBe('metalSword')
+    expect(nextWeapon(owned, 'metalSword')).toBe('woodenSword')
+    // Holding something he no longer owns starts from the beginning.
+    expect(nextWeapon(owned, 'goldenSword')).toBe('woodenSword')
   })
 })

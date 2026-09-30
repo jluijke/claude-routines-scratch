@@ -34,7 +34,7 @@ import { showRulePreview } from './spelling/ui/rulePreview'
 import { Rng } from './core/rng'
 import { showHelp } from './game/ui/help'
 import { gateById, type Gate } from './game/gates'
-import { ITEMS, itemName } from './game/items'
+import { ITEMS, itemName, TOOL_SLOT, WEAPON_ORDER } from './game/items'
 import type { Level } from './core/save'
 import type { Exercise } from './spelling/types'
 import { mountParentDashboard } from './parent/dashboard'
@@ -760,7 +760,8 @@ function grantReward(gate: Gate): void {
   if (reward.item) state.inventory[reward.item] = (state.inventory[reward.item] ?? 0) + 1
 
   world?.openGate(gate)
-  world?.equipBest()
+  if (reward.item) world?.holdNew([reward.item])
+  else world?.equipBest()
   persist()
   openShopPanel?.refresh()
 
@@ -816,8 +817,10 @@ function openShop(kind: ShopKind, placeName?: string): void {
       openShopPanel = undefined
       handleGate(gate)
     },
-    onPurchase: () => {
-      world?.equipBest()
+    onPurchase: (item, firstTime) => {
+      // Bought for the first time, it goes into his hands; restocked, nothing moves.
+      if (firstTime) world?.holdNew([item])
+      else world?.equipBest()
       persist()
     },
     onClose: () => {
@@ -927,7 +930,9 @@ function openParentDashboard(): void {
       }
       if (items.length > 1) state.player.rupees = Math.max(state.player.rupees, 999)
       world?.refreshFromSave()
-      world?.equipBest()
+      // What was handed over is in his hands: the one item, or the strongest
+      // weapon and the first tool of the whole kit.
+      world?.holdNew(items)
       persist()
     },
     onDropFood: () => {
@@ -995,6 +1000,8 @@ Object.assign(window as unknown as Record<string, unknown>, {
     /** Where each square on the map sits, for the end-to-end checks. */
     mapLayout,
     screens: SCREENS,
+    toolSlot: TOOL_SLOT,
+    weaponOrder: WEAPON_ORDER,
     gateById,
     pacing: () => describePacing(state.pacing),
     music,

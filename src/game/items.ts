@@ -594,6 +594,38 @@ export function isTool(id: ItemId): boolean {
   return TOOL_SLOT.includes(id)
 }
 
+/**
+ * The weapons, weakest first: what the sword slot can hold, and the order
+ * the weapon key walks through them. The strongest is not always the one he
+ * wants — in the city the taser fries rats and the hammer only stuns them.
+ */
+export const WEAPON_ORDER: ItemId[] = ['woodenSword', 'taser', 'metalSword', 'bronzeSword', 'goldenSword']
+
+/** The next weapon he owns after the one in his hand, round the list; undefined with nothing to swap to. */
+export function nextWeapon(owned: readonly ItemId[], current: ItemId | undefined): ItemId | undefined {
+  const held = WEAPON_ORDER.filter((id) => owned.includes(id))
+  if (held.length === 0) return undefined
+  const index = current ? held.indexOf(current) : -1
+  return held[(index + 1) % held.length]
+}
+
+/**
+ * Everything he can own that is neither swung, worn, nor in the item slot:
+ * things that work by themselves. A new item has to go on one of these
+ * lists or be a weapon, a shield, a tunic, a ring or a tool — the item test
+ * insists, because a thing he can be given but never reach is the worst
+ * kind of bug to find from the sofa.
+ */
+export const KEPT_ITEMS: ItemId[] = [
+  'heartContainer', // taken the moment it is found
+  'animalFood', // eaten on the spot
+  'potion', // drunk on the spot
+  'map', // M
+  'subwayMap', // M, underground
+  'ferryTicket', // shown to the ferry man by walking onto the gangway
+  'arrows', // fired by the bow, which is the thing in the slot
+]
+
 export function itemPower(id: ItemId): number {
   return ITEMS[id].power ?? 0
 }

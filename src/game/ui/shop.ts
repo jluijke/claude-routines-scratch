@@ -125,8 +125,8 @@ export interface ShopOptions {
   save: SaveData
   /** Ask for the barrier challenge that unlocks a gated item. */
   onGateRequest: (gate: Gate) => void
-  /** Something was bought; re-equip and save. */
-  onPurchase: () => void
+  /** Something was bought, and whether it is the first of its kind he has owned; re-equip and save. */
+  onPurchase: (item: ItemId, firstTime: boolean) => void
   onClose: () => void
 }
 
@@ -258,13 +258,14 @@ export function showShop(root: HTMLElement, options: ShopOptions): { close: () =
     if (save.player.rupees < price) return
 
     save.player.rupees -= price
+    const firstTime = (save.inventory[item.id] ?? 0) === 0
     // Arrows and bait come in bundles; everything else you either have or not.
     const bundle = item.id === 'arrows' ? 30 : 1
     save.inventory[item.id] = (save.inventory[item.id] ?? 0) + bundle
 
     sfx.play('rupee')
     note.textContent = patter(item, save, level)
-    options.onPurchase()
+    options.onPurchase(item.id, firstTime)
     render()
   }
 
