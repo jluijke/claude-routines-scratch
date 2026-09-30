@@ -30,6 +30,7 @@ export type SfxName =
   | 'ding'
   | 'foghorn'
   | 'screech'
+  | 'firework'
 
 interface Tone {
   kind?: 'tone'
@@ -110,6 +111,11 @@ const PATCHES: Record<SfxName, Sound[]> = {
   screech: [
     { kind: 'noise', at: 0, duration: 0.22, from: 6000, to: 2500, gain: 0.12, q: 6 },
     { freq: 2400, at: 0, duration: 0.18, type: 'sawtooth', slideTo: 1500, gain: 0.05 },
+  ],
+  // A firework bursting: a thud, and a hiss of sparks.
+  firework: [
+    { freq: 120, at: 0, duration: 0.08, type: 'square', slideTo: 40, gain: 0.1 },
+    { kind: 'noise', at: 0.02, duration: 0.25, from: 2500, to: 400, gain: 0.07, q: 0.7 },
   ],
   // Click-clack: two dry clicks, the second a little lower.
   reload: [

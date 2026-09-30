@@ -13,7 +13,7 @@
  * adjusted without a tracker.
  */
 
-export type TrackName = 'title' | 'overworld' | 'dungeon' | 'cave' | 'boss' | 'shop' | 'ship' | 'rock' | 'mech' | 'subway' | 'busker'
+export type TrackName = 'title' | 'overworld' | 'dungeon' | 'cave' | 'boss' | 'shop' | 'ship' | 'rock' | 'mech' | 'subway' | 'busker' | 'finale'
 
 interface Voice {
   steps: string[]
@@ -547,7 +547,72 @@ const BUSKER: Track = {
   ],
 }
 
+/**
+ * The end of it: a fanfare in a major key, fast, with the tune doubled a
+ * third below and a bass that walks the chords. Plays while the fireworks
+ * go up over the crown, and keeps playing until he leaves the room.
+ */
+const FINALE: Track = {
+  tempo: 150,
+  voices: [
+    {
+      type: 'square',
+      gain: 0.05,
+      steps: [
+        'C5', '.', 'E5', 'G5', 'C6', '-', 'G5', 'E5',
+        'F5', '.', 'A5', 'C6', 'A5', '-', 'F5', 'D5',
+        'G5', '.', 'B5', 'D6', 'G6', '-', 'D6', 'B5',
+        'C6', '-', 'G5', '-', 'E5', '-', 'C5', '.',
+        'E5', '.', 'G5', 'C6', 'E6', '-', 'C6', 'G5',
+        'F5', '.', 'A5', 'C6', 'D6', '-', 'C6', 'A5',
+        'G5', '-', 'E5', '-', 'D5', '-', 'B4', '-',
+        'C6', '-', '-', '-', 'C6', '-', '-', '.',
+      ],
+    },
+    {
+      type: 'square',
+      gain: 0.028,
+      detune: 6,
+      steps: [
+        '.', '.', 'C5', 'E5', '.', '.', 'E5', 'C5',
+        '.', '.', 'F5', 'A5', '.', '.', 'D5', 'A4',
+        '.', '.', 'G5', 'B5', '.', '.', 'B5', 'G5',
+        'E5', '-', 'E5', '-', 'C5', '-', 'G4', '.',
+        '.', '.', 'E5', 'G5', '.', '.', 'G5', 'E5',
+        '.', '.', 'F5', 'A5', '.', '.', 'A5', 'F5',
+        'E5', '-', 'C5', '-', 'B4', '-', 'G4', '-',
+        'E5', '-', '-', '-', 'E5', '-', '-', '.',
+      ],
+    },
+    {
+      type: 'triangle',
+      gain: 0.06,
+      steps: [
+        'C3', '.', 'C3', '.', 'G3', '.', 'G3', '.',
+        'F3', '.', 'F3', '.', 'C4', '.', 'C4', '.',
+        'G3', '.', 'G3', '.', 'D4', '.', 'D4', '.',
+        'C3', '.', 'G3', '.', 'C3', '.', 'G3', '.',
+        'C3', '.', 'C3', '.', 'G3', '.', 'G3', '.',
+        'F3', '.', 'F3', '.', 'C4', '.', 'C4', '.',
+        'G3', '.', 'G3', '.', 'D4', '.', 'D4', '.',
+        'C3', '.', 'G3', '.', 'C3', '.', '.', '.',
+      ],
+    },
+  ],
+  drums: [
+    'x', '.', 'x', '.', 'x', '.', 'x', 'x',
+    'x', '.', 'x', '.', 'x', '.', 'x', 'x',
+    'x', '.', 'x', '.', 'x', '.', 'x', 'x',
+    'x', '.', 'x', '.', 'x', 'x', 'x', '.',
+    'x', '.', 'x', '.', 'x', '.', 'x', 'x',
+    'x', '.', 'x', '.', 'x', '.', 'x', 'x',
+    'x', '.', 'x', '.', 'x', '.', 'x', 'x',
+    'x', '.', '.', '.', 'x', '.', '.', '.',
+  ],
+}
+
 const TRACKS: Record<TrackName, Track> = {
+  finale: FINALE,
   busker: BUSKER,
   subway: SUBWAY,
   title: TITLE,

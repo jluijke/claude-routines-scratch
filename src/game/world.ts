@@ -22,6 +22,7 @@ import { Player, PLAYER_SIZE, type Facing, BODY_INSET } from './entities/player'
 import { SCREEN_COLS, SCREEN_H, SCREEN_ROWS, SCREEN_W, TILE, TILES, isSolidChar, toTile, type TileChar } from './world/tiles'
 import { screenById, SCREENS, type EnemyKind, type Portal, type Prop, type Screen } from './world/screens'
 import { beginSniper, critterRise, sniperSummary, SPOTS, tickSniper, type SniperState } from './sniper'
+import { Fireworks } from './render/fireworks'
 import { overworldLayout, stepBackFromGate } from './world/analysis'
 import { gateById, type Gate } from './gates'
 import { isTool, ITEMS, itemName, materialOf, TOOL_SLOT, type ItemId } from './items'
@@ -221,6 +222,9 @@ interface Lift {
 }
 
 const LIFT_FRAMES = 170
+/** The finale over the crown: twelve seconds of fireworks, or four and a key. */
+const FINALE_FRAMES = 720
+const FINALE_SKIP_AFTER = 240
 /** Trump Tower has fifty-eight floors, and he lives on the top one. */
 const TOP_FLOOR = 58
 const FERRY_OUT = 170
@@ -491,6 +495,10 @@ export class World {
   private sniper: SniperState | undefined
   /** Frames the final score stays up after a round. */
   private sniperHold = 0
+  /** The end of the quest: the room dark, fireworks up, the banner, and then the story. */
+  private finale: { frames: number; show: Fireworks } | undefined
+  /** Fireworks over the harbour ever after, once she is safe. */
+  private skyShow: Fireworks | undefined
   private bursts: Burst[] = []
   /** The candle lights one flame per room, as the blue one always did. */
   private candleUsedHere = false
@@ -896,6 +904,11 @@ export class World {
     this.lifting = undefined
     this.viewing = undefined
     this.sniper = undefined
+    this.finale = undefined
+    this.skyShow =
+      this.save.world.princessSaved && ['nyc-liberty-island', 'nyc-battery-park', 'nyc-liberty-crown'].includes(next.id)
+        ? new Fireworks(this.rng, SCREEN_W, SCREEN_H)
+        : undefined
     this.candleUsedHere = false
     // Load-bearing: teleport, respawn and the dev console all come through
     // here, and a flight left over from another screen would draw the hero at
@@ -1162,6 +1175,10 @@ export class World {
     }
 
     const state = this.input.read()
+    if (this.finale) {
+      this.updateFinale(state.attack || state.confirm || state.useItem)
+      return
+    }
     if (this.lifting) {
       this.updateLift()
       return
@@ -1250,6 +1267,7 @@ export class World {
     this.updateRide()
     this.updateAwakenings()
     this.checkPrincess()
+    this.updateSkyShow(step)
 
     // While a potion holds, nothing has a fix on him: the monsters steer for
     // the middle of the room and shoot at where he is not.
@@ -3199,6 +3217,8 @@ export class World {
         : {}),
     })
 
+    if (this.skyShow && !this.finale) this.skyShow.draw(ctx, this.frame)
+    if (this.finale) this.drawFinale(ctx)
     if (this.lifting) this.drawLift(ctx)
     if (this.viewing) this.drawView(ctx)
     if (this.sniper) this.drawSniper(ctx)
@@ -4213,11 +4233,96 @@ export class World {
       if (!prop.princess || !this.inEarshot(prop, centre)) continue
       this.save.world.princessSaved = true
       this.burstHearts(prop.col * TILE + 8, prop.row * TILE + 8, 30)
+      this.player.facing = 'up'
+      this.projectiles = []
+      this.shots = []
+      this.finale = { frames: FINALE_FRAMES, show: new Fireworks(this.rng, SCREEN_W, SCREEN_H) }
+      this.finale.show.launch(SCREEN_W / 2)
       sfx.play('bossFanfare')
+      music.play('finale')
       this.callbacks.onChange()
-      this.callbacks.onPrincessSaved()
       return
     }
+  }
+
+  // ------------------------------------------------------------ the finale
+
+  /**
+   * The quest ending. The world holds still; rockets go up every half
+   * second or so; the banner comes in; and after twelve seconds, or four
+   * and a key, the story takes over. The fireworks do not stop for it.
+   */
+  private updateFinale(skip: boolean): void {
+    const f = this.finale
+    if (!f) return
+    f.frames -= 1
+    f.show.update(1 / 60)
+    if (f.frames % 28 === 0) f.show.launch()
+    if (f.frames % 28 === 14 && this.rng.chance(0.5)) f.show.launch()
+    if (f.show.burstThisFrame && this.rng.chance(0.6)) sfx.play('firework')
+    const elapsed = FINALE_FRAMES - f.frames
+    if (f.frames <= 0 || (skip && elapsed >= FINALE_SKIP_AFTER)) {
+      // The show carries on behind the story, and after it.
+      this.skyShow = f.show
+      this.finale = undefined
+      this.input.clearTarget()
+      this.callbacks.onPrincessSaved()
+    }
+  }
+
+  /** The harbour's fireworks, once she is safe: one up every second or two, for as long as he stays. */
+  private updateSkyShow(step: number): void {
+    const show = this.skyShow
+    if (!show) return
+    show.update(step)
+    if (this.frame % 75 === 0 || (this.frame % 75 === 40 && this.rng.chance(0.4))) show.launch()
+    if (show.burstThisFrame && this.rng.chance(0.3)) sfx.play('firework')
+  }
+
+  /** The room goes dark, the fireworks go up over it, and the two of them stand in the light of it. */
+  private drawFinale(ctx: CanvasRenderingContext2D): void {
+    const f = this.finale
+    if (!f) return
+    const elapsed = FINALE_FRAMES - f.frames
+    ctx.fillStyle = 'rgba(4,6,24,0.62)'
+    ctx.fillRect(0, 0, SCREEN_W, SCREEN_H)
+    f.show.draw(ctx, this.frame)
+    // Her, and him, over the dark: the only two things in the room that matter.
+    for (const prop of this.visibleProps()) {
+      if (prop.princess) this.atlas.draw(ctx, prop.sprite, prop.col * TILE, prop.row * TILE)
+    }
+    this.drawHeroSprites(ctx)
+    for (const heart of this.hearts) {
+      this.atlas.draw(ctx, heart.big ? 'heartBig' : 'heartSmall', Math.round(heart.x) - 4, Math.round(heart.y) - 4)
+    }
+    // The banner, a moment in.
+    if (elapsed > 50) {
+      const pulse = 1 + 0.06 * Math.sin(this.frame / 6)
+      ctx.save()
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'top'
+      ctx.translate(SCREEN_W / 2, 28)
+      ctx.scale(pulse, pulse)
+      ctx.font = 'bold 13px monospace'
+      ctx.fillStyle = '#12131a'
+      ctx.fillText('THE PRINCESS IS SAFE', 1, 1)
+      ctx.fillStyle = '#e8bb2c'
+      ctx.fillText('THE PRINCESS IS SAFE', 0, 0)
+      ctx.restore()
+    }
+    if (elapsed > 140) {
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'top'
+      ctx.font = '8px monospace'
+      ctx.fillStyle = '#f6f3e7'
+      ctx.fillText('The quest is over.', SCREEN_W / 2, 50)
+    }
+    if (elapsed > FINALE_SKIP_AFTER && Math.floor(this.frame / 20) % 2 === 0) {
+      ctx.font = '7px monospace'
+      ctx.fillStyle = '#c8fff8'
+      ctx.fillText('Z to go on', SCREEN_W / 2, SCREEN_H - 12)
+    }
+    ctx.textAlign = 'left'
   }
 
   // ------------------------------------------------------------ the roof
@@ -4648,6 +4753,8 @@ export class World {
       ferrying: this.beaming?.ferry === true,
       ticket: this.save.inventory.ferryTicket ?? 0,
       princessSaved: this.save.world.princessSaved === true,
+      finale: this.finale ? { frames: this.finale.frames, bursts: this.finale.show.bursts, sparks: this.finale.show.sparkCount } : undefined,
+      skyShow: this.skyShow ? { bursts: this.skyShow.bursts } : undefined,
       ratsFried: this.ratsFried,
       fried: this.fried.length,
       shocked: this.enemies.filter((e) => e.shocked > 0).length,
