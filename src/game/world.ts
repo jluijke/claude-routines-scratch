@@ -3217,11 +3217,16 @@ export class World {
         : {}),
     })
 
+    // These cover the play field, under the HUD, so they are drawn in the
+    // play field's own coordinates.
+    ctx.save()
+    ctx.translate(0, HUD_H)
     if (this.skyShow && !this.finale) this.skyShow.draw(ctx, this.frame)
     if (this.finale) this.drawFinale(ctx)
     if (this.lifting) this.drawLift(ctx)
     if (this.viewing) this.drawView(ctx)
     if (this.sniper) this.drawSniper(ctx)
+    ctx.restore()
 
     if (this.message) this.drawMessageBar(ctx)
   }
@@ -4237,6 +4242,8 @@ export class World {
       this.projectiles = []
       this.shots = []
       this.finale = { frames: FINALE_FRAMES, show: new Fireworks(this.rng, SCREEN_W, SCREEN_H) }
+      this.message = ''
+      this.messageTimer = 0
       this.finale.show.launch(SCREEN_W / 2)
       sfx.play('bossFanfare')
       music.play('finale')
@@ -4599,6 +4606,8 @@ export class World {
    * nothing ever read.
    */
   private drawNearbyTalk(ctx: CanvasRenderingContext2D): void {
+    // Nothing is said over the fireworks; the story says it afterwards.
+    if (this.finale) return
     const centre = this.player.centre()
     for (const prop of this.visibleProps()) {
       if (!prop.talk) continue
