@@ -1748,6 +1748,8 @@ export function drawSpeech(
   at: { col: number; row: number },
   text: string,
   screenWidth: number,
+  /** Whoever is listening: the bubble keeps off him. */
+  avoid?: { x: number; y: number; w: number; h: number },
 ): void {
   const lines = wrapSpeech(text, 30)
   const charWidth = 4.2
@@ -1759,7 +1761,27 @@ export function drawSpeech(
   const anchorX = at.col * TILE + TILE / 2
   // Keep the whole bubble on screen even when he is stood at the edge.
   const x = Math.max(4, Math.min(screenWidth - 4 - width, anchorX - width / 2))
-  const y = Math.max(2, at.row * TILE - height - 5)
+  // Over the speaker's head if it fits there; otherwise under his feet; and
+  // if either would sit on top of the listener, wherever it does not. A
+  // speaker on the top row of the roof used to have his bubble land on the
+  // hero standing under him.
+  const above = at.row * TILE - height - 5
+  const below = at.row * TILE + TILE + 5
+  const clear = (top: number): boolean =>
+    !avoid || top + height <= avoid.y || top >= avoid.y + avoid.h || x + width <= avoid.x || x >= avoid.x + avoid.w
+  const fitsAbove = above >= 2
+  const fitsBelow = below + height + 4 <= SCREEN_ROWS * TILE
+  let y: number
+  let tailDown = true
+  if (fitsAbove && clear(above)) y = above
+  else if (fitsBelow && clear(below)) {
+    y = below
+    tailDown = false
+  } else if (fitsAbove) y = above
+  else {
+    y = Math.max(2, Math.min(SCREEN_ROWS * TILE - height - 4, below))
+    tailDown = false
+  }
 
   ctx.fillStyle = 'rgba(8,10,16,0.92)'
   ctx.fillRect(x, y, width, height)
@@ -1767,12 +1789,18 @@ export function drawSpeech(
   ctx.lineWidth = 1
   ctx.strokeRect(x + 0.5, y + 0.5, width - 1, height - 1)
 
-  // The tail, pointing down at whoever is speaking.
+  // The tail, pointing at whoever is speaking.
   const tailX = Math.max(x + 4, Math.min(x + width - 8, anchorX - 2))
   ctx.fillStyle = 'rgba(8,10,16,0.92)'
-  ctx.fillRect(tailX, y + height, 4, 3)
-  ctx.fillStyle = '#57d2c6'
-  ctx.fillRect(tailX + 1, y + height + 3, 2, 1)
+  if (tailDown) {
+    ctx.fillRect(tailX, y + height, 4, 3)
+    ctx.fillStyle = '#57d2c6'
+    ctx.fillRect(tailX + 1, y + height + 3, 2, 1)
+  } else {
+    ctx.fillRect(tailX, y - 3, 4, 3)
+    ctx.fillStyle = '#57d2c6'
+    ctx.fillRect(tailX + 1, y - 4, 2, 1)
+  }
 
   ctx.fillStyle = '#f6f3e7'
   ctx.font = '7px monospace'

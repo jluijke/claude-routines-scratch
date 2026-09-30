@@ -1853,6 +1853,8 @@ export class World {
     // tops up to one rather than to two.
     const held = this.save.inventory[pickup.item] ?? 0
     this.save.inventory[pickup.item] = ITEMS[pickup.item].stackable ? held + 1 : Math.max(held, 1)
+    // The rifle is a thing he holds, and the tripod is where it goes: into his hands straight away.
+    if (pickup.item === 'sniperRifle') this.save.player.equippedTool = 'sniperRifle'
     this.equipBest()
     sfx.play('itemGet')
     // Held up over his head rather than mentioned in the message bar. Each
@@ -2662,6 +2664,10 @@ export class World {
         return this.eatHeart()
       case 'loveBomb':
         return this.throwLove()
+      case 'sniperRifle':
+        // Beside the tripod, X already started the round before this was
+        // asked; anywhere else the rifle is only a thing to carry.
+        return this.showMessage('The rifle is for the tripod on the roof on Avenue A. Stand beside it and press X.', 150)
       case 'wings':
         // They are not pressed, they are worn. Holding them is what matters,
         // and saying so here is where he will look for the answer.
@@ -4612,7 +4618,7 @@ export class World {
     for (const prop of this.visibleProps()) {
       if (!prop.talk) continue
       if (!this.inEarshot(prop, centre)) continue
-      drawSpeech(ctx, prop, prop.talk, SCREEN_W)
+      drawSpeech(ctx, prop, prop.talk, SCREEN_W, { x: this.player.x - 2, y: this.player.y - 6, w: PLAYER_SIZE + 4, h: PLAYER_SIZE + 8 })
       return
     }
   }

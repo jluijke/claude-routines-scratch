@@ -588,7 +588,7 @@ export const FLORIST: ItemId[] = ['loveBomb', 'recoveryHeart']
  * Items that occupy the B slot and are used with the item key. Ordered the way
  * the child cycles through them.
  */
-export const TOOL_SLOT: ItemId[] = ['bomb', 'blueCandle', 'bow', 'wings', 'bait', 'recoveryHeart', 'loveBomb']
+export const TOOL_SLOT: ItemId[] = ['bomb', 'blueCandle', 'bow', 'wings', 'bait', 'recoveryHeart', 'loveBomb', 'sniperRifle']
 
 export function isTool(id: ItemId): boolean {
   return TOOL_SLOT.includes(id)
