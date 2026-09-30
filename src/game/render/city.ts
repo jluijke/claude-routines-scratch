@@ -24,9 +24,9 @@ import { TILE, type TileChar } from '../world/tiles'
 import type { Screen } from '../world/screens'
 import { bush, caveMouth, cliff, tileHash, tree, water, type Palette, type Theme } from './world'
 
-export type CityTheme = 'street' | 'park' | 'platform' | 'train' | 'bodega'
+export type CityTheme = 'street' | 'park' | 'platform' | 'train' | 'bodega' | 'museum' | 'lobby' | 'restaurant' | 'roof' | 'harbour'
 
-const CITY_THEMES: readonly Theme[] = ['street', 'park', 'platform', 'train', 'bodega']
+const CITY_THEMES: readonly Theme[] = ['street', 'park', 'platform', 'train', 'bodega', 'museum', 'lobby', 'restaurant', 'roof', 'harbour']
 
 export function isCityTheme(theme: Theme): theme is CityTheme {
   return CITY_THEMES.includes(theme)
@@ -132,12 +132,120 @@ const BODEGA: Palette = {
   trunk: '#5a3a1b',
 }
 
+/**
+ * The museum: marble floor, dark teal walls, and the drinks fridge is a glass
+ * case with something behind it.
+ */
+const MUSEUM: Palette = {
+  ground: '#dcd5c5',
+  groundSpeckle: '#c6bdaa',
+  wall: '#2f4a52',
+  wallLight: '#46656e',
+  wallDark: '#1a2b30',
+  rock: '#8a8478', // plinths
+  rockLight: '#a8a294',
+  rockDark: '#4f4a42',
+  water: '#9fd3e8', // the glass of a case
+  waterLight: '#dff4fb',
+  path: '#8a5a2b', // the information desk
+  pathEdge: '#4d3a22',
+  leaf: '#b53a36', // the banner over the door
+  leafLight: '#f6f3e7',
+  leafDark: '#8f2320',
+  trunk: '#5a3a1b',
+}
+
+/** Trump Tower: cream marble, and everything else gold. */
+const LOBBY: Palette = {
+  ground: '#eadfc8',
+  groundSpeckle: '#d9c9a4',
+  wall: '#8f6b2c',
+  wallLight: '#e8bb2c',
+  wallDark: '#4d3a12',
+  rock: '#b08a5a',
+  rockLight: '#e8bb2c',
+  rockDark: '#5a3a1b',
+  water: '#c9e6f2',
+  waterLight: '#eaf6fb',
+  path: '#e8bb2c', // the front desk
+  pathEdge: '#a9821a',
+  leaf: '#8f2320', // the carpet stripe over the door
+  leafLight: '#e8bb2c',
+  leafDark: '#5a1210',
+  trunk: '#5a3a1b',
+}
+
+/** A Chinatown restaurant: red walls, gold trim, a fish tank where the fridge was. */
+const RESTAURANT: Palette = {
+  ground: '#c9b58a',
+  groundSpeckle: '#b39f74',
+  wall: '#7a1f1c',
+  wallLight: '#a33a34',
+  wallDark: '#3f0e0c',
+  rock: '#5a3a1b', // dark wood cabinets
+  rockLight: '#8a5a2b',
+  rockDark: '#2e1a0a',
+  water: '#7fc4d8', // the fish tank
+  waterLight: '#c9eef7',
+  path: '#e8bb2c', // the counter
+  pathEdge: '#a9821a',
+  leaf: '#e8bb2c', // gold over the door
+  leafLight: '#f6f3e7',
+  leafDark: '#a9821a',
+  trunk: '#5a3a1b',
+}
+
+/** A tenement roof: tar and gravel, a brick parapet round the edge. */
+const ROOF: Palette = {
+  ground: '#3b3d45',
+  groundSpeckle: '#4a4d57',
+  wall: '#8a4a3a',
+  wallLight: '#a86a58',
+  wallDark: '#4a2a20',
+  rock: '#7a7f88', // an air conditioner
+  rockLight: '#9aa0aa',
+  rockDark: '#44484f',
+  water: '#2b2d34',
+  waterLight: '#3a3d46',
+  path: '#5a5d66', // duckboards
+  pathEdge: '#3a3c44',
+  leaf: '#2f7a3c',
+  leafLight: '#49a95a',
+  leafDark: '#1f5c26',
+  trunk: '#5a3a1b',
+}
+
+/** Battery Park: a concrete promenade, an iron railing, and the harbour. */
+const HARBOUR: Palette = {
+  ground: '#b7b3a8',
+  groundSpeckle: '#a39f94',
+  wall: '#23242a',
+  wallLight: '#4a4c55',
+  wallDark: '#0f1013',
+  rock: '#a89f8f',
+  rockLight: '#cfc6b4',
+  rockDark: '#6c655a',
+  water: '#3a6fa8',
+  waterLight: '#5c8fc6',
+  path: '#8f8a80',
+  pathEdge: '#6e6a62',
+  leaf: '#2e7a3a',
+  leafLight: '#4aa958',
+  leafDark: '#1d5824',
+  trunk: '#5a3a1b',
+}
+
 export const CITY_PALETTES: Record<CityTheme, Palette> = {
   street: STREET,
   park: PARK,
   platform: PLATFORM,
   train: TRAIN,
   bodega: BODEGA,
+  museum: MUSEUM,
+  lobby: LOBBY,
+  restaurant: RESTAURANT,
+  roof: ROOF,
+  harbour: HARBOUR,
 }
 
 const at = (screen: Screen, col: number, row: number): string =>
@@ -166,7 +274,14 @@ export function drawCityTile(
     case 'train':
       return trainTile(ctx, char, x, y, col, row, p, frame, screen)
     case 'bodega':
+    case 'museum':
+    case 'lobby':
+    case 'restaurant':
       return bodegaTile(ctx, char, x, y, col, row, p, frame, screen)
+    case 'roof':
+      return roofTile(ctx, char, x, y, col, row, p, screen)
+    case 'harbour':
+      return parkTile(ctx, char, x, y, col, row, p, frame, line, screen)
     default:
       return
   }
@@ -227,6 +342,7 @@ function streetTile(
     case 'H':
       return shopfront(ctx, x, y, col, row, p, screen)
     case 'D':
+      return fireEscape(ctx, x, y, p)
     case 'C':
       return alley(ctx, x, y, p)
     case 'X':
@@ -654,6 +770,22 @@ function shopfront(
 }
 
 /** A gap between buildings, dark all the way back. */
+/** The foot of a fire escape: black iron rungs up the brick, and the bottom of a landing. */
+function fireEscape(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
+  ctx.fillStyle = p.wall
+  ctx.fillRect(x, y, TILE, TILE)
+  ctx.fillStyle = p.wallDark
+  ctx.fillRect(x, y + 15, TILE, 1)
+  ctx.fillStyle = '#12131a'
+  // The two rails, and a landing across the top.
+  ctx.fillRect(x + 4, y, 2, TILE)
+  ctx.fillRect(x + 10, y, 2, TILE)
+  ctx.fillRect(x + 1, y, 14, 2)
+  for (let r = 4; r < TILE; r += 3) ctx.fillRect(x + 6, y + r, 4, 1)
+  ctx.fillStyle = '#4a4c55'
+  ctx.fillRect(x + 2, y + 1, 12, 1)
+}
+
 function alley(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
   ctx.fillStyle = p.wallDark
   ctx.fillRect(x, y, TILE, TILE)
@@ -680,6 +812,92 @@ function boardedDoor(ctx: CanvasRenderingContext2D, x: number, y: number, p: Pal
   ctx.fillStyle = '#12131a'
   ctx.fillRect(x + 3, y + 3, 1, 1)
   ctx.fillRect(x + 12, y + 13, 1, 1)
+}
+
+// ======================================================================
+// The roof
+// ======================================================================
+
+function roofTile(
+  ctx: CanvasRenderingContext2D,
+  char: TileChar,
+  x: number,
+  y: number,
+  col: number,
+  row: number,
+  p: Palette,
+  screen: Screen,
+): void {
+  tar(ctx, x, y, col, row, p, screen)
+  switch (char) {
+    case '#':
+    case 'T':
+      return parapet(ctx, x, y, col, row, p, screen)
+    case 'R':
+      return airConditioner(ctx, x, y, p)
+    case 'S':
+      ctx.fillStyle = p.path
+      ctx.fillRect(x, y + 1, TILE, 14)
+      ctx.fillStyle = p.pathEdge
+      for (let r = 1; r < 15; r += 4) ctx.fillRect(x, y + r, TILE, 1)
+      return
+    case 'D':
+      return fireEscape(ctx, x, y, p)
+    case 'C':
+      return alley(ctx, x, y, p)
+    case '*':
+      // A vent pipe, with its cowl.
+      ctx.fillStyle = '#12131a'
+      ctx.fillRect(x + 6, y + 2, 4, 13)
+      ctx.fillRect(x + 4, y + 1, 8, 3)
+      ctx.fillStyle = p.rockLight
+      ctx.fillRect(x + 7, y + 5, 1, 9)
+      return
+    case 'X':
+      return boardedDoor(ctx, x, y, p)
+    default:
+      return
+  }
+}
+
+function tar(ctx: CanvasRenderingContext2D, x: number, y: number, col: number, row: number, p: Palette, screen: Screen): void {
+  ctx.fillStyle = p.ground
+  ctx.fillRect(x, y, TILE, TILE)
+  const h = tileHash(screen, col, row)
+  ctx.fillStyle = p.groundSpeckle
+  ctx.fillRect(x + (h % 13), y + ((h >> 4) % 13), 1, 1)
+  ctx.fillRect(x + ((h >> 8) % 14), y + ((h >> 12) % 14), 2, 1)
+  ctx.fillRect(x + ((h >> 3) % 15), y + ((h >> 9) % 15), 1, 1)
+}
+
+/** The wall round the roof: brick, with a stone cap on the course facing the tar. */
+function parapet(ctx: CanvasRenderingContext2D, x: number, y: number, col: number, row: number, p: Palette, screen: Screen): void {
+  ctx.fillStyle = p.wall
+  ctx.fillRect(x, y, TILE, TILE)
+  ctx.fillStyle = p.wallDark
+  for (let r = 3; r < TILE; r += 4) ctx.fillRect(x, y + r, TILE, 1)
+  ctx.fillStyle = p.wallLight
+  for (let r = 0; r < TILE; r += 4) ctx.fillRect(x + ((r / 4) % 2 === 0 ? 3 : 10), y + r, 5, 1)
+  const open = (c: number, r: number): boolean => {
+    const ch = at(screen, c, r)
+    return ch !== '#' && ch !== 'T'
+  }
+  ctx.fillStyle = '#9aa0aa'
+  if (open(col, row + 1)) ctx.fillRect(x, y + 13, TILE, 3)
+  if (open(col, row - 1)) ctx.fillRect(x, y, TILE, 3)
+  if (open(col - 1, row)) ctx.fillRect(x, y, 3, TILE)
+  if (open(col + 1, row)) ctx.fillRect(x + 13, y, 3, TILE)
+}
+
+function airConditioner(ctx: CanvasRenderingContext2D, x: number, y: number, p: Palette): void {
+  ctx.fillStyle = p.rockDark
+  ctx.fillRect(x + 1, y + 2, 14, 13)
+  ctx.fillStyle = p.rock
+  ctx.fillRect(x + 2, y + 3, 12, 11)
+  ctx.fillStyle = p.rockLight
+  ctx.fillRect(x + 3, y + 4, 10, 1)
+  ctx.fillStyle = p.rockDark
+  for (let r = 6; r < 13; r += 2) ctx.fillRect(x + 4, y + r, 8, 1)
 }
 
 // ======================================================================
@@ -730,6 +948,9 @@ function parkTile(
     case '^':
       pavers(ctx, x, y, col, row, p)
       return subwayStairs(ctx, x, y, frame)
+    case 'D':
+    case 'C':
+      return alley(ctx, x, y, { ...p, wallDark: p.rockDark })
     case 'H':
       return shopfront(ctx, x, y, col, row, STREET, screen)
     case 'D':

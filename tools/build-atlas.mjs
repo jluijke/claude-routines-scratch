@@ -387,7 +387,7 @@ const subwayClusterHtml = [
     </section>`,
   )
   .join('\n')
-const lairIds = ['nyc-trump-green', 'nyc-columbus-park', 'nyc-boardwalk', 'nyc-atlantic-terminal', 'nyc-union-square', 'nyc-coney-island', 'nyc-times-square']
+const lairIds = ['nyc-trump-green', 'nyc-fifth-ave-midtown', 'nyc-56th-street', 'nyc-trump-lobby', 'nyc-trump-penthouse', 'nyc-central-park', 'nyc-museum-steps', 'nyc-museum-hall', 'nyc-museum-dinosaurs', 'nyc-museum-birds', 'nyc-museum-vault', 'nyc-columbus-park', 'nyc-mott-street', 'nyc-restaurant', 'nyc-restaurant-kitchen', 'nyc-xi-backroom', 'nyc-bowling-green', 'nyc-battery-park', 'nyc-liberty-island', 'nyc-liberty-crown', 'nyc-rooftop-a', 'nyc-boardwalk', 'nyc-atlantic-terminal', 'nyc-union-square', 'nyc-coney-island', 'nyc-times-square']
 const lairClusterHtml = `<section class="cluster"><h3>Up the stairs, and out of the purple car</h3><div class="strip">${lairIds
   .map((id) => byId.get(id))
   .filter(Boolean)

@@ -141,8 +141,9 @@ describe('the stations', () => {
     for (const id of cells.keys()) expect(id.startsWith('nyc-sub-')).toBe(false)
     for (const id of ['nyc-union-square', 'nyc-trump-green', 'nyc-columbus-park', 'nyc-atlantic-terminal', 'nyc-boardwalk', 'nyc-coney-island']) {
       expect(cells.has(id)).toBe(false)
-      expect(screen(id).exits).toEqual({})
     }
+    // The green and the park open onto their districts now; the rest are still islands.
+    for (const id of ['nyc-union-square', 'nyc-atlantic-terminal', 'nyc-boardwalk', 'nyc-coney-island']) expect(screen(id).exits).toEqual({})
     expect(screen('nyc-union-square').treasure).toBeDefined()
     expect(screen('nyc-atlantic-terminal').treasure).toBeDefined()
   })
@@ -299,7 +300,7 @@ describe('Coney Island', () => {
     expect(guardians.map((p) => p.sprite).sort()).toEqual(['guardianDark', 'guardianGold', 'guardianGrey'])
     for (const g of guardians) {
       expect(g.pink).toBe(true)
-      expect(g.after?.sort()).toEqual(['nyc-boardwalk', 'nyc-columbus-park', 'nyc-trump-green'])
+      expect(g.after?.sort()).toEqual(['nyc-boardwalk', 'nyc-trump-penthouse', 'nyc-xi-backroom'])
       expect(g.talk?.length ?? 0).toBeGreaterThan(20)
     }
   })

@@ -26,6 +26,10 @@ export type SfxName =
   | 'gunshot'
   | 'reload'
   | 'zap'
+  | 'roar'
+  | 'ding'
+  | 'foghorn'
+  | 'screech'
 
 interface Tone {
   kind?: 'tone'
@@ -85,6 +89,27 @@ const PATCHES: Record<SfxName, Sound[]> = {
     { freq: 330, at: 0.04, duration: 0.04, type: 'sawtooth', slideTo: 200, gain: 0.1 },
     { freq: 240, at: 0.08, duration: 0.04, type: 'sawtooth', slideTo: 360, gain: 0.1 },
     { freq: 360, at: 0.12, duration: 0.06, type: 'sawtooth', slideTo: 120, gain: 0.08 },
+  ],
+  // The T-Rex waking: a low sawtooth sliding down, with a rasp of noise.
+  roar: [
+    { freq: 160, at: 0, duration: 0.5, type: 'sawtooth', slideTo: 55, gain: 0.22 },
+    { freq: 90, at: 0.1, duration: 0.5, type: 'square', slideTo: 40, gain: 0.12 },
+    { kind: 'noise', at: 0, duration: 0.45, from: 900, to: 200, gain: 0.12, q: 0.8 },
+  ],
+  // The lift arriving: two soft bell notes.
+  ding: [
+    { freq: 1568, at: 0, duration: 0.12, type: 'triangle', gain: 0.12 },
+    { freq: 1318, at: 0.14, duration: 0.2, type: 'triangle', gain: 0.12 },
+  ],
+  // The ferry pulling out.
+  foghorn: [
+    { freq: 98, at: 0, duration: 0.7, type: 'square', gain: 0.16 },
+    { freq: 147, at: 0, duration: 0.7, type: 'sawtooth', gain: 0.06 },
+  ],
+  // The falcon leaving its perch.
+  screech: [
+    { kind: 'noise', at: 0, duration: 0.22, from: 6000, to: 2500, gain: 0.12, q: 6 },
+    { freq: 2400, at: 0, duration: 0.18, type: 'sawtooth', slideTo: 1500, gain: 0.05 },
   ],
   // Click-clack: two dry clicks, the second a little lower.
   reload: [

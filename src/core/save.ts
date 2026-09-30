@@ -99,6 +99,8 @@ export interface SaveData {
      * spending a bomb twice on the same rock.
      */
     brokenTiles: string[]
+    /** She is off the island. The city's quest is done. */
+    princessSaved?: boolean
   }
   spelling: {
     completedExercises: number[]

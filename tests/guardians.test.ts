@@ -16,15 +16,40 @@ import { flavourFor } from '../src/game/flavour'
 describe('the guardians', () => {
   const lairs = SCREENS.filter((s) => s.level === 3 && (s.spawns ?? []).some((sp) => isBossKind(sp.kind)))
 
-  it('are three, each in a lair up the stairs from a station at the end of the line', () => {
-    expect(lairs.map((s) => s.id).sort()).toEqual(['nyc-boardwalk', 'nyc-columbus-park', 'nyc-trump-green'])
-    for (const lair of lairs) {
-      expect(lair.exits).toEqual({})
-      const back = lair.portals?.find((p) => p.to.startsWith('nyc-sub-'))
-      expect(back, lair.id).toBeDefined()
-      const mezz = screenById(back?.to as string)
-      expect(mezz?.portals?.some((p) => p.to === lair.id)).toBe(true)
-    }
+  it('are three: the boardwalk, the penthouse, and the back room of a restaurant', () => {
+    expect(lairs.map((s) => s.id).sort()).toEqual(['nyc-boardwalk', 'nyc-trump-penthouse', 'nyc-xi-backroom'])
+    for (const lair of lairs) expect(lair.exits).toEqual({})
+    // Putin: up the stairs from Brighton Beach, and the stairs are the way out.
+    const boardwalk = screenById('nyc-boardwalk')
+    const back = boardwalk?.portals?.find((p) => p.to.startsWith('nyc-sub-'))
+    expect(back).toBeDefined()
+    expect(screenById(back?.to as string)?.portals?.some((p) => p.to === 'nyc-boardwalk')).toBe(true)
+  })
+
+  it('Trump is at the top of the tower, and the only way up is the lift from the lobby', () => {
+    const lobby = screenById('nyc-trump-lobby')
+    const up = lobby?.portals?.find((p) => p.to === 'nyc-trump-penthouse')
+    expect(up?.lift).toBe('up')
+    const down = screenById('nyc-trump-penthouse')?.portals?.find((p) => p.to === 'nyc-trump-lobby')
+    expect(down?.lift).toBe('down')
+    // The lobby is entered from the side street, not from Fifth Avenue: the
+    // front has a doorman standing in it and no door.
+    expect(screenById('nyc-56th-street')?.portals?.some((p) => p.to === 'nyc-trump-lobby')).toBe(true)
+    expect(screenById('nyc-fifth-ave-midtown')?.portals?.some((p) => p.to === 'nyc-trump-lobby')).toBe(false)
+    expect(screenById('nyc-fifth-ave-midtown')?.props?.some((p) => p.solid && /service door/i.test(p.talk ?? ''))).toBe(true)
+  })
+
+  it('Xi is behind a cabinet on a cracked wall in the kitchen, which a firecracker shifts', () => {
+    const kitchen = screenById('nyc-restaurant-kitchen')
+    const door = kitchen?.portals?.find((p) => p.to === 'nyc-xi-backroom')
+    expect(door).toBeDefined()
+    const char = kitchen?.rows[door?.row as number]?.[door?.col as number]
+    expect(char).toBe('X')
+    expect(kitchen?.props?.some((p) => p.sprite === 'cabinet' && p.col === door?.col && p.row === door?.row)).toBe(true)
+    // The kitchen is off the dining room, which is off Mott Street, which is off the park by Canal Street.
+    expect(screenById('nyc-restaurant')?.portals?.some((p) => p.to === 'nyc-restaurant-kitchen')).toBe(true)
+    expect(screenById('nyc-mott-street')?.portals?.some((p) => p.to === 'nyc-restaurant')).toBe(true)
+    expect(screenById('nyc-columbus-park')?.exits.right).toBe('nyc-mott-street')
   })
 
   it('are Trump, Putin and Xi, in the first three boss slots', () => {

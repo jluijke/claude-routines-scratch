@@ -113,23 +113,45 @@ export const TO_THE_PRESENT: Omit<StoryOptions, 'onContinue'> = {
   onwardLabel: 'Step out into the square →',
 }
 
+/** The last of the three, loved. He has something in his pocket. */
 export const CITY_SAVED: Omit<StoryOptions, 'onContinue'> = {
   kicker: 'The last of the three has been loved',
-  title: 'The city is safe',
+  title: 'A ticket, folded small',
   paragraphs: [
-    'He hugs you. He actually hugs you. Then he walks off down the boardwalk, pink ' +
-      'to the ears, and does not look back. Somewhere under the city something that ' +
-      'had been humming for a very long time stops.',
+    'He hugs you. He actually hugs you. Then he goes pink to the ears, digs in his ' +
+      'pocket, and holds something out: a ferry ticket, folded small. "She is on the ' +
+      'island," he says. "In the crown. We put her there. I am so sorry."',
+    'The island. Out in the harbour, at the bottom of the city, past Chinatown and ' +
+      'the park with the binoculars: the green lady with the torch. You have seen her ' +
+      'from the water\'s edge. You did not know anyone was up there.',
     'The trains keep running. The taxis keep honking. Nobody in New York notices ' +
       'anything at all, which is the way New York likes it. Your friend sits down at ' +
       'your feet and looks up at you as if to say: well, that was easy.',
+    'The three of them have gone to Coney Island, at the very end of the line, to ' +
+      'ride the Wonder Wheel and feel bad. The ferry leaves from Battery Park. The man ' +
+      'in the booth will want to see the ticket.',
+  ],
+  onwardLabel: 'To the ferry →',
+}
+
+/** And the end of it: the crown, and her in it. */
+export const PRINCESS_SAVED: Omit<StoryOptions, 'onContinue'> = {
+  kicker: 'Two hundred and sixty steps up',
+  title: 'The princess is safe',
+  paragraphs: [
+    'She is sitting in the crown with her knees up, looking out at the city, and ' +
+      'when she sees you she laughs. "You took your time," she says. "I have been ' +
+      'waving at that pier for a week." Then she hugs you, which is the second hug ' +
+      'today, and the better one.',
+    'Down all the steps. Out through the door in the base. The ferry man does not ' +
+      'ask for a ticket this time; he just nods, and looks at the water, and the boat ' +
+      'pulls out with the two of you on it, and the island gets small behind you.',
     'A thousand years behind you, a village is sleeping. A thousand years ahead, a ' +
       'ship is sailing between the stars. And right now, in the middle, eight million ' +
       'people are getting on with it. All three because of someone who could spell.',
     'The ring hums, ready to take you anywhere you like. Or stay a while. There is a ' +
-      'whole city to walk, and nothing left in it that wants to hurt you. The three of ' +
-      'them have gone to Coney Island, at the very end of the line. They are riding the ' +
-      'Wonder Wheel, and they would like to say sorry.',
+      'whole city to walk, a museum with a dinosaur in it, and a roof with a view of ' +
+      'the park. Nothing left in it wants to hurt you. Except the rats. It is New York.',
   ],
   onwardLabel: 'Back to the city →',
 }

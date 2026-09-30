@@ -40,6 +40,8 @@ export const PALETTE: Record<string, string> = {
   c: '#57d2c6', // magic / water sparkle
   x: '#d9d6c4', // bone
   z: '#2a2f3d', // shadow
+  V: '#79c2a5', // verdigris — the statue
+  U: '#4d8c75', // verdigris, in shadow
 }
 
 export type SpriteRows = readonly string[]
@@ -2395,6 +2397,412 @@ const RAT_SKELETON = S([
   '................',
 ])
 
+
+// ======================================================================
+// The museum, the tower, the harbour and the roof
+// ======================================================================
+
+/** Doubles a sprite, pixel for pixel. The big things are drawn small and blown up. */
+function scale2(sprite: Sprite): Sprite {
+  const rows = sprite.rows.flatMap((row) => {
+    const wide = row.split('').map((c) => c + c).join('')
+    return [wide, wide]
+  })
+  return { width: sprite.width * 2, height: sprite.height * 2, rows }
+}
+
+/**
+ * The T-Rex. Drawn at half size and doubled, so it is chunky, which is how a
+ * museum's T-Rex should be. Facing left, into the room; the two frames swap
+ * the legs.
+ */
+const TREX_SMALL_A = defineSprite(24, 24, [
+  '........................',
+  '.......kkkkkkkk.........',
+  '......keeeeeeeek........',
+  '.....keeEwkeeeeek.......',
+  '....keeeeeeeeeeek.......',
+  '...keeeeeeeeeeeeek......',
+  '...kwkwkwkeeeeeeek......',
+  '...kkkkkkkeeeeeeeek.....',
+  '........keeeeeeeeeek....',
+  '........keeeEEeeeeeek...',
+  '.........keEEEeeeeeeek..',
+  '........kkeeeeEeeeeeeek.',
+  '.......kEEkeeeeeeEEeeeek',
+  '......kEEk.keeeeeeEEeeek',
+  '......kkk..keeeeeeeeeekk',
+  '............keeekeeeek..',
+  '............keeekeeeek..',
+  '............kEEkkEEEk...',
+  '............kEEk.kEEk...',
+  '............kEEk.kEEk...',
+  '...........kEEEk.kEEEk..',
+  '...........kkkkk.kkkkk..',
+  '........................',
+  '........................',
+])
+
+const TREX_SMALL_B = defineSprite(24, 24, [
+  '........................',
+  '.......kkkkkkkk.........',
+  '......keeeeeeeek........',
+  '.....keeEwkeeeeek.......',
+  '....keeeeeeeeeeek.......',
+  '...keeeeeeeeeeeeek......',
+  '...kwkwkwkeeeeeeek......',
+  '...kkkkkkkeeeeeeeek.....',
+  '........keeeeeeeeeek....',
+  '........keeeEEeeeeeek...',
+  '.........keEEEeeeeeeek..',
+  '........kkeeeeEeeeeeeek.',
+  '.......kEEkeeeeeeEEeeeek',
+  '......kEEk.keeeeeeEEeeek',
+  '......kkk..keeeeeeeeeekk',
+  '............keeekeeeek..',
+  '............keeekeeeek..',
+  '...........kEEEk.kEEk...',
+  '..........kEEEk..kEEk...',
+  '..........kEEk...kEEEk..',
+  '.........kEEEk....kEEEk.',
+  '.........kkkkk....kkkkk.',
+  '........................',
+  '........................',
+])
+
+const TREX_A = scale2(TREX_SMALL_A)
+const TREX_B = scale2(TREX_SMALL_B)
+
+/** The falcon, wings back, coming down and to the left. Doubled, like the T-Rex. */
+const FALCON_SMALL_A = defineSprite(16, 16, [
+  '..........kkk...',
+  '.........kdddk..',
+  '........kddwdk..',
+  '.......kddddk...',
+  '......kddaddk...',
+  '.....kddaaddkkk.',
+  '....kddaaaddddk.',
+  '...kddaaaadddk..',
+  '..kddaaaaaddk...',
+  '.kdddaaaaddk....',
+  'kdddkkaaddk.....',
+  'kddk.kaadk......',
+  'kdk..kadk.......',
+  '.k...kkk........',
+  '................',
+  '................',
+])
+
+const FALCON_SMALL_B = defineSprite(16, 16, [
+  '..........kkk...',
+  '.........kdddk..',
+  '........kddwdk..',
+  '.......kddddk...',
+  '......kddaddk...',
+  '.....kddaaddk...',
+  '..kkkddaaadddkk.',
+  '.kdddddaaaaddddk',
+  'kdddaaaaaaaddddk',
+  '.kkkddaaaadddkk.',
+  '.....kaaaddk....',
+  '.....kaaddk.....',
+  '.....kaddk......',
+  '.....kkkk.......',
+  '................',
+  '................',
+])
+
+const FALCON_A = scale2(FALCON_SMALL_A)
+const FALCON_B = scale2(FALCON_SMALL_B)
+
+/**
+ * The squirrel, sitting up with its tail curled over its back. The same
+ * brown as the rat, the same size, and from six floors up the tail is the
+ * only difference. That is the game.
+ */
+const SQUIRREL_A = S([
+  '................',
+  '........kkk.....',
+  '.......knnnk....',
+  '......knvnnnk...',
+  '......knnnnnk...',
+  '...kk.knvnnnk...',
+  '..knnkkknnnk....',
+  '.knnnnnnnnnk....',
+  '.knwnnnnnnk.....',
+  'kwwnnkwnnnk.....',
+  'kwnnnkwnnnk.....',
+  '.knnnkkwnnk.....',
+  '..kkknnwnnk.....',
+  '....kiikkiik....',
+  '....kkk..kkk....',
+  '................',
+])
+
+const SQUIRREL_B = S([
+  '................',
+  '................',
+  '........kkk.....',
+  '.......knnnk....',
+  '......knvnnnk...',
+  '...kk.knnnnnk...',
+  '..knnkknvnnnk...',
+  '.knnnnnknnnk....',
+  '.knwnnnnnnnk....',
+  'kwwnnkwnnnk.....',
+  'kwnnnkwnnnk.....',
+  '.knnnkkwnnk.....',
+  '..kkknnwnnk.....',
+  '....kiikkiik....',
+  '....kkk..kkk....',
+  '................',
+])
+
+/** The statue, far out on the water: a green figure on a pale pedestal. */
+const LIBERTY_FAR = defineSprite(16, 32, [
+  '.......y........',
+  '......kyk.......',
+  '......kVk.......',
+  '......kVk.......',
+  '....kkkVkkk.....',
+  '...kVUVVVUVk....',
+  '...kVVVVVVVk....',
+  '....kVVVVVk.....',
+  '....kVVVVVk.....',
+  '....kVVUVVk.....',
+  '....kVVVVVk.....',
+  '....kVVVVVk.....',
+  '....kVUVVVk.....',
+  '....kVVVVVk.....',
+  '...kVVVVVVVk....',
+  '...kVVUVVVVk....',
+  '..kVVVVVVVVVk...',
+  '..kkkkkkkkkkk...',
+  '..kmmmmmmmmmk...',
+  '..kmMmmmmmMmk...',
+  '.kmmmmmmmmmmmk..',
+  '.kmmmmmmmmmmmk..',
+  '.kMMmmmmmmmMMk..',
+  '.kmmmmmmmmmmmk..',
+  'kmmmmmmmmmmmmmk.',
+  'kmmMmmmmmmmMmmk.',
+  'kmmmmmmmmmmmmmk.',
+  'kMMMMMMMMMMMMMk.',
+  'kkkkkkkkkkkkkkk.',
+  '................',
+  '................',
+  '................',
+])
+
+/**
+ * The statue from the island: the crown, the face, the torch held up, the
+ * tablet, the robe down to the pedestal. Drawn small and doubled.
+ */
+const LIBERTY_NEAR_SMALL = defineSprite(24, 32, [
+  '.........yy.............',
+  '........kyyk............',
+  '........kook............',
+  '.........kk.............',
+  '.........kVk............',
+  '.........kVk............',
+  '....k.k..kVk.k.k........',
+  '....kVkVkkVkkVkVk.......',
+  '.....kVVVVVVVVVk........',
+  '.....kVVUUUUUVVk........',
+  '.....kVUwUUUwUVk........',
+  '.....kVUUUUUUUVk........',
+  '.....kVUUUkUUUVk........',
+  '.....kVVUUUUUVVk........',
+  '....kVVVVVVVVVVVk.......',
+  '...kVVVVVVVVVVVVVk......',
+  '..kVVVVVVVVVVVVVVVk.....',
+  '..kVVVVVVVVVVVVkmmk.....',
+  '.kVVVVVUVVVVVVVkmmk.....',
+  '.kVVVVVVVVVVVVVkmmk.....',
+  '.kVVVUVVVVVVUVVkkkk.....',
+  '.kVVVVVVVVVVVVVVVVk.....',
+  '.kVVVVUVVVVVVVVVVVk.....',
+  'kVVVVVVVVVVUVVVVVVVk....',
+  'kVVVUVVVVVVVVVVVVVVk....',
+  'kkkkkkkkkkkkkkkkkkkk....',
+  'kmmmmmmmmmmmmmmmmmmk....',
+  'kmMmmmmmmmDDmmmmmmMk....',
+  'kmmmmmmmmmDDmmmmmmmk....',
+  'kMMMMMMMMMDDMMMMMMMk....',
+  'kkkkkkkkkkkkkkkkkkkk....',
+  '........................',
+])
+
+const LIBERTY_NEAR = scale2(LIBERTY_NEAR_SMALL)
+
+/** The princess: gold crown, dark hair, a pink dress, and waving. */
+const PRINCESS = S([
+  '......y.y.y.....',
+  '.....kyyyyyk....',
+  '....khhhhhhhk...',
+  '....khsssssshk..',
+  '....khskssksk...',
+  '....khssssssk...',
+  '.....kssoosk....',
+  '......kssssk....',
+  '...kk.kiiiik.k..',
+  '..ksskiIiiIiksk.',
+  '..kskkiiiiiikkk.',
+  '..kk.kiIiiiIk...',
+  '.....kiiiiiiik..',
+  '....kiiIiiiIiik.',
+  '....kkkkkkkkkkk.',
+  '.....kk....kk...',
+])
+
+/** Coin-op binoculars on a post: the kind on every pier, a quarter a look. */
+const BINOCULARS = S([
+  '................',
+  '..kkkkk.kkkkk...',
+  '.kMMMMMkMMMMMk..',
+  '.kMLLLMkMLLLMk..',
+  '.kMLwLMkMLwLMk..',
+  '.kMLLLMkMLLLMk..',
+  '.kMMMMMkMMMMMk..',
+  '..kkkkkMkkkkk...',
+  '.....kMMMk......',
+  '......kMk.......',
+  '......kMk.......',
+  '......kMk.......',
+  '......kMk.......',
+  '.....kMMMk......',
+  '....kMMMMMk.....',
+  '....kkkkkkk.....',
+])
+
+/** The ferry: orange, two decks, and it never stops moving. */
+const FERRY = defineSprite(48, 24, [
+  '................................................',
+  '..............kkkkkkkkkkkkkkkkkkk...............',
+  '.............kwwwwwwwwwwwwwwwwwwwk..............',
+  '.............kwBBwBBwBBwBBwBBwBBwk..............',
+  '.............kwwwwwwwwwwwwwwwwwwwk..............',
+  '........kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk........',
+  '.......kwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwk.......',
+  '.......kwBBwBBwBBwBBwBBwBBwBBwBBwBBwBBwwk.......',
+  '.......kwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwk.......',
+  '....kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk....',
+  '...koooooooooooooooooooooooooooooooooooooook...',
+  '..koooooooooooooooooooooooooooooooooooooooook..',
+  '..koooooooooooooooooooooooooooooooooooooooook..',
+  '.kooooooooooooooooooooooooooooooooooooooooooook.',
+  '.kooooooooooooooooooooooooooooooooooooooooooook.',
+  '.kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk.',
+  '..kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMk..',
+  '...kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk...',
+  '................................................',
+  '................................................',
+  '................................................',
+  '................................................',
+  '................................................',
+  '................................................',
+])
+
+/** The lift: brass doors, and the floor arrow lit above them. */
+const LIFT_DOOR = S([
+  '.kkkkkkkkkkkkkk.',
+  '.kMMMMrMMMMMMMk.',
+  '.kkkkkkkkkkkkkk.',
+  '.kyyyyyykyyyyyyk',
+  '.kyYyyyykyyyyYyk',
+  '.kyyyyyykyyyyyyk',
+  '.kyyyyyykyyyyyyk',
+  '.kyyyYyykyyYyyyk',
+  '.kyyyyyykyyyyyyk',
+  '.kyyyyyykyyyyyyk',
+  '.kyYyyyykyyyyYyk',
+  '.kyyyyyykyyyyyyk',
+  '.kyyyyyykyyyyyyk',
+  '.kYYYYYYkYYYYYYk',
+  '.kkkkkkkkkkkkkkk',
+  '................',
+])
+
+/** The cabinet in the kitchen. Very heavy. Do not ask about the cabinet. */
+const CABINET = S([
+  '.kkkkkkkkkkkkkk.',
+  '.kddddddddddddk.',
+  '.kdnnnnnnnnnndk.',
+  '.kdnvnnnnnnvndk.',
+  '.kdnnnnnnnnnndk.',
+  '.kdnnnnnnnnnndk.',
+  '.kddddddddddddk.',
+  '.kdnnnnnkkknndk.',
+  '.kdnvnnnkyknndk.',
+  '.kdnnnnnkkknndk.',
+  '.kdnnnnnnnnnndk.',
+  '.kdnnnnnnnnnndk.',
+  '.kdnvnnnnnnvndk.',
+  '.kddddddddddddk.',
+  '.kkkkkkkkkkkkkk.',
+  '.kk..........kk.',
+])
+
+/** A tripod on the parapet, where somebody has been lying up. The rifle fits it. */
+const TRIPOD = S([
+  '................',
+  '................',
+  '................',
+  '.......kk.......',
+  '......kMMk......',
+  '......kMMk......',
+  '.....kMkkMk.....',
+  '.....kMk.kMk....',
+  '....kMk..kMk....',
+  '....kMk...kMk...',
+  '...kMk....kMk...',
+  '...kMk.....kMk..',
+  '..kMk......kMk..',
+  '..kMk.......kMk.',
+  '.kkk........kkk.',
+  '................',
+])
+
+/** The ferry ticket: orange card, a punch hole, the line. */
+const TICKET_ICON = S([
+  '................',
+  '................',
+  '..kkkkkkkkkkkk..',
+  '.koooooooooooook',
+  '.kowwwwwwwwwwook',
+  '.kowkkkwwkkkwook',
+  '.kowwwwwwwwwwook',
+  '.kowkkkkkkkkwook',
+  '.kowwwwwwwwwwook',
+  '.koooooooooooook',
+  '.kookoooooooooo.',
+  '.koooooooooooook',
+  '..kkkkkkkkkkkk..',
+  '................',
+  '................',
+  '................',
+])
+
+/** The sniper rifle on the roof: long, black, and the scope on top. */
+const SNIPER_ICON = S([
+  '................',
+  '..........kkkk..',
+  '.........kMMMMk.',
+  '.........kkkkkk.',
+  '..............k.',
+  '............kkk.',
+  '...........kMk..',
+  '..........kMk...',
+  '.........kMk....',
+  '........kMk.....',
+  '.......kMkk.....',
+  '......kMkkk.....',
+  '.....knnk.......',
+  '....knnk........',
+  '...kkkk.........',
+  '................',
+])
+
 /** The pistol and the rifle on the hardware store's shelf. */
 const PISTOL_ICON = S([
   '................',
@@ -3130,6 +3538,22 @@ export const SPRITES = {
   guardianGold: GUARDIAN_GOLD,
   guardianGrey: GUARDIAN_GREY,
   guardianDark: GUARDIAN_DARK,
+  trexA: TREX_A,
+  trexB: TREX_B,
+  falconA: FALCON_A,
+  falconB: FALCON_B,
+  squirrelA: SQUIRREL_A,
+  squirrelB: SQUIRREL_B,
+  libertyFar: LIBERTY_FAR,
+  libertyNear: LIBERTY_NEAR,
+  princess: PRINCESS,
+  binoculars: BINOCULARS,
+  ferry: FERRY,
+  liftDoor: LIFT_DOOR,
+  cabinet: CABINET,
+  tripod: TRIPOD,
+  ticketIcon: TICKET_ICON,
+  sniperIcon: SNIPER_ICON,
   loveBomb: LOVE_BOMB,
   heartBig: HEART_BIG,
   heartSmall: HEART_SMALL,

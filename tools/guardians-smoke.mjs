@@ -65,7 +65,7 @@ let s = await world()
 check('the rats on the street are rats', s.enemies > 0)
 
 // ------------------------------------------------------------ Xi
-await page.evaluate(() => { window.zsq.state.inventory.woodenSword = 1; window.zsq.world.equipBest(); window.zsq.world.teleport('nyc-columbus-park', 7, 6) })
+await page.evaluate(() => { window.zsq.state.inventory.woodenSword = 1; window.zsq.world.equipBest(); window.zsq.world.teleport('nyc-xi-backroom', 7, 6) })
 await wait(600)
 s = await world()
 check('Xi is in Columbus Park', s.guardians?.length === 1 && s.guardians[0].kind === 'boss3')
@@ -73,7 +73,7 @@ check('and he takes twenty', s.guardians?.[0]?.hp === 20)
 await shot('xi')
 // A knife does nothing. Stand under him and swing up.
 await page.evaluate(() => { window.zsq.world.debugClearEnemies(); window.zsq.world.debugSpawn('boss3', 7, 3) })
-await page.evaluate(() => window.zsq.world.teleport('nyc-columbus-park', 7, 6))
+await page.evaluate(() => window.zsq.world.teleport('nyc-xi-backroom', 7, 6))
 await wait(600)
 await walk('ArrowUp', 60)
 for (let i = 0; i < 6; i++) { await page.keyboard.press('z'); await wait(300) }
@@ -82,7 +82,7 @@ check('a knife does nothing to him', s.guardians?.[0]?.hp === 20)
 // Love bombs do. With the hoodie on he cannot see the child, so he drifts
 // to the middle of the park and stays there; the child stands under him,
 // faces up, and throws until he turns.
-await page.evaluate(() => { window.zsq.state.inventory.loveBomb = 40; window.zsq.state.player.equippedTool = 'loveBomb'; window.zsq.world.teleport('nyc-columbus-park', 7, 8) })
+await page.evaluate(() => { window.zsq.state.inventory.loveBomb = 40; window.zsq.state.player.equippedTool = 'loveBomb'; window.zsq.world.teleport('nyc-xi-backroom', 7, 8) })
 await wait(900)
 await walk('ArrowUp', 40)
 await wait(100)
@@ -109,7 +109,7 @@ check('and says he is loved', (await page.locator('.victory-panel').textContent(
 await shot('victory')
 await clickIf(/onward|finish/i)
 await wait(300)
-check('and the lair is remembered', (await page.evaluate(() => window.zsq.state.world.defeatedBosses)).includes('nyc-columbus-park'))
+check('and the lair is remembered', (await page.evaluate(() => window.zsq.state.world.defeatedBosses)).includes('nyc-xi-backroom'))
 check('and the HUD counts dollars', (await world()).level === 3)
 
 // ------------------------------------------------------------ the line

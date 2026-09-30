@@ -64,6 +64,8 @@ const CREATURE_SPRITES: Record<EnemyKind, [SpriteName, SpriteName]> = {
   chaser: ['ratA', 'ratB'],
   flyer: ['pigeonA', 'pigeonB'],
   caster: ['wraithA', 'wraithB'],
+  trex: ['trexA', 'trexB'],
+  falcon: ['falconA', 'falconB'],
   boss1: ['guardianGold', 'guardianGold'],
   boss2: ['guardianGrey', 'guardianGrey'],
   boss3: ['guardianDark', 'guardianDark'],
@@ -85,6 +87,15 @@ export const RAT_NOTICE = 5 * TILE
 /** How long a rat runs off for after it has bitten him. */
 export const RAT_RETREAT = 75
 
+/**
+ * The falcon's dive: from the top right corner to the bottom left, a shade
+ * steeper than the diagonal so it crosses the room rather than the corner.
+ */
+const FALCON_DX = 0.68
+const FALCON_DY = 0.73
+export const FALCON_PERCH_X = 13 * TILE
+export const FALCON_PERCH_Y = TILE
+
 /** Who the three guardians are, by the boss slot they sit in. */
 export const GUARDIAN_NAMES: Partial<Record<EnemyKind, string>> = {
   boss1: 'Trump',
@@ -103,6 +114,8 @@ const ROBOT_SPRITES: Record<EnemyKind, [SpriteName, SpriteName]> = {
   chaser: ['crusherA', 'crusherB'],
   flyer: ['discA', 'discB'],
   caster: ['glitchA', 'glitchB'],
+  trex: ['crusherA', 'crusherB'],
+  falcon: ['discA', 'discB'],
   boss1: ['mechGreyA', 'mechGreyB'],
   boss2: ['mechRedA', 'mechRedB'],
   boss3: ['mechIceA', 'mechIceB'],
@@ -261,6 +274,19 @@ const ARCHETYPES: Record<EnemyKind, Archetype> = {
     spriteA: 'casterA', spriteB: 'casterB', fireRate: 165, rupeeValue: 4,
     shootsThroughWalls: true,
   },
+  // The museum's two. The T-Rex is a chaser the size of a guardian: not a
+  // boss, no fanfare, just something to run from and, with enough in hand,
+  // something to bring down. The falcon is never caught; it comes across the
+  // room corner to corner, fast, and goes back to its perch.
+  trex: {
+    hp: 30, speed: 44, damage: 2, size: 30,
+    spriteA: 'trexA', spriteB: 'trexB', fireRate: 0, rupeeValue: 30,
+  },
+  falcon: {
+    hp: 6, speed: 210, damage: 2, size: 14,
+    spriteA: 'falconA', spriteB: 'falconB', fireRate: 0, rupeeValue: 5,
+    ignoresWalls: true,
+  },
   boss1: {
     hp: 18, speed: 30, damage: 2, size: 30,
     spriteA: 'bossA', spriteB: 'bossA', fireRate: 90, rupeeValue: 25, boss: true,
@@ -291,6 +317,10 @@ export class Enemy {
   stunned = 0
   /** Frames it buzzes after the taser: drawn shaking, with sparks. */
   shocked = 0
+  /** The T-Rex, stopped mid-stride to stamp. */
+  private stompTimer = 0
+  /** The falcon, sitting on its perch between dives. */
+  private perchTimer = 40
   /** Frames it runs away from him for, after a bite. */
   private retreatTimer = 0
   private cooldown: number
@@ -450,6 +480,11 @@ export class Enemy {
   }
 
   /** One of the city's three: beaten only with love. */
+  /** The falcon on its perch, between dives. Drawn sitting rather than diving. */
+  get perched(): boolean {
+    return this.kind === 'falcon' && this.perchTimer > 0
+  }
+
   get isGuardian(): boolean {
     return this.look === 'creature' && this.def.boss === true
   }
@@ -591,6 +626,38 @@ export class Enemy {
           this.dirY /= length
         }
         this.step(step, this.dirX, this.dirY, isBlocked)
+        break
+      }
+      case 'trex': {
+        // Straight at him, with a stomp every few steps: it stops dead for a
+        // moment, which is what makes it possible to get round.
+        this.turnTimer -= 1
+        if (this.turnTimer <= 0) {
+          this.turnTimer = this.rng.int(70, 110)
+          this.stompTimer = 14
+        }
+        if (this.stompTimer > 0) {
+          this.stompTimer -= 1
+          break
+        }
+        this.step(step, toGoalX / distance, toGoalY / distance, isBlocked)
+        break
+      }
+      case 'falcon': {
+        // Perched in the top right corner; then a dive, corner to corner,
+        // and it is back on the perch before he has turned round.
+        if (this.perchTimer > 0) {
+          this.perchTimer -= 1
+          break
+        }
+        const speed = this.def.speed * step
+        this.x -= speed * FALCON_DX
+        this.y += speed * FALCON_DY
+        if (this.x < -this.size - 8 || this.y > 11 * TILE + 8) {
+          this.x = FALCON_PERCH_X
+          this.y = FALCON_PERCH_Y
+          this.perchTimer = this.rng.int(50, 110)
+        }
         break
       }
       case 'caster': {

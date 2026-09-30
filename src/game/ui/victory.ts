@@ -30,7 +30,7 @@ export function showBossVictory(root: HTMLElement, options: VictoryOptions): () 
   const guardian = world === 2 ? 'mech' : world === 3 ? 'guardian' : 'dungeon boss'
 
   const onward = button(
-    allDone ? (world === 2 ? 'Finish the quest →' : world === 3 ? 'Finish the quest →' : 'On to the next world →') : 'Onward →',
+    allDone ? (world === 2 ? 'Finish the quest →' : world === 3 ? 'What is in his pocket? →' : 'On to the next world →') : 'Onward →',
     () => {
       close()
       options.onContinue()
@@ -58,7 +58,7 @@ export function showBossVictory(root: HTMLElement, options: VictoryOptions): () 
 
   const panel = el('div', { class: 'overlay overlay-victory' }, [
     el('section', { class: `panel-game victory-panel${allDone ? ' final' : ''}` }, [
-      el('p', { class: 'victory-banner' }, [allDone ? (world === 2 ? 'The future is saved' : world === 3 ? 'The city is saved' : 'Level 1 complete') : 'Victory']),
+      el('p', { class: 'victory-banner' }, [allDone ? (world === 2 ? 'The future is saved' : world === 3 ? 'The last of the three' : 'Level 1 complete') : 'Victory']),
       el('h2', { class: 'victory-title' }, [
         world === 2 ? `Rock ${level} Cleared` : world === 3 ? `Guardian ${level} Loved` : `Quest Level ${level} Completed`,
       ]),
@@ -69,7 +69,7 @@ export function showBossVictory(root: HTMLElement, options: VictoryOptions): () 
           ? world === 2
             ? `You have defeated all ${total} mechs. The ship is yours, and the future is safe!`
             : world === 3
-              ? `You have loved all ${total} of them into being nice. The city is yours, and so is the present!`
+              ? `You have loved all ${total} of them into being nice. And the last one has something in his pocket for you.`
               : `You have defeated all ${total} dungeon bosses. The way to the next world is open!`
           : world === 3
             ? `You loved the ${guardian} into being nice. Love all ${total} to save the city — ${left} to go!`

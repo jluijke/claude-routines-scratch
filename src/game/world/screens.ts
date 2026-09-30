@@ -11,7 +11,7 @@ import { roughen } from './scenery'
 import { AUTHORED_FUTURE } from './screens2'
 import { AUTHORED_CITY } from './screens3'
 
-export type EnemyKind = 'shooter' | 'chaser' | 'flyer' | 'caster' | 'boss1' | 'boss2' | 'boss3' | 'boss4'
+export type EnemyKind = 'shooter' | 'chaser' | 'flyer' | 'caster' | 'boss1' | 'boss2' | 'boss3' | 'boss4' | 'trex' | 'falcon'
 
 export interface Spawn {
   kind: EnemyKind
@@ -57,6 +57,12 @@ export interface Prop {
   after?: string[]
   /** Drawn loved: tinted pink, the way a guardian ends. */
   pink?: boolean
+  /** Coin-op binoculars. Solid; press the item key beside them to look through. */
+  view?: 'liberty'
+  /** The parapet of a roof. Press the item key beside it with the sniper rifle to take aim. */
+  scope?: boolean
+  /** The princess. Walking up to her is the end of the quest. */
+  princess?: boolean
 }
 
 export type ShopKind = 'village' | 'secret' | 'smith' | 'castaway' | 'pets' | 'florist'
@@ -95,6 +101,10 @@ export interface Portal {
    * but wherever the car feels like. `to` is one of the places it might.
    */
   car?: boolean
+  /** A lift: the ride between floors is drawn, with the floors counting past. */
+  lift?: 'up' | 'down'
+  /** The ferry: a slow fade over water rather than a cut. */
+  ferry?: boolean
 }
 
 /**
@@ -102,7 +112,20 @@ export interface Portal {
  * everywhere — solid, water, bush, door — and the setting decides how each is
  * drawn: hull panels or rock spires, deck plating or crater dust.
  */
-export type Setting = 'ship' | 'rock' | 'airlock' | 'street' | 'park' | 'platform' | 'train' | 'bodega'
+export type Setting =
+  | 'ship'
+  | 'rock'
+  | 'airlock'
+  | 'street'
+  | 'park'
+  | 'platform'
+  | 'train'
+  | 'bodega'
+  | 'museum'
+  | 'lobby'
+  | 'restaurant'
+  | 'roof'
+  | 'harbour'
 
 /**
  * A chest that opens simply for being found. Every other chest in the game is
@@ -172,6 +195,20 @@ export interface Screen {
    * fountain in it, which is the opposite of what it is for.
    */
   tidy?: boolean
+  /**
+   * Statues that come alive. Drawn in stone where they stand until he has
+   * been on the screen this long; then they shake, and are the creature.
+   */
+  awakens?: Awakening[]
+}
+
+export interface Awakening {
+  kind: EnemyKind
+  col: number
+  row: number
+  /** Frames on the screen before it moves. */
+  after: number
+  message: string
 }
 
 const AUTHORED: Screen[] = [

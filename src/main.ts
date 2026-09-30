@@ -23,7 +23,7 @@ import { SCREENS } from './game/world/screens'
 import { showGatePrompt, showNotice, showRidePrompt } from './game/ui/prompt'
 import { showBossVictory } from './game/ui/victory'
 import { showDiscovery } from './game/ui/discovery'
-import { TO_THE_PRESENT, CITY_SAVED, showStory, TO_THE_FUTURE } from './game/ui/story'
+import { TO_THE_PRESENT, CITY_SAVED, PRINCESS_SAVED, showStory, TO_THE_FUTURE } from './game/ui/story'
 import { switchLevel } from './game/levels'
 import { flavourFor } from './game/flavour'
 import { mapLayout } from './game/render/map'
@@ -224,6 +224,11 @@ function enterWorld(): void {
           world?.setPaused(false)
         },
       })
+    },
+    onPrincessSaved: () => {
+      world?.setPaused(true)
+      persist()
+      showStory(root, { ...PRINCESS_SAVED, onContinue: () => world?.setPaused(false) })
     },
     onBossDefeated: (win) => {
       world?.setPaused(true)
@@ -933,6 +938,12 @@ function openParentDashboard(): void {
     onEnterLevel: (level) => {
       closeDashboard()
       enterLevel(level)
+    },
+    onPractiseSniper: () => {
+      closeDashboard()
+      if (state.level !== 3) enterLevel(3)
+      world?.practiseSniper()
+      persist()
     },
     onClose: () => {
       world?.setPaused(false)

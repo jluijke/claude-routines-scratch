@@ -123,7 +123,7 @@ check('the Wonder Wheel is at Coney Island', s.props.includes('wonderWheel'))
 check('and the three of them are not, yet', !s.props.includes('guardianGold'))
 await shot('coney-before')
 await page.evaluate(() => {
-  window.zsq.state.world.defeatedBosses.push('nyc-trump-green', 'nyc-columbus-park', 'nyc-boardwalk')
+  window.zsq.state.world.defeatedBosses.push('nyc-trump-penthouse', 'nyc-xi-backroom', 'nyc-boardwalk')
   window.zsq.world.teleport('nyc-coney-island', 7, 8)
 })
 await wait(700)

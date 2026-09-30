@@ -109,6 +109,8 @@ interface Block {
   spawns?: Spawn[]
   gates?: GatePlacement[]
   pickup?: Screen['pickup']
+  /** Off the grid — Midtown, Chinatown — a block says its own exits. */
+  exits?: Exits
 }
 
 function apply(rows: string[], set: string[] = []): string[] {
@@ -130,7 +132,7 @@ function apply(rows: string[], set: string[] = []): string[] {
  * buildings, with a crosswalk over the main road where it meets it.
  */
 function street(block: Block): Screen {
-  const exits = exitsOf(block.id)
+  const exits = block.exits ?? exitsOf(block.id)
   const rows = [
     'TTTTTTTTTTTTTTTT',
     'TTTTTTTTTTTTTTTT',
@@ -168,7 +170,7 @@ function street(block: Block): Screen {
  * street, with the crosswalks either side of it.
  */
 function avenue(block: Block, lanes: 2 | 4 = 4, oneWay?: 'up' | 'down'): Screen {
-  const exits = exitsOf(block.id)
+  const exits = block.exits ?? exitsOf(block.id)
   const roadL = lanes === 4 ? 6 : 7
   const roadR = lanes === 4 ? 9 : 8
   const line = (): string =>
@@ -490,10 +492,14 @@ const BLOCKS: Screen[] = [
       id: 'nyc-avenue-a',
       name: 'Avenue A & 7th',
       region: EAST,
-      set: ['5,2=,', '10,1=*', '5,9=,', '10,8=,'],
+      // The fire escape on the tenement, up to the roof. Column 4 here is
+      // the building face beside the sidewalk once the two-lane shift is done.
+      set: ['5,2=,', '10,1=*', '5,9=,', '10,8=,', '4,8=D'],
       props: [
         { sprite: 'pigeonA', col: 10, row: 2 },
+        { sprite: 'scribe', col: 5, row: 7, talk: 'Fire escape. Six floors. Somebody goes up there with a long bag and comes down with nothing. Not my business.' },
       ],
+      portals: [{ col: 4, row: 8, to: 'nyc-rooftop-a', spawnCol: 7, spawnRow: 8 }],
       spawns: rats([5, 8], [10, 2]),
     },
     2,
@@ -1173,11 +1179,11 @@ const SUBWAY: Screen[] = [
     props: [
       { sprite: 'wonderWheel', col: 10, row: 3 },
       { sprite: 'scribe', col: 13, row: 7, talk: 'The Wonder Wheel. A hundred years old and still going round. If you loved all three of them, they would come here. Everybody does.' },
-      { sprite: 'guardianGold', col: 1, row: 5, pink: true, after: ['nyc-trump-green', 'nyc-columbus-park', 'nyc-boardwalk'],
+      { sprite: 'guardianGold', col: 1, row: 5, pink: true, after: ['nyc-trump-penthouse', 'nyc-xi-backroom', 'nyc-boardwalk'],
         talk: 'Trump, pink to the ears: "Eleven times on the Wonder Wheel. Best wheel. Tremendous. Thank you for all the love. Really."' },
-      { sprite: 'guardianGrey', col: 4, row: 5, pink: true, after: ['nyc-trump-green', 'nyc-columbus-park', 'nyc-boardwalk'],
+      { sprite: 'guardianGrey', col: 4, row: 5, pink: true, after: ['nyc-trump-penthouse', 'nyc-xi-backroom', 'nyc-boardwalk'],
         talk: 'Putin, holding a paper plate: "I am sorry about the boardwalk. Would you like a pierogi? They are very good. I bought extra."' },
-      { sprite: 'guardianDark', col: 7, row: 5, pink: true, after: ['nyc-trump-green', 'nyc-columbus-park', 'nyc-boardwalk'],
+      { sprite: 'guardianDark', col: 7, row: 5, pink: true, after: ['nyc-trump-penthouse', 'nyc-xi-backroom', 'nyc-boardwalk'],
         talk: 'Xi, feeding a pigeon: "The pigeons and I have made peace. Also, you spell very well. Keep going."' },
     ],
     spawns: [{ kind: 'flyer', col: 3, row: 7 }],
@@ -1190,22 +1196,27 @@ const SUBWAY: Screen[] = [
     region: 'Midtown',
     ...PARK,
     rows: [
-      'TTTTTTTTTTTTTTTT',
+      'TTTTTTT..TTTTTTT',
       'T*............*T',
       'T..............T',
       'T....SSSSSS....T',
-      'T....S....S....T',
-      'T....S....S....T',
+      'T....S....S.....',
+      'T....S....S.....',
       'T....SSSSSS....T',
       'T..,........,..T',
       'T..............T',
       'TTTTTTT^TTTTTTTT',
       'TTTTTTTTTTTTTTTT',
     ],
-    exits: {},
+    // Up to the park, east to the avenue: the green is where Midtown starts,
+    // not where it ends. He is not here. He is fifty-eight floors up.
+    exits: { up: 'nyc-central-park', right: 'nyc-fifth-ave-midtown' },
     portals: [{ col: 7, row: 9, to: 'nyc-sub-59st-mezz', spawnCol: 7, spawnRow: 3 }],
-    props: [{ sprite: 'scribe', col: 2, row: 8, talk: 'A putting green, on Fifth Avenue, with a gold fence. He says it is the best green. It is the only green.' }],
-    spawns: [{ kind: 'boss1', col: 7, row: 3 }, { kind: 'flyer', col: 3, row: 5 }],
+    props: [
+      { sprite: 'scribe', col: 2, row: 8, talk: 'A putting green, on Fifth Avenue, with a gold fence. He says it is the best green. He is not on it. He is in the tower, at the top, and the tower does not let people in.' },
+      { sprite: 'pigeonB', col: 12, row: 2 },
+    ],
+    spawns: [{ kind: 'flyer', col: 3, row: 5 }, { kind: 'chaser', col: 12, row: 7 }],
   },
   {
     id: 'nyc-columbus-park',
@@ -1217,21 +1228,21 @@ const SUBWAY: Screen[] = [
       'T,............,T',
       'T..SSSSSSSSSS..T',
       'T..S........S..T',
-      'T..S..*..*..S..T',
-      'T..S........S..T',
+      'T..S..*..*..S...',
+      'T..S........S...',
       'T..S........S..T',
       'T..SSSSSSSSSS..T',
       'T..............T',
       'TTTTTTT^TTTTTTTT',
       'TTTTTTTTTTTTTTTT',
     ],
-    exits: {},
+    exits: { right: 'nyc-mott-street' },
     portals: [{ col: 7, row: 9, to: 'nyc-sub-canal-mezz', spawnCol: 7, spawnRow: 3 }],
     props: [
-      { sprite: 'scribe', col: 13, row: 8, talk: 'Mahjong tables, usually. Everybody went home when he arrived. Xiangqi is chess; he is not good at either.' },
+      { sprite: 'scribe', col: 13, row: 8, talk: 'Mahjong tables, usually. He came through here, they say, and went into Wu\'s on Mott Street for the dumplings, and never came out.' },
       { sprite: 'pigeonB', col: 2, row: 8 },
     ],
-    spawns: [{ kind: 'boss3', col: 7, row: 3 }, { kind: 'caster', col: 12, row: 6 }],
+    spawns: [{ kind: 'caster', col: 12, row: 6 }, { kind: 'chaser', col: 4, row: 8 }],
   },
   {
     id: 'nyc-atlantic-terminal',
@@ -1438,7 +1449,517 @@ const SUBWAY: Screen[] = [
   },
 ]
 
-export const AUTHORED_CITY: Screen[] = [...BLOCKS, ...PARKS, ...INTERIORS, ...SUBWAY]
+// ---------------------------------------------------------------- Midtown
+//
+// East of the green: Fifth Avenue, and the tower. The front door has a
+// doorman and the doorman has a rule. The side street behind it has a
+// steel door with a sticker on it, and the sticker is not a rule.
+
+const MIDTOWN = 'Midtown'
+const TOWER = 'Trump Tower'
+const LOBBY = { level: 3, setting: 'lobby', tidy: true } as const
+const MUSEUM = { level: 3, setting: 'museum', tidy: true } as const
+const RESTAURANT = { level: 3, setting: 'restaurant', tidy: true } as const
+const ROOF = { level: 3, setting: 'roof', tidy: true } as const
+const HARBOUR = { level: 3, setting: 'harbour', tidy: true } as const
+
+const MIDTOWN_SCREENS: Screen[] = [
+  avenue({
+    id: 'nyc-fifth-ave-midtown',
+    name: 'Fifth Avenue & 57th',
+    region: MIDTOWN,
+    exits: { left: 'nyc-trump-green', down: 'nyc-56th-street' },
+    set: ['11,7=#', '11,8=#', '11,9=#', '10,1=*', '5,9=,'],
+    props: [
+      // The doorman stands in the way of the door, and that is the door.
+      { sprite: 'scribe', col: 10, row: 8, solid: true, talk: 'Residents only. Sir. The tower does not take visitors. ...The service door is round the back, on 56th, but you did not hear that from me.' },
+      { sprite: 'pigeonA', col: 5, row: 2 },
+    ],
+    spawns: [{ kind: 'flyer', col: 10, row: 3 }, { kind: 'chaser', col: 5, row: 7 }],
+  }),
+  street({
+    id: 'nyc-56th-street',
+    name: 'West 56th Street',
+    region: MIDTOWN,
+    exits: { up: 'nyc-fifth-ave-midtown' },
+    // The service entrance: a steel door in the back of the tower.
+    set: ['12,7=C', '3,7=,', '13,3=,'],
+    props: [
+      { sprite: 'scribe', col: 10, row: 6, talk: 'A porter, on a smoke break. "Deliveries only, says the sticker. Nobody reads the sticker. It is not locked."' },
+    ],
+    portals: [{ col: 12, row: 7, to: 'nyc-trump-lobby', spawnCol: 7, spawnRow: 8 }],
+    spawns: rats([2, 6], [4, 3]),
+  }),
+  {
+    id: 'nyc-trump-lobby',
+    name: 'The Lobby',
+    region: TOWER,
+    ...LOBBY,
+    rows: [
+      '################',
+      '#RRRR..D...RRRR#',
+      '#..............#',
+      '#..............#',
+      '#....******....#',
+      '#..............#',
+      '#,............,#',
+      '#..............#',
+      '#..............#',
+      '#######H########',
+      '################',
+    ],
+    exits: {},
+    portals: [
+      wayOut('nyc-56th-street', 12, 6),
+      { col: 7, row: 1, to: 'nyc-trump-penthouse', spawnCol: 2, spawnRow: 8, lift: 'up' },
+    ],
+    props: [
+      { sprite: 'liftDoor', col: 7, row: 1 },
+      { sprite: 'scribe', col: 7, row: 3, talk: 'The concierge does not look up. "Mr Trump is on fifty-eight. The lift is behind me. Do not touch anything gold. Everything is gold."' },
+    ],
+    spawns: [{ kind: 'chaser', col: 3, row: 7 }],
+  },
+  {
+    id: 'nyc-trump-penthouse',
+    name: 'The Penthouse',
+    region: TOWER,
+    ...LOBBY,
+    rows: [
+      '################',
+      '#~~~~~~~~~~~~~~#',
+      '#..............#',
+      '#..............#',
+      '#.....*..*.....#',
+      '#..............#',
+      '#..............#',
+      '#.....*..*.....#',
+      '#..............#',
+      '##D#############',
+      '################',
+    ],
+    exits: {},
+    // The lift is in the corner, not under the middle of the room: a shove
+    // from him in the middle of the fight must not put the child back in the
+    // lobby.
+    portals: [{ col: 2, row: 9, to: 'nyc-trump-lobby', spawnCol: 7, spawnRow: 2, lift: 'down' }],
+    props: [{ sprite: 'liftDoor', col: 2, row: 9 }],
+    spawns: [{ kind: 'boss1', col: 7, row: 3 }, { kind: 'flyer', col: 3, row: 6 }],
+  },
+  // North of the green: the park, and the museum on the far side of it.
+  {
+    id: 'nyc-central-park',
+    name: 'Central Park',
+    region: 'Central Park',
+    ...PARK,
+    rows: [
+      'TTTTTTT..TTTTTTT',
+      'T,....S..S....,T',
+      'T.....S..S.....T',
+      'T..~~.S..S.~~..T',
+      'T..~~.S..S.~~..T',
+      'T.....S..S.....T',
+      'T,....S..S....,T',
+      'T.....S..S.....T',
+      'T..*..S..S..*..T',
+      'T.....S..S.....T',
+      'TTTTTTT..TTTTTTT',
+    ],
+    exits: { down: 'nyc-trump-green', up: 'nyc-museum-steps' },
+    props: [
+      { sprite: 'scribe', col: 2, row: 5, talk: 'Central Park. Eight hundred acres. He wanted to put his name on it. The museum is straight on, past the pond.' },
+      { sprite: 'dogA', col: 12, row: 6 },
+      { sprite: 'pigeonA', col: 4, row: 9 },
+    ],
+    spawns: [{ kind: 'flyer', col: 12, row: 2 }, { kind: 'chaser', col: 3, row: 7 }],
+  },
+  {
+    id: 'nyc-museum-steps',
+    name: 'The Museum Steps',
+    region: 'The Museum',
+    ...PARK,
+    rows: [
+      'RRRRRRRRRRRRRRRR',
+      'RRRRRRRHRRRRRRRR',
+      '*..*..*..*..*..*',
+      'SSSSSSSSSSSSSSSS',
+      'SSSSSSSSSSSSSSSS',
+      '.SSSSSSSSSSSSSS.',
+      'T..,........,..T',
+      'T..............T',
+      'T......SS......T',
+      'T......SS......T',
+      'TTTTTTT..TTTTTTT',
+    ],
+    exits: { down: 'nyc-central-park' },
+    portals: [{ col: 7, row: 1, to: 'nyc-museum-hall', spawnCol: 7, spawnRow: 8 }],
+    props: [
+      { sprite: 'scribe', col: 3, row: 7, talk: 'The Museum of Natural History. Free on Wednesdays. It is Wednesday. Mind the dinosaur; it is only a statue.' },
+      { sprite: 'pigeonB', col: 11, row: 5 },
+      { sprite: 'pigeonA', col: 13, row: 8 },
+    ],
+    spawns: [{ kind: 'flyer', col: 12, row: 7 }],
+  },
+  // The museum. Four rooms in a row: the hall with the cases, the dinosaurs,
+  // the birds, and the vault at the end that nobody gets to.
+  {
+    id: 'nyc-museum-hall',
+    name: 'The Great Hall',
+    region: 'The Museum',
+    ...MUSEUM,
+    rows: [
+      '################',
+      '#~~~~#....#~~~~#',
+      '#..............#',
+      '#..............#',
+      '#..*........*...',
+      '#...............',
+      '#..............#',
+      '#R............R#',
+      '#..............#',
+      '#######H########',
+      '################',
+    ],
+    exits: { right: 'nyc-museum-dinosaurs' },
+    portals: [wayOut('nyc-museum-steps', 7, 3)],
+    props: [
+      // Behind the glass: two of the land's monsters, stuffed, and three
+      // animals he might have walked round the land with.
+      { sprite: 'kangarooA', col: 1, row: 1 },
+      { sprite: 'wombatA', col: 3, row: 1 },
+      { sprite: 'chaserA', col: 11, row: 1 },
+      { sprite: 'shooterA', col: 13, row: 1 },
+      { sprite: 'goatA', col: 14, row: 1 },
+      { sprite: 'scribe', col: 7, row: 3, talk: 'The guard. "The dinosaur is through there. It is a statue. It has always been a statue. Please stop asking me about the statue."' },
+    ],
+    spawns: [{ kind: 'flyer', col: 12, row: 6 }],
+  },
+  {
+    id: 'nyc-museum-dinosaurs',
+    name: 'The Dinosaur Hall',
+    region: 'The Museum',
+    ...MUSEUM,
+    rows: [
+      '################',
+      '#~~~~~~~~~~~~~~#',
+      '#..............#',
+      '#..............#',
+      '................',
+      '................',
+      '#..............#',
+      '#..............#',
+      '#R............R#',
+      '################',
+      '################',
+    ],
+    exits: { left: 'nyc-museum-hall', right: 'nyc-museum-birds' },
+    awakens: [{ kind: 'trex', col: 8, row: 5, after: 210, message: 'The T-Rex is not a statue. THE T-REX IS NOT A STATUE. Run.' }],
+  },
+  {
+    id: 'nyc-museum-birds',
+    name: 'The Hall of Birds',
+    region: 'The Museum',
+    ...MUSEUM,
+    rows: [
+      '################',
+      '#~~~~~~~~~~~~~~#',
+      '#..............#',
+      '#..............#',
+      '................',
+      '................',
+      '#..............#',
+      '#..............#',
+      '#R............R#',
+      '################',
+      '################',
+    ],
+    exits: { left: 'nyc-museum-dinosaurs', right: 'nyc-museum-vault' },
+    props: [
+      { sprite: 'pigeonA', col: 3, row: 1 },
+      { sprite: 'pigeonB', col: 7, row: 1 },
+    ],
+    awakens: [{ kind: 'falcon', col: 13, row: 1, after: 150, message: 'The falcon has left its perch. Corner to corner, and fast. Keep moving.' }],
+  },
+  {
+    id: 'nyc-museum-vault',
+    name: 'The Vault',
+    region: 'The Museum',
+    ...MUSEUM,
+    rows: [
+      '################',
+      '#R............R#',
+      '#..............#',
+      '#..............#',
+      '...............#',
+      '...............#',
+      '#..............#',
+      '#R............R#',
+      '################',
+      '################',
+      '################',
+    ],
+    exits: { left: 'nyc-museum-birds' },
+    treasure: {
+      id: 'nyc-museum-vault-chest',
+      col: 11,
+      row: 3,
+      rupees: 300,
+      message: 'The donations box. A hundred years of quarters, and nobody has ever got past the birds to count them.',
+    },
+    props: [{ sprite: 'scribe', col: 4, row: 6, talk: 'Nobody comes in here. Nobody gets past the birds. You are the first. Have a look in the box.' }],
+  },
+]
+
+// ---------------------------------------------------------------- Downtown
+//
+// East of Columbus Park: Mott Street, Wu's Garden, and a kitchen with a
+// cabinet in it. South of that: the bottom of the island, the water, the
+// statue out on it, and the ferry that wants a ticket.
+
+const CHINATOWN = 'Chinatown'
+
+const DOWNTOWN_SCREENS: Screen[] = [
+  street({
+    id: 'nyc-mott-street',
+    name: 'Mott Street',
+    region: CHINATOWN,
+    exits: { left: 'nyc-columbus-park', down: 'nyc-bowling-green' },
+    set: ['3,7=H', '13,7=,', '2,3=,', '12,1=*'],
+    props: [
+      { sprite: 'scribe', col: 12, row: 3, talk: 'Wu\'s Garden. Best dumplings on Mott Street. Also the only restaurant on Mott Street with a cabinet you are not allowed to ask about.' },
+      { sprite: 'catB', col: 4, row: 6 },
+    ],
+    portals: [door(3, 7, 'nyc-restaurant')],
+    spawns: rats([2, 6], [12, 6]),
+  }),
+  {
+    id: 'nyc-restaurant',
+    name: "Wu's Garden",
+    region: CHINATOWN,
+    ...RESTAURANT,
+    rows: [
+      '################',
+      '#~~~~..H...~~~~#',
+      '#..............#',
+      '#.**..**..**...#',
+      '#..............#',
+      '#.**..**..**...#',
+      '#..............#',
+      '#,............,#',
+      '#..............#',
+      '#######H########',
+      '################',
+    ],
+    exits: {},
+    portals: [
+      wayOut('nyc-mott-street', 3, 6),
+      { col: 7, row: 1, to: 'nyc-restaurant-kitchen', spawnCol: 7, spawnRow: 8 },
+    ],
+    props: [
+      { sprite: 'scribe', col: 12, row: 4, talk: 'The waiter. "Table for one? The kitchen is staff only. Especially the back of the kitchen. Especially the cabinet."' },
+      { sprite: 'catA', col: 2, row: 8 },
+    ],
+  },
+  {
+    id: 'nyc-restaurant-kitchen',
+    name: "Wu's Kitchen",
+    region: CHINATOWN,
+    ...RESTAURANT,
+    rows: [
+      '################',
+      '#RRRRRRRRRRRRRR#',
+      '#..............#',
+      '#..~~~.........#',
+      '#..............#',
+      '#.*******......#',
+      '#..............#',
+      '#.............X#',
+      '#..............#',
+      '#######H########',
+      '################',
+    ],
+    exits: {},
+    portals: [
+      wayOut('nyc-restaurant', 7, 2),
+      // The cabinet stands on a cracked wall. A firecracker shifts it.
+      { col: 14, row: 7, to: 'nyc-xi-backroom', spawnCol: 2, spawnRow: 8 },
+    ],
+    props: [
+      { sprite: 'cabinet', col: 14, row: 7 },
+      { sprite: 'scribe', col: 10, row: 4, talk: 'The cook. "Nothing back there. Just a cabinet. Very heavy cabinet. Do not ask about the cabinet. It would take a firecracker to shift it, and who has firecrackers?"' },
+    ],
+    spawns: [{ kind: 'chaser', col: 3, row: 7 }],
+  },
+  {
+    id: 'nyc-xi-backroom',
+    name: 'The Back Room',
+    region: CHINATOWN,
+    ...RESTAURANT,
+    rows: [
+      '################',
+      '#~~~~~~~~~~~~~~#',
+      '#..............#',
+      '#..............#',
+      '#....*....*....#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '##H#############',
+      '################',
+    ],
+    exits: {},
+    // The way out is in the corner for the same reason the penthouse lift is.
+    portals: [{ col: 2, row: 9, to: 'nyc-restaurant-kitchen', spawnCol: 13, spawnRow: 7 }],
+    props: [{ sprite: 'scribe', col: 12, row: 7, talk: 'A mahjong table, a teapot, and him. He has been here for weeks. The dumplings keep coming.' }],
+    spawns: [{ kind: 'boss3', col: 7, row: 3 }, { kind: 'caster', col: 12, row: 6 }],
+  },
+  street({
+    id: 'nyc-bowling-green',
+    name: 'Bowling Green',
+    region: 'Downtown',
+    exits: { up: 'nyc-mott-street', down: 'nyc-battery-park' },
+    set: ['2,3=,', '13,6=,', '3,1=*'],
+    props: [{ sprite: 'scribe', col: 3, row: 6, talk: 'The bull. Everybody rubs its nose. Nobody knows why. The water is at the bottom of the street, and the ferry.' }],
+    spawns: rats([12, 3], [4, 6]),
+  }),
+  {
+    id: 'nyc-battery-park',
+    name: 'Battery Park',
+    region: 'The Harbour',
+    ...HARBOUR,
+    rows: [
+      'TTTTTTT..TTTTTTT',
+      'T,............,T',
+      'T..............T',
+      'T..............T',
+      'T..............T',
+      'T.......SSSS...T',
+      '##############.#',
+      '~~~~~~~~~~~~~~S~',
+      '~~~~~~~~~~~~~~~~',
+      '~~~~~~~~~~~~~~~~',
+      '~~~~~~~~~~~~~~~~',
+    ],
+    exits: { up: 'nyc-bowling-green' },
+    portals: [
+      {
+        col: 14,
+        row: 7,
+        to: 'nyc-liberty-island',
+        spawnCol: 2,
+        spawnRow: 6,
+        ferry: true,
+        requires: 'ferryTicket',
+        refusal: 'The man in the booth does not look up. "Ticket." You have no ticket. "Then no ferry."',
+      },
+    ],
+    props: [
+      { sprite: 'libertyFar', col: 4, row: 7 },
+      { sprite: 'binoculars', col: 7, row: 4, view: 'liberty', talk: 'Coin-op binoculars, pointed at the statue. Press X to look through them.' },
+      { sprite: 'ferry', col: 11, row: 7 },
+      { sprite: 'scribe', col: 13, row: 5, talk: 'The ferry man. "Liberty Island. Ticket holders only. The three of them had the last three tickets, and they are not the sort who give things back."' },
+      { sprite: 'pigeonA', col: 3, row: 3 },
+    ],
+    spawns: [{ kind: 'flyer', col: 10, row: 2 }, { kind: 'chaser', col: 2, row: 2 }],
+  },
+  {
+    id: 'nyc-liberty-island',
+    name: 'Liberty Island',
+    region: 'The Harbour',
+    ...HARBOUR,
+    rows: [
+      '~~~~~~~~~~~~~~~~',
+      '~~~~~~~~~~~~~~~~',
+      '~~~~~~~~~~~~~~~~',
+      '~~~~RRRRDRRRR~~~',
+      '~~~~.........~~~',
+      '~~~.SSSSSSSSS.~~',
+      'SS.............~',
+      '~~~~~~~~~~~~~~~~',
+      '~~~~~~~~~~~~~~~~',
+      '~~~~~~~~~~~~~~~~',
+      '~~~~~~~~~~~~~~~~',
+    ],
+    exits: {},
+    portals: [
+      { col: 8, row: 3, to: 'nyc-liberty-crown', spawnCol: 7, spawnRow: 8 },
+      { col: 0, row: 6, to: 'nyc-battery-park', spawnCol: 14, spawnRow: 6, ferry: true },
+    ],
+    props: [
+      { sprite: 'libertyNear', col: 6, row: 0 },
+      { sprite: 'ferry', col: 0, row: 7 },
+      { sprite: 'scribe', col: 12, row: 6, talk: 'A ranger. "Two hundred and sixty-two steps to the crown. Nobody has been up since the three of them came. Something is up there. Somebody."' },
+    ],
+    spawns: [{ kind: 'flyer', col: 11, row: 4 }],
+  },
+  {
+    id: 'nyc-liberty-crown',
+    name: 'The Crown',
+    region: 'The Harbour',
+    ...LOBBY,
+    rows: [
+      '################',
+      '#~~~~~~~~~~~~~~#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#..............#',
+      '#######H########',
+      '################',
+    ],
+    exits: {},
+    portals: [wayOut('nyc-liberty-island', 8, 4)],
+    props: [
+      { sprite: 'princess', col: 7, row: 2, princess: true, talk: '"You took your time. I have been waving at that pier for a week." She hugs you. It is the second hug today, and the better one.' },
+    ],
+  },
+]
+
+// ---------------------------------------------------------------- the roof
+//
+// Six floors up the fire escape on Avenue A: tar, gravel, a water tank, a
+// rifle in a tarp, and a tripod on the parapet looking down at the park.
+
+const ROOF_SCREENS: Screen[] = [
+  {
+    id: 'nyc-rooftop-a',
+    name: 'A Roof on Avenue A',
+    region: EAST,
+    ...ROOF,
+    rows: [
+      '################',
+      '#..............#',
+      '#..R........R..#',
+      '#..............#',
+      '#......*.......#',
+      '#..............#',
+      '#..............#',
+      '#..R........R..#',
+      '#..............#',
+      '#######D########',
+      '################',
+    ],
+    exits: {},
+    portals: [{ col: 7, row: 9, to: 'nyc-avenue-a', spawnCol: 6, spawnRow: 8 }],
+    pickup: {
+      id: 'nyc-sniper-rifle',
+      col: 3,
+      row: 5,
+      item: 'sniperRifle',
+      message: 'A rifle with a scope, wrapped in a tarp by the water tank. Somebody has been up here. It fits the tripod on the edge: stand by it and press X.',
+    },
+    props: [
+      { sprite: 'tripod', col: 7, row: 1, scope: true, talk: 'A tripod on the parapet, pointed at Tompkins Square. Six floors down: grass, bushes, and things moving in the bushes.' },
+      { sprite: 'pigeonB', col: 12, row: 5 },
+    ],
+    spawns: [{ kind: 'flyer', col: 3, row: 3 }],
+  },
+]
+
+export const AUTHORED_CITY: Screen[] = [...BLOCKS, ...PARKS, ...INTERIORS, ...SUBWAY, ...MIDTOWN_SCREENS, ...DOWNTOWN_SCREENS, ...ROOF_SCREENS]
 
 /** The sample screens the design page was drawn from, kept for the previews. */
 export const SAMPLE_CITY: Screen[] = [

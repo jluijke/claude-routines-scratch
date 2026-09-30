@@ -39,6 +39,8 @@ export interface DashboardOptions {
   onDropFood: () => boolean
   /** Sends him to the other world, without having to beat four guardians first. */
   onEnterLevel: (level: Level) => void
+  /** Straight to the East Village roof with the rifle, and the round starts. */
+  onPractiseSniper: () => void
   onClose: () => void
 }
 
@@ -124,7 +126,10 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
   // The city sells a few things of its own (the taser, love bombs), priced
   // only there, so they are on the list too.
   const sellable = Object.values(ITEMS).filter(
-    (item) => item.price !== undefined || item.city?.price !== undefined || item.id === 'map' || item.id === 'subwayMap',
+    (item) =>
+      item.price !== undefined ||
+      item.city?.price !== undefined ||
+      ['map', 'subwayMap', 'sniperRifle', 'ferryTicket'].includes(item.id),
   )
 
   // Named as the world he is in names them: a parent testing the ship should
@@ -189,6 +194,10 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
       class: 'btn btn-quiet',
     }),
   )
+  // The rooftop is a game inside the game, six floors up a fire escape on
+  // Avenue A, and it wants a rifle he finds up there. A parent should be able
+  // to see it without the climb.
+  const practiseSniper = button('Try the rooftop: rats and squirrels', () => options.onPractiseSniper(), { class: 'btn btn-quiet' })
   const levelNote = el('p', { class: 'q-hint-line' }, [
     `He is in ${LEVEL_NAMES[save.level]}. Jumping between worlds puts his gear and money aside — they come back when he returns — and starts him at the beginning of the other world with nothing but his hearts and his animal.`,
   ])
@@ -258,7 +267,7 @@ export function mountParentDashboard(root: HTMLElement, options: DashboardOption
       el('div', { class: 'dash-actions' }, [grantSelect, grantOne, grantAll, dropFood]),
       grantNote,
       skipNote,
-      el('div', { class: 'dash-actions' }, [...levelButtons]),
+      el('div', { class: 'dash-actions' }, [...levelButtons, practiseSniper]),
       levelNote,
 
       el('h3', {}, ['Play and spelling balance']),

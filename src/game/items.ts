@@ -13,6 +13,8 @@ export type ItemId =
   | 'bronzeSword'
   | 'goldenSword'
   | 'taser'
+  | 'ferryTicket'
+  | 'sniperRifle'
   | 'woodenShield'
   | 'metalShield'
   | 'bronzeShield'
@@ -500,6 +502,38 @@ export const ITEMS: Record<ItemId, ItemDef> = {
       price: 12,
     },
     stackable: true,
+  },
+  ferryTicket: {
+    id: 'ferryTicket',
+    name: 'Ferry Ticket',
+    category: 'tool',
+    // Never sold. The last guardian loved hands it over, and the ferry at
+    // Battery Park will not take him without it.
+    description: 'One ride to Liberty Island. Nothing in the land has a ferry.',
+    future: {
+      name: 'Shuttle Pass',
+      description: 'One ride to Liberty Island. Nothing on the ship has a ferry.',
+    },
+    city: {
+      name: 'Ferry Ticket',
+      description: 'One ride to Liberty Island, and back. She is out there, in the crown.',
+    },
+  },
+  sniperRifle: {
+    id: 'sniperRifle',
+    name: 'Sniper Rifle',
+    category: 'tool',
+    // Never sold. It is on a rooftop in the East Village, and it only works
+    // from the parapet up there, looking down at the park.
+    description: 'A rifle with a scope. Nothing in the land is far enough away to need one.',
+    future: {
+      name: 'Long Rifle',
+      description: 'A rifle with a scope. Nothing on the ship is far enough away to need one.',
+    },
+    city: {
+      name: 'Sniper Rifle',
+      description: 'A scope, a tripod on the roof, and Tompkins Square six floors down. Rats pay. Squirrels cost.',
+    },
   },
   animalFood: {
     id: 'animalFood',

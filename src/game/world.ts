@@ -21,6 +21,7 @@ import { Enemy, GUARDIAN_NAMES, isBossKind, overlaps, ringBurst, type Projectile
 import { Player, PLAYER_SIZE, type Facing, BODY_INSET } from './entities/player'
 import { SCREEN_COLS, SCREEN_H, SCREEN_ROWS, SCREEN_W, TILE, TILES, isSolidChar, toTile, type TileChar } from './world/tiles'
 import { screenById, SCREENS, type EnemyKind, type Portal, type Prop, type Screen } from './world/screens'
+import { beginSniper, critterRise, sniperSummary, SPOTS, tickSniper, type SniperState } from './sniper'
 import { overworldLayout, stepBackFromGate } from './world/analysis'
 import { gateById, type Gate } from './gates'
 import { isTool, ITEMS, itemName, materialOf, TOOL_SLOT, type ItemId } from './items'
@@ -112,6 +113,8 @@ export interface WorldCallbacks {
   onFoodOffer: () => void
   /** He stepped onto the train. Ask which way, or let him step off again. */
   onBoard: (offer: { station: Stop } & Directions) => void
+  /** He reached the princess in the crown. The quest is done. */
+  onPrincessSaved: () => void
 }
 
 interface Drop {
@@ -204,7 +207,28 @@ interface Teleport {
   phase: 'out' | 'in'
   /** Where he is going. Only set on the way out. */
   to?: { screen: string; col: number; row: number }
+  /** The ferry rather than the light: drawn as the boat crossing, not a dissolve. */
+  ferry?: boolean
 }
+
+/** A ride in the lift: the doors shut, the floors count past, the doors open somewhere else. */
+interface Lift {
+  frames: number
+  span: number
+  from: number
+  to: number
+  portal: Portal
+}
+
+const LIFT_FRAMES = 170
+/** Trump Tower has fifty-eight floors, and he lives on the top one. */
+const TOP_FLOOR = 58
+const FERRY_OUT = 170
+const FERRY_IN = 90
+/** The last forty frames before a statue wakes, it trembles. */
+const TREMBLE_FRAMES = 40
+const STATUE_SIZE: Partial<Record<EnemyKind, number>> = { trex: 30, falcon: 14 }
+const STATUE_SPRITE: Partial<Record<EnemyKind, SpriteName>> = { trex: 'trexA', falcon: 'falconA' }
 
 /**
  * Where the purple car might let him out. Never the same twice running, and
@@ -456,6 +480,17 @@ export class World {
   /** Rats the taser caught, flashing between rat and skeleton before they are smoke. */
   private fried: { x: number; y: number; frames: number }[] = []
   private taserZaps = 0
+  /** Frames since he arrived on this screen. The statues count them. */
+  private sinceArrival = 0
+  /** Statues on this screen that have already come alive, as "col,row". */
+  private awake = new Set<string>()
+  private lifting: Lift | undefined
+  /** Looking through the binoculars. */
+  private viewing: 'liberty' | undefined
+  /** Up on the roof with the rifle, looking down at the park. */
+  private sniper: SniperState | undefined
+  /** Frames the final score stays up after a round. */
+  private sniperHold = 0
   private bursts: Burst[] = []
   /** The candle lights one flame per room, as the blue one always did. */
   private candleUsedHere = false
@@ -681,8 +716,27 @@ export class World {
     if (this.player.loadout.tunic) this.save.player.equippedTunic = this.player.loadout.tunic
   }
 
+  /** True once all three have been loved. */
+  allGuardiansLoved(): boolean {
+    const won = this.save.world.defeatedBosses
+    return BOSS_ROOMS[3].length > 0 && BOSS_ROOMS[3].every((id) => won.includes(id))
+  }
+
+  /**
+   * The ferry ticket. The last of the three hands it over — whichever one
+   * that was — and a save that loved all three before there was a ticket to
+   * hand over gets it the next time it is opened.
+   */
+  private grantTicketIfEarned(): void {
+    if (this.level !== 3 || !this.allGuardiansLoved()) return
+    if ((this.save.inventory.ferryTicket ?? 0) > 0) return
+    this.save.inventory.ferryTicket = 1
+    this.callbacks.onChange()
+  }
+
   /** Re-reads gear and hearts after a shop visit or an exercise reward. */
   refreshFromSave(): void {
+    this.grantTicketIfEarned()
     if (this.save.player.equippedSword) this.player.loadout.sword = this.save.player.equippedSword
     this.player.loadout.shield = this.save.player.equippedShield
     if (this.save.player.equippedTunic) this.player.loadout.tunic = this.save.player.equippedTunic
@@ -837,6 +891,11 @@ export class World {
     this.bursts = []
     this.shots = []
     this.fried = []
+    this.sinceArrival = 0
+    this.awake.clear()
+    this.lifting = undefined
+    this.viewing = undefined
+    this.sniper = undefined
     this.candleUsedHere = false
     // Load-bearing: teleport, respawn and the dev console all come through
     // here, and a flight left over from another screen would draw the hero at
@@ -847,9 +906,11 @@ export class World {
     this.mapOpen = false
     this.bumping = undefined
     this.traffic = next.setting === 'street' ? new Traffic(next, this.rng) : undefined
-    this.solidProps = new Set(
-      (next.props ?? []).filter((p) => p.terminal || p.locker || p.solid).map((p) => `${p.col},${p.row}`),
-    )
+    this.solidProps = new Set([
+      ...(next.props ?? []).filter((p) => p.terminal || p.locker || p.solid || p.view || p.scope).map((p) => `${p.col},${p.row}`),
+      // A statue is stone until it is not.
+      ...(next.awakens ?? []).map((a) => `${a.col},${a.row}`),
+    ])
     // Back inside the ship, the suit comes off by itself. Out on a rock or in
     // an airlock it stays on: nobody takes a helmet off in a vacuum.
     if (this.save.world.suitOn && next.setting !== 'rock' && next.setting !== 'airlock') {
@@ -1076,15 +1137,18 @@ export class World {
         this.ensureFree()
         this.settleArrival()
         this.input.clearTarget()
-        this.beaming = { frames: TELEPORT_IN, span: TELEPORT_IN, phase: 'in' }
+        this.beaming = this.beaming.ferry
+          ? { frames: FERRY_IN, span: FERRY_IN, phase: 'in', ferry: true }
+          : { frames: TELEPORT_IN, span: TELEPORT_IN, phase: 'in' }
         this.syncSave()
         this.callbacks.onChange()
       } else {
         // Back on his feet. He lands beside each pad rather than on it, so
         // there is nothing here to stop him being sent straight back.
+        const ferry = this.beaming.ferry === true
         this.beaming = undefined
         this.input.clearTarget()
-        this.showMessage(this.words.teleportArrive)
+        this.showMessage(ferry ? this.ferryArrival() : this.words.teleportArrive)
       }
       return
     }
@@ -1098,6 +1162,23 @@ export class World {
     }
 
     const state = this.input.read()
+    if (this.lifting) {
+      this.updateLift()
+      return
+    }
+    if (this.sniper) {
+      this.updateSniper(state)
+      return
+    }
+    // Through the binoculars, until any key.
+    if (this.viewing) {
+      if (state.attack || state.useItem || state.help || state.map || state.confirm) {
+        this.viewing = undefined
+        this.input.clearTarget()
+        sfx.play('select')
+      }
+      return
+    }
     // The map is read while the world holds still, so nothing can wander into
     // him while he has his nose in it.
     if (this.mapOpen) {
@@ -1140,7 +1221,7 @@ export class World {
     }
 
     if (state.attack) this.swingOrFire()
-    if (state.useItem) this.useItem()
+    if (state.useItem && !this.lookAround()) this.useItem()
     if (state.cycleItem) this.cycleTool()
 
     const opened = this.openedTiles()
@@ -1167,6 +1248,8 @@ export class World {
     this.updateTracks()
     this.updateBusker()
     this.updateRide()
+    this.updateAwakenings()
+    this.checkPrincess()
 
     // While a potion holds, nothing has a fix on him: the monsters steer for
     // the middle of the room and shoot at where he is not.
@@ -1614,6 +1697,39 @@ export class World {
         this.equipBest()
       }
 
+      // The lift. The doors shut on him where he stands and open on another
+      // floor; the floors in between are counted past, not walked.
+      if (portal.lift) {
+        const up = portal.lift === 'up'
+        this.lifting = { frames: LIFT_FRAMES, span: LIFT_FRAMES, from: up ? 1 : TOP_FLOOR, to: up ? TOP_FLOOR : 1, portal }
+        this.projectiles = []
+        this.shots = []
+        this.input.clearTarget()
+        sfx.play('ding')
+        return
+      }
+      // The ferry. The same two halves as the light, drawn as the boat
+      // crossing the water with him on it.
+      if (portal.ferry) {
+        this.beaming = {
+          frames: FERRY_OUT,
+          span: FERRY_OUT,
+          phase: 'out',
+          ferry: true,
+          to: { screen: portal.to, col: portal.spawnCol, row: portal.spawnRow },
+        }
+        this.projectiles = []
+        this.shots = []
+        this.player.invulnerable = Math.max(this.player.invulnerable, FERRY_OUT + FERRY_IN)
+        sfx.play('foghorn')
+        this.showMessage(
+          this.screen.id === 'nyc-liberty-island'
+            ? 'The ferry pulls out. The island gets small behind you, and she is on it, and she is safe.'
+            : 'The ferry pulls out. Gulls. The city gets small behind you.',
+          220,
+        )
+        return
+      }
       // The purple car. The same fade as a teleporter, and it goes where it
       // likes: anywhere on its list but here.
       if (portal.car) {
@@ -2380,6 +2496,7 @@ export class World {
       if (enemy.isGuardian) {
         this.burstHearts(centre.x, centre.y, 40)
         this.showMessage(this.words.guardianLoved(GUARDIAN_NAMES[enemy.kind] ?? 'He'), 400)
+        this.grantTicketIfEarned()
       }
       sfx.play('bossFanfare')
       this.refreshMusic()
@@ -2871,6 +2988,12 @@ export class World {
       // The rabbit in the quiet square does not stay on its tile — it is drawn
       // below, wherever it has got to.
       if (this.greeter && prop.sprite === 'rabbitA') continue
+      // A cabinet on a cracked wall is gone once the wall is: there is a
+      // doorway there now, and the cabinet is in pieces somewhere behind it.
+      const under = ((this.screen.rows[prop.row] ?? '')[prop.col] ?? '.') as TileChar
+      if (TILES[under]?.cracked && this.isBroken(prop.col, prop.row)) continue
+      // The ferry, while it is out on the water, is drawn out on the water.
+      if (prop.sprite === 'ferry' && this.beaming?.ferry) continue
       // A pigeon he has startled: up, flapping, and back down again.
       const up = this.scared.get(index)
       if (up !== undefined) {
@@ -2922,6 +3045,8 @@ export class World {
       this.atlas.draw(ctx, drop.kind, drop.x, drop.y)
     }
 
+    this.drawStatues(ctx)
+
     for (const enemy of this.enemies) {
       const flashing = enemy.hurtTimer > 0 && Math.floor(this.frame / 3) % 2 === 0
       const blinking = enemy.isBlinking && Math.floor(this.frame / 2) % 2 === 0
@@ -2940,7 +3065,7 @@ export class World {
         const c = enemy.centre()
         this.drawSparks(ctx, c.x, c.y, enemy.size / 2 + 2, 3)
       } else if (!flashing && !blinking) {
-        this.atlas.draw(ctx, enemy.sprite, enemy.x + brace, enemy.y)
+        this.drawCreature(ctx, enemy, brace)
       }
       this.drawMechTells(ctx, enemy)
     }
@@ -2996,7 +3121,7 @@ export class World {
 
     this.drawPet(ctx)
 
-    if (this.beaming) this.drawTeleport(ctx)
+    if (this.beaming) this.beaming.ferry ? this.drawFerryRide(ctx) : this.drawTeleport(ctx)
     else if (this.flight) this.drawFlight(ctx)
     else if (this.victory) this.drawVictoryHero(ctx)
     else if (this.discovery) this.drawDiscoveryHero(ctx)
@@ -3073,6 +3198,10 @@ export class World {
           }
         : {}),
     })
+
+    if (this.lifting) this.drawLift(ctx)
+    if (this.viewing) this.drawView(ctx)
+    if (this.sniper) this.drawSniper(ctx)
 
     if (this.message) this.drawMessageBar(ctx)
   }
@@ -3846,6 +3975,387 @@ export class World {
     this.drawSparks(ctx, tip.x, tip.y, 4, 2)
   }
 
+  // ------------------------------------------------------------ the museum
+
+  /**
+   * The statues. Each counts the frames since he came in; when its time is
+   * up it is a creature, standing where the statue stood, and the stone is
+   * gone. Once per visit: leave and come back and it is a statue again,
+   * which is the museum's story and also the way out of the room.
+   */
+  private updateAwakenings(): void {
+    this.sinceArrival += 1
+    for (const a of this.screen.awakens ?? []) {
+      const key = `${a.col},${a.row}`
+      if (this.awake.has(key) || this.sinceArrival < a.after) continue
+      this.awake.add(key)
+      this.solidProps.delete(key)
+      this.enemies.push(new Enemy(a.kind, a.col, a.row, this.rng.int(1, 1e9), 'creature'))
+      sfx.play(a.kind === 'falcon' ? 'screech' : 'roar')
+      this.shake = SHAKE_FRAMES
+      this.showMessage(a.message, 200)
+    }
+  }
+
+  /** The statues still standing, in stone, on their plinths — and trembling, just before. */
+  private drawStatues(ctx: CanvasRenderingContext2D): void {
+    for (const a of this.screen.awakens ?? []) {
+      if (this.awake.has(`${a.col},${a.row}`)) continue
+      const sprite = STATUE_SPRITE[a.kind] ?? 'trexA'
+      const body = STATUE_SIZE[a.kind] ?? 30
+      const size = this.atlas.size(sprite)
+      const left = a.after - this.sinceArrival
+      const tremble = left <= TREMBLE_FRAMES ? (Math.floor(this.frame / 2) % 2 === 0 ? 1 : -1) : 0
+      // Where the creature's body will be, so the statue stands exactly where it wakes.
+      const bx = a.col * TILE + (TILE - body) / 2
+      const by = a.row * TILE + (TILE - body) / 2
+      const x = Math.round(bx + (body - size.w) / 2) + tremble
+      const y = Math.round(by + body - size.h + 4)
+      // The plinth.
+      ctx.fillStyle = '#6c655a'
+      ctx.fillRect(Math.round(bx) - 3, Math.round(by) + body - 2, body + 6, 6)
+      ctx.fillStyle = '#a89f8f'
+      ctx.fillRect(Math.round(bx) - 3, Math.round(by) + body - 2, body + 6, 2)
+      this.drawTinted(ctx, sprite, x, y, 'rgba(158,160,172,0.86)')
+    }
+  }
+
+  /**
+   * A creature, drawn at its sprite's own size: a rat is a tile, the T-Rex
+   * is three, and a body that is smaller than its picture is drawn under
+   * the middle of it, feet on the ground.
+   */
+  private drawCreature(ctx: CanvasRenderingContext2D, enemy: Enemy, brace: number): void {
+    const sprite = enemy.perched ? 'falconA' : enemy.sprite
+    const size = this.atlas.size(sprite)
+    if (size.w <= enemy.size && size.h <= enemy.size) {
+      this.atlas.draw(ctx, sprite, enemy.x + brace, enemy.y)
+      return
+    }
+    const x = Math.round(enemy.x + (enemy.size - size.w) / 2) + brace
+    const y = Math.round(enemy.y + enemy.size - size.h + 4)
+    this.atlas.draw(ctx, sprite, x, y)
+  }
+
+  // ------------------------------------------------------------ the tower
+
+  private updateLift(): void {
+    const lift = this.lifting
+    if (!lift) return
+    lift.frames -= 1
+    if (lift.frames > 0) return
+    const { portal } = lift
+    this.loadScreen(portal.to)
+    this.player.placeAtTile(portal.spawnCol, portal.spawnRow)
+    this.ensureFree()
+    this.input.clearTarget()
+    this.lifting = undefined
+    sfx.play('ding')
+    this.showMessage(lift.to === TOP_FLOOR ? 'Fifty-eighth floor. The doors open on gold.' : 'Lobby. The doorman still does not look at you.', 160)
+    this.syncSave()
+    this.callbacks.onChange()
+  }
+
+  /** Inside the lift: brass doors, and the floor counting past above them. */
+  private drawLift(ctx: CanvasRenderingContext2D): void {
+    const lift = this.lifting
+    if (!lift) return
+    const t = 1 - lift.frames / lift.span
+    // The car shudders a little, the way they do.
+    const judder = t > 0.08 && t < 0.92 ? (Math.floor(this.frame / 3) % 2 === 0 ? 0 : 1) : 0
+    ctx.save()
+    ctx.translate(0, judder)
+    ctx.fillStyle = '#2a1f0c'
+    ctx.fillRect(0, -2, SCREEN_W, SCREEN_H + 4)
+    // The doors: shut for the ride, parting at either end.
+    const gap = t < 0.08 ? (1 - t / 0.08) * 40 : t > 0.92 ? ((t - 0.92) / 0.08) * 40 : 0
+    ctx.fillStyle = '#e8bb2c'
+    ctx.fillRect(28, 30, SCREEN_W / 2 - 28 - gap, SCREEN_H - 30)
+    ctx.fillRect(SCREEN_W / 2 + gap, 30, SCREEN_W / 2 - 28 - gap, SCREEN_H - 30)
+    ctx.fillStyle = '#a9821a'
+    for (let y = 40; y < SCREEN_H; y += 12) {
+      ctx.fillRect(34, y, SCREEN_W / 2 - 40 - gap, 1)
+      ctx.fillRect(SCREEN_W / 2 + 6 + gap, y, SCREEN_W / 2 - 40 - gap, 1)
+    }
+    ctx.fillStyle = '#12131a'
+    ctx.fillRect(SCREEN_W / 2 - 1 - gap, 30, 2, SCREEN_H - 30)
+    ctx.fillRect(SCREEN_W / 2 - 1 + gap, 30, 2, SCREEN_H - 30)
+    // The indicator over the doors.
+    const floor = Math.round(lift.from + (lift.to - lift.from) * Math.min(1, Math.max(0, (t - 0.08) / 0.84)))
+    ctx.fillStyle = '#12131a'
+    ctx.fillRect(SCREEN_W / 2 - 26, 6, 52, 20)
+    ctx.strokeStyle = '#e8bb2c'
+    ctx.lineWidth = 1
+    ctx.strokeRect(SCREEN_W / 2 - 25.5, 6.5, 51, 19)
+    ctx.fillStyle = '#ff6a3d'
+    ctx.font = 'bold 12px monospace'
+    ctx.textBaseline = 'top'
+    ctx.textAlign = 'center'
+    ctx.fillText(String(floor), SCREEN_W / 2 + (lift.to > lift.from ? -6 : -6), 10)
+    ctx.font = '8px monospace'
+    ctx.fillText(lift.to > lift.from ? '▲' : '▼', SCREEN_W / 2 + 16, 12)
+    ctx.textAlign = 'left'
+    ctx.fillStyle = '#e8bb2c'
+    ctx.font = '7px monospace'
+    ctx.fillText('T R U M P', SCREEN_W / 2 - 26, SCREEN_H - 12)
+    ctx.restore()
+  }
+
+  // ------------------------------------------------------------ the harbour
+
+  /**
+   * The item key beside something you look through or aim from. True when
+   * it was one of those, so the tool in his hand is not used as well.
+   */
+  private lookAround(): boolean {
+    const centre = this.player.centre()
+    for (const prop of this.visibleProps()) {
+      if (!prop.view && !prop.scope) continue
+      if (!this.inEarshot(prop, centre)) continue
+      if (prop.view) {
+        this.viewing = prop.view
+        this.message = ''
+        this.messageTimer = 0
+        sfx.play('select')
+        return true
+      }
+      if ((this.save.inventory.sniperRifle ?? 0) > 0) {
+        this.startSniper()
+      } else {
+        this.showMessage('Tompkins Square, six floors down. Rats in the grass. If only you had something with a scope.', 170)
+      }
+      return true
+    }
+    return false
+  }
+
+  private ferryArrival(): string {
+    return this.screen.id === 'nyc-liberty-island'
+      ? 'Liberty Island. The statue goes up and up. There is a door in the base.'
+      : 'Battery Park. The ferry man nods, and looks at the water.'
+  }
+
+  /** The boat crossing the water, with him on it, in place of the dissolve. */
+  private drawFerryRide(ctx: CanvasRenderingContext2D): void {
+    const state = this.beaming
+    if (!state) return
+    const t = 1 - state.frames / state.span
+    const wharf = (this.screen.props ?? []).find((p) => p.sprite === 'ferry')
+    const dock = wharf ? wharf.col * TILE : SCREEN_W / 2 - 24
+    const y = wharf ? wharf.row * TILE : 7 * TILE
+    const ease = t * t * (3 - 2 * t)
+    const x = state.phase === 'out' ? dock + (SCREEN_W + 16 - dock) * ease : -56 + (dock + 56) * ease
+    // The wake, behind it.
+    ctx.fillStyle = 'rgba(246,243,231,0.55)'
+    for (let i = 1; i <= 5; i++) {
+      const wx = state.phase === 'out' ? x - i * 9 : x + 48 + i * 9
+      ctx.fillRect(Math.round(wx), y + 13 + (i % 2), 6 - i, 1)
+    }
+    this.atlas.draw(ctx, 'ferry', Math.round(x), y)
+    // Him, on the top deck, holding the rail.
+    this.atlas.draw(ctx, this.heroSprite('DownA'), Math.round(x) + 16, y - 12)
+  }
+
+  /**
+   * Through the binoculars: the statue's face filling the glass, the crown,
+   * and someone in it, waving. The only way to see her before the ferry.
+   */
+  private drawView(ctx: CanvasRenderingContext2D): void {
+    ctx.save()
+    ctx.fillStyle = '#12131a'
+    ctx.fillRect(0, 0, SCREEN_W, SCREEN_H)
+    // Two lenses.
+    ctx.beginPath()
+    ctx.arc(SCREEN_W / 2 - 34, SCREEN_H / 2, 70, 0, Math.PI * 2)
+    ctx.arc(SCREEN_W / 2 + 34, SCREEN_H / 2, 70, 0, Math.PI * 2)
+    ctx.clip()
+    // Sky, and the harbour under it.
+    ctx.fillStyle = '#9fc7e8'
+    ctx.fillRect(0, 0, SCREEN_W, SCREEN_H)
+    ctx.fillStyle = '#3a6fa8'
+    ctx.fillRect(0, SCREEN_H - 30, SCREEN_W, 30)
+    ctx.fillStyle = '#5c8fc6'
+    for (let i = 0; i < 12; i++) ctx.fillRect(10 + i * 22 + (Math.floor(this.frame / 10) % 4), SCREEN_H - 24 + (i % 3) * 7, 8, 1)
+    // The statue, four times life, her head in the middle of the glass.
+    const statueX = SCREEN_W / 2 - 40
+    const statueY = 30
+    ctx.save()
+    ctx.translate(statueX, statueY)
+    ctx.scale(2, 2)
+    this.atlas.draw(ctx, 'libertyNear', 0, 0)
+    ctx.restore()
+    // Her, standing in the crown, waving.
+    const wave = Math.floor(this.frame / 12) % 2 === 0 ? 0 : -2
+    ctx.save()
+    ctx.translate(statueX + 24, statueY - 2 + wave)
+    ctx.scale(2, 2)
+    this.atlas.draw(ctx, 'princess', 0, 0)
+    ctx.restore()
+    ctx.restore()
+    // The seam between the lenses, and the words.
+    ctx.fillStyle = '#12131a'
+    ctx.fillRect(SCREEN_W / 2 - 1, 0, 2, 22)
+    ctx.fillRect(SCREEN_W / 2 - 1, SCREEN_H - 22, 2, 22)
+    ctx.fillStyle = 'rgba(8,10,16,0.85)'
+    ctx.fillRect(0, SCREEN_H - 20, SCREEN_W, 20)
+    ctx.fillStyle = '#f6f3e7'
+    ctx.font = '7px monospace'
+    ctx.textBaseline = 'top'
+    ctx.fillText('Someone in the crown. Waving. A crown on her too.', 8, SCREEN_H - 16)
+    ctx.fillText('She is stuck up there. Any key.', 8, SCREEN_H - 8)
+  }
+
+  /** Walking up to her is the end of it. Once. */
+  private checkPrincess(): void {
+    if (this.save.world.princessSaved) return
+    const centre = this.player.centre()
+    for (const prop of this.visibleProps()) {
+      if (!prop.princess || !this.inEarshot(prop, centre)) continue
+      this.save.world.princessSaved = true
+      this.burstHearts(prop.col * TILE + 8, prop.row * TILE + 8, 30)
+      sfx.play('bossFanfare')
+      this.callbacks.onChange()
+      this.callbacks.onPrincessSaved()
+      return
+    }
+  }
+
+  // ------------------------------------------------------------ the roof
+
+  private startSniper(): void {
+    this.sniper = beginSniper()
+    this.sniperHold = 0
+    this.input.clearTarget()
+    sfx.play('reload')
+    this.showMessage('Thirty seconds. Rats pay thirty. Squirrels cost fifty. Look at the tail before you shoot.', 240)
+  }
+
+  /** The parent dashboard: straight to the roof, with the rifle, and the round begins. */
+  practiseSniper(): void {
+    this.save.inventory.sniperRifle = Math.max(1, this.save.inventory.sniperRifle ?? 0)
+    this.teleport('nyc-rooftop-a', 7, 2)
+    this.startSniper()
+    this.callbacks.onChange()
+  }
+
+  private updateSniper(state: { dx: number; dy: number; attack: boolean; useItem: boolean; help: boolean; moveTarget?: { x: number; y: number } }): void {
+    const s = this.sniper
+    if (!s) return
+    if (s.done) {
+      this.sniperHold -= 1
+      if (this.sniperHold <= 0) this.sniper = undefined
+      return
+    }
+    const aim = state.moveTarget
+    if (aim) this.input.clearTarget()
+    const before = s
+    const next = tickSniper(s, { dx: state.dx, dy: state.dy, fire: state.attack || state.useItem, ...(aim ? { aimAt: aim } : {}) }, this.rng)
+    if (next.shots > before.shots) sfx.play('gunshot')
+    if (next.rats > before.rats) sfx.play('rupee')
+    if (next.squirrels > before.squirrels) sfx.play('wrong')
+    if (state.help) next.done = true
+    this.sniper = next
+    if (next.done) {
+      // The pocket takes the round as it came, and never goes below nothing.
+      this.save.player.rupees = Math.max(0, this.save.player.rupees + next.earned)
+      this.sniperHold = 150
+      sfx.play(next.earned > 0 ? 'fanfare' : 'wrong')
+      this.showMessage(sniperSummary(next), 260)
+      this.callbacks.onChange()
+    }
+  }
+
+  /** The park through the scope: grass, bushes, whatever is poking up out of them, and the crosshair. */
+  private drawSniper(ctx: CanvasRenderingContext2D): void {
+    const s = this.sniper
+    if (!s) return
+    // The park.
+    ctx.fillStyle = '#4f9f47'
+    ctx.fillRect(0, 0, SCREEN_W, SCREEN_H)
+    ctx.fillStyle = '#43903d'
+    for (let y = 0; y < SCREEN_H; y += 24) ctx.fillRect(0, y, SCREEN_W, 12)
+    ctx.fillStyle = '#a49a94'
+    ctx.fillRect(0, 70, SCREEN_W, 10)
+    ctx.fillRect(120, 0, 10, SCREEN_H)
+    // The critters come up behind their bushes, so the bush is drawn over them.
+    for (const c of s.critters) {
+      const rise = critterRise(c)
+      const sprite: SpriteName = c.shot
+        ? c.kind === 'rat' ? 'ratSkeleton' : 'squirrelB'
+        : c.kind === 'rat'
+          ? Math.floor(this.frame / 8) % 2 === 0 ? 'ratA' : 'ratB'
+          : Math.floor(this.frame / 8) % 2 === 0 ? 'squirrelA' : 'squirrelB'
+      const top = c.y - 30 * rise
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(c.x - 18, c.y - 34, 36, 34)
+      ctx.clip()
+      if (c.shot) ctx.globalAlpha = 0.8
+      ctx.translate(c.x - 16, top)
+      ctx.scale(2, 2)
+      this.atlas.draw(ctx, sprite, 0, 0)
+      ctx.restore()
+    }
+    for (const spot of SPOTS) {
+      ctx.fillStyle = '#1d5824'
+      ctx.beginPath()
+      ctx.ellipse(spot.x, spot.y + 4, 19, 11, 0, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = '#2e7a3a'
+      ctx.beginPath()
+      ctx.ellipse(spot.x - 3, spot.y + 1, 13, 7, 0, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    // The score, floating up off a hit.
+    if (s.lastHit) {
+      ctx.fillStyle = s.lastHit.text.startsWith('+') ? '#f6f3e7' : '#ff6a3d'
+      ctx.font = 'bold 8px monospace'
+      ctx.textBaseline = 'top'
+      ctx.fillText(s.lastHit.text, s.lastHit.x - 10, s.lastHit.y - 40 - (40 - s.lastHit.frames) / 3)
+    }
+    // The scope: everything outside the glass is black.
+    const { x, y } = s.crosshair
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(0, 0, SCREEN_W, SCREEN_H)
+    ctx.arc(x, y, 64, 0, Math.PI * 2)
+    ctx.fill('evenodd')
+    ctx.fillStyle = 'rgba(0,0,0,0.9)'
+    ctx.fill('evenodd')
+    ctx.restore()
+    ctx.strokeStyle = 'rgba(18,19,26,0.9)'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(x - 64, y + 0.5)
+    ctx.lineTo(x + 64, y + 0.5)
+    ctx.moveTo(x + 0.5, y - 64)
+    ctx.lineTo(x + 0.5, y + 64)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.arc(x, y, 64, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.fillStyle = '#d5433f'
+    ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2)
+    if (s.flash > 0) {
+      ctx.fillStyle = `rgba(255,255,255,${0.25 * s.flash})`
+      ctx.fillRect(0, 0, SCREEN_W, SCREEN_H)
+    }
+    // The strip along the top.
+    ctx.fillStyle = 'rgba(8,10,16,0.9)'
+    ctx.fillRect(0, 0, SCREEN_W, 12)
+    ctx.fillStyle = '#f6f3e7'
+    ctx.font = '7px monospace'
+    ctx.textBaseline = 'top'
+    const seconds = Math.ceil(s.frames / 60)
+    const earned = s.earned >= 0 ? `+$${s.earned}` : `-$${-s.earned}`
+    ctx.fillText(s.done ? 'TIME' : `0:${String(seconds).padStart(2, '0')}`, 6, 3)
+    ctx.fillText(`RATS ${s.rats}   SQUIRRELS ${s.squirrels}   ${earned}`, 60, 3)
+    if (s.cooldown > 0 && !s.done) {
+      ctx.fillStyle = '#e8bb2c'
+      ctx.fillText('BOLT', SCREEN_W - 30, 3)
+    }
+  }
+
   /** A guardian, at full size, tinted pink by how much love it has had. */
   private drawGuardian(ctx: CanvasRenderingContext2D, enemy: Enemy): void {
     const sprite = enemy.sprite
@@ -4130,6 +4640,14 @@ export class World {
       attackTimer: this.player.attackTimer,
       hammerBlows: this.hammerBlows,
       taserZaps: this.taserZaps,
+      sinceArrival: this.sinceArrival,
+      awake: [...this.awake],
+      lifting: this.lifting ? { frames: this.lifting.frames, to: this.lifting.portal.to } : undefined,
+      viewing: this.viewing,
+      sniper: this.sniper ? { frames: this.sniper.frames, rats: this.sniper.rats, squirrels: this.sniper.squirrels, earned: this.sniper.earned, done: this.sniper.done, critters: this.sniper.critters.map((c) => ({ kind: c.kind, x: c.x, y: c.y, shot: c.shot })), crosshair: { ...this.sniper.crosshair } } : undefined,
+      ferrying: this.beaming?.ferry === true,
+      ticket: this.save.inventory.ferryTicket ?? 0,
+      princessSaved: this.save.world.princessSaved === true,
       ratsFried: this.ratsFried,
       fried: this.fried.length,
       shocked: this.enemies.filter((e) => e.shocked > 0).length,

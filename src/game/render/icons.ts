@@ -85,6 +85,10 @@ export function itemSprite(id: ItemId, level: Level = 1): SpriteName {
       return 'loveBomb'
     case 'animalFood':
       return 'animalFood'
+    case 'ferryTicket':
+      return 'ticketIcon'
+    case 'sniperRifle':
+      return 'sniperIcon'
     case 'potion':
       return 'potion'
     default:
@@ -103,6 +107,10 @@ function cityItemSprite(id: ItemId): SpriteName | undefined {
       return 'knifeIcon'
     case 'taser':
       return 'taserIcon'
+    case 'ferryTicket':
+      return 'ticketIcon'
+    case 'sniperRifle':
+      return 'sniperIcon'
     case 'metalSword':
       return 'boxHammer'
     case 'bronzeSword':

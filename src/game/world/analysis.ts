@@ -204,6 +204,8 @@ export function unmarkedDoors(screens: readonly Screen[] = SCREENS): string[] {
       if (portal.teleporter) continue
       // The purple car is drawn as a car, by the prop standing on its tile.
       if (portal.car) continue
+      // The ferry is drawn as the boat beside its gangway.
+      if (portal.ferry) continue
       if (isInterior && portal.row >= SCREEN_ROWS - 2) continue
       problems.push(
         `${screen.id}: the door to "${portal.to}" at ${portal.col},${portal.row} sits on plain "${char}" and draws nothing`,
