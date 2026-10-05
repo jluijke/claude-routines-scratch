@@ -4,6 +4,7 @@
  */
 import type { GradeResult, Question, QuestionType, Response, WordBank } from '../types'
 import type { SpeechEngine } from '../../core/audio/speech'
+import type { Support } from '../engine'
 
 export interface RenderContext {
   question: Question
@@ -19,6 +20,8 @@ export interface RenderContext {
    * and differs the next time he meets the same question.
    */
   seed?: string
+  /** The help this question comes with while its pattern is being learned. */
+  support?: Support
 }
 
 export interface QuestionView {

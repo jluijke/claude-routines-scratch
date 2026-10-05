@@ -34,8 +34,8 @@ export const exercise40: Exercise = {
     build('e40-3', 'mixed-mastery', ['un', 'believe', 'able'], 'unbelievable', { difficulty: 3 }),
     aud('e40-4', 'mixed-mastery', 'neighbour', { difficulty: 3 }),
 
-    proof('e40-5', 'mixed-mastery', 'Their neighbor was very unhelpfull.', [
-      ['neighbor', 'neighbour'],
+    proof('e40-5', 'mixed-mastery', 'Their nieghbour was very unhelpfull.', [
+      ['nieghbour', 'neighbour'],
       ['unhelpfull', 'unhelpful'],
     ], { difficulty: 3 }),
 

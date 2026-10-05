@@ -36,15 +36,15 @@ export const exercise37: Exercise = {
     mistake('e37-4', 'proofreading', 'He was the tallist boy in the class.', 'tallist', 'tallest'),
 
     novel(
-      proof('e37-5', 'proofreading', 'My favorite color is the brightest yellow.', [
-        ['favorite', 'favourite'],
-        ['color', 'colour'],
+      proof('e37-5', 'proofreading', 'My favrite colour is the brightest yelow.', [
+        ['favrite', 'favourite'],
+        ['yelow', 'yellow'],
       ], { difficulty: 2 }),
     ),
   ],
   ruleReveal: {
     title: 'Proofreader',
     text: 'Good spellers reread their own writing and stop at any word they are not sure of. Split it, find its base word, and check it against a pattern you know.',
-    examples: ['runing → running (double the n)', 'babys → babies (y becomes ies)', 'color → colour (Australian)'],
+    examples: ['runing → running (double the n)', 'babys → babies (y becomes ies)', 'favrite → favourite (keep the u)'],
   },
 }

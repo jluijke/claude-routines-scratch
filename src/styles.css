@@ -183,6 +183,36 @@ textarea.answer { width: 100%; line-height: 1.5; resize: vertical; }
 
 /* hints */
 .hint-box { margin-top: 1rem; }
+
+/* the pattern and its words, while it is still being learned */
+.support {
+  background: #eef5fb;
+  border: 2px solid #c3d9ec;
+  border-left: 6px solid #2c6fd4;
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  margin: 0 0 1rem;
+}
+.support p { margin: 0.2rem 0; line-height: 1.5; }
+.support-label {
+  display: inline-block;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #2c6fd4;
+  margin-right: 0.5rem;
+  min-width: 7.5rem;
+}
+.support-word {
+  font-family: var(--font-word);
+  font-size: 1.15rem;
+  background: #fff;
+  border: 1px solid #c3d9ec;
+  border-radius: 6px;
+  padding: 0.1rem 0.6rem;
+  margin-right: 0.5rem;
+}
+.q-finish .masked-word .letter:not(.blank) { color: var(--brand); }
 .hint {
   background: #fdf6e3;
   border: 2px solid #e8d9a8;

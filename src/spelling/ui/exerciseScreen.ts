@@ -11,6 +11,7 @@ import type { Hint } from '../hints'
 import { promptFor, renderQuestion, type QuestionView } from '../questions'
 import { button, clear, el } from './dom'
 import { showRuleReveal } from './ruleReveal'
+import type { Support } from '../engine'
 import type { SpeechEngine } from '../../core/audio/speech'
 import { sfx } from '../../core/audio/sfx'
 
@@ -65,6 +66,7 @@ export function mountExerciseScreen(
   const title = el('h1', { class: 'exercise-title' }, [engine.exercise.title])
   const progressDots = el('div', { class: 'progress-dots' })
   const promptLine = el('p', { class: 'prompt' })
+  const supportCard = el('div', { class: 'support', hidden: true })
   const activity = el('div', { class: 'activity' })
   const hintBox = el('div', { class: 'hint-box', hidden: true })
   const feedback = el('p', { class: 'feedback', role: 'status', 'aria-live': 'polite' })
@@ -156,6 +158,7 @@ export function mountExerciseScreen(
       progressDots,
     ]),
     promptLine,
+    supportCard,
     activity,
     hintBox,
     feedback,
@@ -178,6 +181,8 @@ export function mountExerciseScreen(
     feedback.className = 'feedback'
 
     promptLine.textContent = promptFor(question)
+    const support = engine.support()
+    renderSupport(support)
 
     // Publish what is actually on screen. The engine's pointer moves as soon as
     // an answer is accepted, but the child still sees the previous question for
@@ -191,6 +196,7 @@ export function mountExerciseScreen(
       bank,
       speech,
       seed: runSeed,
+      ...(support ? { support } : {}),
       submit: check,
       changed: () => {
         feedback.textContent = ''
@@ -213,6 +219,28 @@ export function mountExerciseScreen(
     if (hasAudio) window.setTimeout(() => view?.replay?.(false), 250)
     // Focus goes to the answer field so a child can keep typing (spec §8).
     window.setTimeout(() => view?.focus(), 60)
+  }
+
+  /**
+   * The rule and a few words like it, over the question, while the pattern
+   * is still being learned. Not a hint: nothing here costs him anything, and
+   * none of it is the word he is being asked for.
+   */
+  function renderSupport(support: Support | undefined): void {
+    clear(supportCard)
+    supportCard.hidden = !support
+    if (!support) return
+    supportCard.append(
+      el('p', { class: 'support-rule' }, [el('span', { class: 'support-label' }, ['The pattern']), ' ', support.rule]),
+    )
+    if (support.siblings.length > 0) {
+      supportCard.append(
+        el('p', { class: 'support-words' }, [
+          el('span', { class: 'support-label' }, ['Words like it']),
+          ...support.siblings.map((w) => el('span', { class: 'support-word' }, [w])),
+        ]),
+      )
+    }
   }
 
   function renderDots(): void {

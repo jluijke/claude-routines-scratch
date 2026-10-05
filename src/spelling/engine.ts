@@ -21,6 +21,8 @@ import type {
 } from './types'
 import { grade } from './grading'
 import { buildHint, maxHintLevel, type Hint } from './hints'
+import { isMastered } from './mastery'
+import { patternSpanOf, syllablesOf } from './wordbank'
 import { focusWord } from './hints'
 import { recordAttempt, type MasteryStore } from './mastery'
 import { buildQueue } from './scheduler'
@@ -56,6 +58,38 @@ export interface EngineProgress {
 /** How many times we will re-test one concept before easing off. */
 const MAX_REMEDIATIONS_PER_CONCEPT = 4
 
+/**
+ * The help a question comes with while its pattern is still being learned.
+ *
+ * Three things, none of them a hint in the ladder's sense: the rule in plain
+ * words, a few words that use the same pattern, and — for a "hear it and
+ * type it" question — the start of the word written in, so he finishes it
+ * rather than conjuring the whole thing. The rule and the words stay for the
+ * whole of the exercise that teaches a pattern, and on review until it is
+ * mastered. The start of the word is scaffolding: it is there every other
+ * time until he has typed a whole word on the pattern unaided, and again
+ * after a wrong answer, and an answer given with it does not count as
+ * proving the pattern, so the next question on it comes plain and gives him
+ * the chance to.
+ */
+export interface Support {
+  /** The pattern, said simply. */
+  rule: string
+  /** Up to three words that spell the same way, never the one being asked. */
+  siblings: string[]
+  /** The opening letters, shown and not typed over. Only on audio questions. */
+  stem?: string
+}
+
+/** How many sibling words a support card shows. */
+export const SIBLING_COUNT = 3
+
+interface RunState {
+  lastWrong: boolean
+  lastStemmed: boolean
+  typedUnaided: boolean
+}
+
 export class ExerciseEngine {
   readonly exercise: Exercise
   private readonly concepts: ReadonlyMap<ConceptId, Concept>
@@ -82,6 +116,15 @@ export class ExerciseEngine {
   private readonly usedWords = new Set<string>()
   private readonly remediationCount = new Map<ConceptId, number>()
   private tailFilled = false
+  /**
+   * Per concept, this run: whether the last first-go answer on it was wrong,
+   * whether the last hear-and-type question on it came with its start written
+   * in, and whether he has yet typed a whole word on it unaided. Between them
+   * these decide when the start of a word is written in for him.
+   */
+  private readonly runState = new Map<ConceptId, RunState>()
+  /** The support worked out for the question at this index, so it holds still while he looks at it. */
+  private supportCache: { index: number; support: Support | undefined } | undefined
 
   readonly startedAt = Date.now()
 
@@ -104,6 +147,69 @@ export class ExerciseEngine {
 
   current(): Question | undefined {
     return this.queue[this.index]
+  }
+
+  /** The help the current question comes with, or none once its pattern is mastered. */
+  support(): Support | undefined {
+    if (this.supportCache?.index === this.index) return this.supportCache.support
+    const support = this.buildSupport()
+    this.supportCache = { index: this.index, support }
+    return support
+  }
+
+  private buildSupport(): Support | undefined {
+    const question = this.current()
+    if (!question) return undefined
+    // A pattern this exercise teaches is supported all the way through it; a
+    // pattern that only comes up for review is supported until it is mastered.
+    const taught = this.exercise.concepts.includes(question.concept)
+    if (!taught && isMastered(this.mastery, question.concept)) return undefined
+    const concept = this.concepts.get(question.concept)
+    if (!concept) return undefined
+
+    const target = focusWord(question, this.bank)
+    const siblings = this.siblingWords(concept, target)
+    // The start is written in after a miss, and otherwise every other time
+    // until he has typed one whole word on the pattern unaided.
+    const state = this.runState.get(question.concept)
+    const scaffold =
+      question.type === 'audioDictation' &&
+      (state?.lastWrong === true || (!state?.typedUnaided && !state?.lastStemmed))
+    const stem = scaffold ? stemOf(question.word, this.bank) : undefined
+    return { rule: concept.patternReminder, siblings, ...(stem ? { stem } : {}) }
+  }
+
+  /**
+   * Words that spell the same way as the one being asked: drawn from the
+   * concept's own questions, those sharing its tricky letters first, never
+   * the word itself, and in an order fixed by the question so the card holds
+   * still.
+   */
+  private siblingWords(concept: Concept, target: string): string[] {
+    const pool = [
+      ...concept.reviewPool,
+      ...this.exercise.activities.filter((q) => q.concept === concept.id),
+    ]
+    const seen = new Set<string>([target.toLowerCase()])
+    const words: string[] = []
+    for (const q of pool) {
+      for (const word of wordsOf(q)) {
+        const key = word.toLowerCase()
+        if (seen.has(key) || !/^[a-z']+$/i.test(word)) continue
+        seen.add(key)
+        words.push(word)
+      }
+    }
+    const [s, e] = patternSpanOf(target, this.bank)
+    const letters = target.slice(s, e).toLowerCase()
+    const same = (w: string): boolean => {
+      const [a, b] = patternSpanOf(w, this.bank)
+      return w.slice(a, b).toLowerCase() === letters
+    }
+    const rng = new Rng(`siblings-${this.exercise.id}-${target}`)
+    const alike = rng.shuffle(words.filter(same))
+    const rest = rng.shuffle(words.filter((w) => !same(w)))
+    return [...alike, ...rest].slice(0, SIBLING_COUNT)
   }
 
   progress(): EngineProgress {
@@ -160,12 +266,31 @@ export class ExerciseEngine {
     this.attempts += 1
     const result = grade(question, response, this.bank)
 
-    const unaided = firstAttempt && this.hintLevel === 0
+    // The start of the word written in is help, and an answer given with it
+    // is not an unaided one: it moves him on, and the next question on the
+    // pattern comes plain so he can prove it.
+    const stemmed = this.support()?.stem !== undefined
+    const unaided = firstAttempt && this.hintLevel === 0 && !stemmed
+    // A corrected retry is still a miss as far as the next question is
+    // concerned: only a first-go answer says whether the stem is needed again.
+    const state = this.runState.get(question.concept) ?? {
+      lastWrong: false,
+      lastStemmed: false,
+      typedUnaided: false,
+    }
+    if (firstAttempt) {
+      state.lastWrong = !result.correct
+      if (question.type === 'audioDictation') {
+        state.lastStemmed = stemmed
+        if (result.correct && unaided) state.typedUnaided = true
+      }
+    }
+    this.runState.set(question.concept, state)
     recordAttempt(this.mastery, {
       concept: question.concept,
       correct: result.correct,
       firstAttempt,
-      hintsUsed: firstAttempt ? this.hintLevel : 0,
+      hintsUsed: firstAttempt ? Math.max(this.hintLevel, stemmed ? 1 : 0) : 0,
       word: result.correct ? undefined : focusWord(question, this.bank),
     })
 
@@ -303,4 +428,43 @@ export class ExerciseEngine {
 /** Strips the suffixes the engine adds when it reuses a pool question. */
 function baseId(id: string): string {
   return id.split(/[@#]/)[0] as string
+}
+
+/** Every word a question asks the child to spell, whatever its shape. */
+export function wordsOf(q: Question): string[] {
+  switch (q.type) {
+    case 'audioDictation':
+    case 'missingLetters':
+    case 'missingPattern':
+    case 'visualMemory':
+    case 'syllableSplit':
+      return [q.word]
+    case 'cloze':
+    case 'wordBuild':
+      return [q.answer]
+    case 'wordFamily':
+      return q.targets.map((t) => t.answer)
+    case 'findMistake':
+      return [q.right]
+    case 'proofread':
+      return q.errors.map((e) => e.right)
+    case 'wordSort':
+      return q.groups.flatMap((g) => g.words)
+    case 'sentenceDictation':
+      return q.targetWord ? [q.targetWord] : []
+  }
+}
+
+/**
+ * The opening of a word that is written in for him when a pattern is new:
+ * its first beat when it has more than one ("mit" of mitten), otherwise the
+ * letters before the tricky part. Always shows at least one letter and
+ * always leaves at least two to spell, so there is still a word to finish.
+ */
+export function stemOf(word: string, bank: WordBank): string {
+  if (word.length < 3) return ''
+  const syllables = syllablesOf(word, bank)
+  let length = syllables.length > 1 ? (syllables[0] as string).length : patternSpanOf(word, bank)[0]
+  length = Math.max(1, Math.min(length, word.length - 2))
+  return word.slice(0, length)
 }

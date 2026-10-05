@@ -237,9 +237,15 @@ const level5Words: Spec[] = [
   '[geo]-gra-phy', '[micro]-scope', '[micro]-phone', '[auto]-graph', '[bi]-cy-cle',
   '[aqua]-ri-um', '[trans]-port', '[port]-a-ble', '[dict]-ion-a-ry',
   // Australian spellings
-  'col-[our]', 'fav-our-ite', 'hon-[our]', 'har-b[our]', 'neigh-b[our]', 'fla-v[our]',
-  'cen-t[re]', 'me-t[re]', 'thea-t[re]', 'lit-[re]', 'fi-b[re]',
-  're-a-li[se]', 'or-gan-i[se]', 'rec-og-ni[se]', 'a-pol-o-gi[se]', 'prac-ti[se]',
+  // Each carries a confusion of its own, so the level-5 hint has a rival to
+  // offer that is a child's slip and not the spelling from somewhere else.
+  ['col-[our]', { confusions: ['culour'] }], ['fav-our-ite', { confusions: ['favrite'] }],
+  ['hon-[our]', { confusions: ['onour'] }], ['har-b[our]', { confusions: ['harbur'] }],
+  ['neigh-b[our]', { confusions: ['nieghbour'] }], ['fla-v[our]', { confusions: ['flavur'] }],
+  ['cen-t[re]', { confusions: ['centure'] }], ['me-t[re]', { confusions: ['meture'] }],
+  ['thea-t[re]', { confusions: ['theatur'] }], ['lit-[re]', { confusions: ['litur'] }], ['fi-b[re]', { confusions: ['fibur'] }],
+  ['re-a-li[se]', { confusions: ['realice'] }], ['or-gan-i[se]', { confusions: ['organice'] }],
+  ['rec-og-ni[se]', { confusions: ['recognice'] }], ['a-pol-o-gi[se]', { confusions: ['apologice'] }], ['prac-ti[se]', { confusions: ['practice'] }],
   'trav-el-[led]', 'trav-el-[ling]', 'jew-el-[lery]',
   // sentences worth dictating
   'weath-er', 'be-cause', 'friend', 'thought', 'through', 'en-ough', 'a-noth-er',

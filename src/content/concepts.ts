@@ -774,8 +774,11 @@ const CONCEPT_LIST: Concept[] = [
     id: 'australian-spelling',
     label: 'Australian spellings',
     patternReminder:
-      'Australian English keeps the u in "our" words and puts the r before the e in "tre" words. Verbs usually end in "ise", not "ize".',
-    alternatives: ['our', 'or', 're', 'er', 'ise', 'ize'],
+      'Australian English keeps the u in "our" words (colour, harbour), puts the r before the e in "tre" words (centre, metre), and ends its verbs in "ise" (realise).',
+    // No rival spellings offered for these: the rival would be the one he
+    // sees online, and a rival shown is a rival learned. The words carry
+    // their own confusions in the bank instead.
+    alternatives: [],
     maskFrom: 'lastPart',
     introducedIn: 36,
     reviewPool: [
@@ -785,7 +788,7 @@ const CONCEPT_LIST: Concept[] = [
       aud('au-r4', 'australian-spelling', 'theatre'),
       aud('au-r5', 'australian-spelling', 'litre'),
       aud('au-r6', 'australian-spelling', 'honour'),
-      mistake('au-r9', 'australian-spelling', 'What is your favorite color?', 'favorite', 'favourite'),
+      mistake('au-r9', 'australian-spelling', 'What is your favrite colour?', 'favrite', 'favourite'),
       aud('au-r10', 'australian-spelling', 'realise', { difficulty: 2 }),
       aud('au-r11', 'australian-spelling', 'recognise', { difficulty: 3 }),
       aud('au-r12', 'australian-spelling', 'travelled', { difficulty: 2 }),
@@ -804,8 +807,8 @@ const CONCEPT_LIST: Concept[] = [
       proof('pr-r2', 'proofreading', 'The babys were sleeping quietley in there cots.', [
         ['babys', 'babies'], ['quietley', 'quietly'], ['there', 'their'],
       ]),
-      proof('pr-r3', 'proofreading', 'My favorite color is the brightest yellow.', [
-        ['favorite', 'favourite'], ['color', 'colour'],
+      proof('pr-r3', 'proofreading', 'My favrite colour is the brightest yelow.', [
+        ['favrite', 'favourite'], ['yelow', 'yellow'],
       ]),
       mistake('pr-r4', 'proofreading', 'She was very carefull with the glass.', 'carefull', 'careful'),
       mistake('pr-r5', 'proofreading', 'The bridg was closed all morning.', 'bridg', 'bridge'),
