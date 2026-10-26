@@ -1106,19 +1106,49 @@ function walkway(
   if ((col * 3 + row) % 4 === 0) ctx.fillRect(x + 6, y + 7, 3, 1)
 }
 
-/** Loose cabling, orange and yellow, spilling out of the floor. The bush. */
+/**
+ * Loose cabling, orange and yellow, spilling out of the floor. The bush.
+ *
+ * A floor plate has come off and the cables underneath have spilled out of
+ * the hole: an orange one snaking off to either side of the tile, a yellow
+ * one looping up over the plate and another trailing down. Every other tile
+ * is mirrored so a run of them does not repeat exactly.
+ */
 function cables(ctx: CanvasRenderingContext2D, x: number, y: number, col: number, row: number, p: Palette): void {
-  ctx.fillStyle = p.leafDark
-  ctx.fillRect(x + 2, y + 5, 12, 9)
-  ctx.fillStyle = p.leaf
-  ctx.fillRect(x + 3, y + 6, 10, 7)
-  ctx.fillStyle = p.leafLight
-  ctx.fillRect(x + 4, y + 7, 3, 1)
-  ctx.fillRect(x + 9, y + 9, 3, 1)
-  ctx.fillRect(x + 6, y + 11, 4, 1)
-  ctx.fillStyle = p.leafDark
-  ctx.fillRect(x + 7, y + 3, 2, 3)
-  ctx.fillRect(x + ((col + row) % 2 ? 4 : 10), y + 8, 2, 2)
+  const flip = (col + row) % 2 === 1
+  const run = (dx: number, dy: number, w: number, h: number, color: string): void => {
+    ctx.fillStyle = color
+    ctx.fillRect(x + (flip ? TILE - dx - w : dx), y + dy, w, h)
+  }
+  // The hole where the floor plate was, black as space.
+  run(4, 5, 8, 7, p.water)
+  run(3, 5, 1, 7, p.leafDark)
+  run(12, 5, 1, 7, p.leafDark)
+  // A thick orange cable snaking right across the tile, so a row of these
+  // reads as one long cable along the floor.
+  const thick: [number, number, number][] = [
+    [0, 9, 3],
+    [2, 8, 2],
+    [3, 7, 3],
+    [5, 6, 4],
+    [8, 7, 2],
+    [9, 8, 3],
+    [11, 9, 3],
+    [13, 10, 3],
+  ]
+  for (const [dx, dy, w] of thick) run(dx, dy, w, 2, p.leaf)
+  run(0, 9, 3, 1, p.leafLight)
+  run(5, 6, 4, 1, p.leafLight)
+  run(13, 10, 3, 1, p.leafLight)
+  // A thinner yellow cable crossing it, up out of the hole and trailing down.
+  run(6, 2, 1, 3, p.leafLight)
+  run(7, 4, 1, 2, p.leafLight)
+  run(9, 10, 1, 2, p.leafLight)
+  run(10, 12, 1, 2, p.leafLight)
+  run(11, 14, 1, 2, p.leafLight)
+  // Its bare end, and a spark off the tangle.
+  run(6, 1, 1, 1, p.leafDark)
+  run(13, 5, 1, 1, p.leafLight)
 }
 
 /**
