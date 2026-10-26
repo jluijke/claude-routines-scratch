@@ -996,12 +996,44 @@ tr.mastery-unseen { opacity: 0.55; }
   to { opacity: 1; transform: none; }
 }
 
+/* The ring taking its toll: his hearts in a row, going dark one at a time. */
+.story-hearts { display: none; justify-content: center; gap: 6px; margin: 0 0 1.1rem; min-height: 1.6rem; }
+.story-hearts.on { display: flex; }
+.story-heart {
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--heart);
+  text-shadow: 0 0 8px rgba(224, 62, 82, 0.6);
+  transition: color 400ms ease, text-shadow 400ms ease, transform 400ms ease, opacity 400ms ease;
+}
+.story-heart.gone {
+  color: var(--hud-edge);
+  text-shadow: none;
+  transform: translateY(-10px) scale(0.7);
+  opacity: 0.45;
+}
+/* The time warp itself: a teal glow behind the panel, breathing while the hearts go. */
+.story-panel { position: relative; }
+.overlay-story::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(87, 210, 198, 0.42), rgba(87, 210, 198, 0.08) 38%, transparent 68%);
+  opacity: 0;
+  pointer-events: none;
+}
+.overlay-story.warping::before { animation: story-warp 1100ms ease-in-out infinite; }
+@keyframes story-warp {
+  0%, 100% { opacity: 0.25; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.12); }
+}
+
 /* The last guardian of a world: the sign lights up gold rather than just going up. */
 .victory-panel.final { border-color: var(--hud-gold); box-shadow: 0 0 0 3px var(--hud-ink), 0 0 40px rgba(230, 180, 34, 0.45), 0 18px 50px rgba(0, 0, 0, 0.75); }
 .victory-panel.final .victory-banner { color: var(--hud-gold); font-size: 1.1rem; }
 
 @media (prefers-reduced-motion: reduce) {
-  .story-panel, .story-text-in { animation: none; }
+  .story-panel, .story-text-in, .overlay-story.warping::before { animation: none; }
 }
 
 /* The train's direction prompt: a button a way, stacked so both read whole. */

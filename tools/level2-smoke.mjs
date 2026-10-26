@@ -102,7 +102,7 @@ check('with no rupees', s.player.rupees === 0)
 check('and no sword', s.inventory.goldenSword === undefined && s.player.equippedSword === undefined)
 check('but all his hearts', s.player.hearts === s.player.maxHearts && s.player.maxHearts >= 9)
 check('and his animal', s.world.pet === 'dog')
-check('with his old gear put aside', s.stash?.player.rupees === landRupees && s.stash?.inventory.goldenSword === 1)
+check('with his old gear put aside', s.stashes?.[1]?.player.rupees === landRupees && s.stashes?.[1]?.inventory.goldenSword === 1)
 check('the land is not counted as done again on the ship', w.enemies === 0)
 
 // The saber on the floor.
@@ -298,7 +298,7 @@ s = await state()
 w = await world()
 check('the parent can send him home', s.level === 1 && w.screen === 'village-square')
 check('and everything he left is back', s.player.rupees === landRupees && s.inventory.goldenSword === 1)
-check('and the ship gear is put aside in turn', s.stash?.inventory.goldenSword === 1 && s.stash?.inventory.map === 1)
+check('and the ship gear is put aside in turn', s.stashes?.[2]?.inventory.goldenSword === 1 && s.stashes?.[2]?.inventory.map === 1)
 check('the land still has its bosses beaten', s.world.defeatedBosses.includes('d4-boss-room'))
 
 // And straight back to the ship, with the same gear as when he left it.

@@ -24,7 +24,7 @@ import { showGatePrompt, showNotice, showRidePrompt } from './game/ui/prompt'
 import { showBossVictory } from './game/ui/victory'
 import { showDiscovery } from './game/ui/discovery'
 import { TO_THE_PRESENT, CITY_SAVED, PRINCESS_SAVED, showStory, TO_THE_FUTURE } from './game/ui/story'
-import { switchLevel } from './game/levels'
+import { switchLevel, warpToll } from './game/levels'
 import { flavourFor } from './game/flavour'
 import { mapLayout } from './game/render/map'
 import { showShop, type ShopKind } from './game/ui/shop'
@@ -250,7 +250,10 @@ function enterWorld(): void {
           // The last mech is where the story turns again: the thing that sent the
           // robots passed through the present on its way, and it is still there.
           if (allDone && state.level === 2) {
-            showStory(root, { ...TO_THE_PRESENT, onContinue: () => enterLevel(3) })
+            // The ring charges for the way back: the hearts drain on the page
+            // where he steps into it, down to what the present lets through.
+            const toll = { from: state.player.maxHearts, to: warpToll(state.player.maxHearts) }
+            showStory(root, { ...TO_THE_PRESENT, toll, onContinue: () => enterLevel(3) })
             return
           }
           if (allDone && state.level === 3) {

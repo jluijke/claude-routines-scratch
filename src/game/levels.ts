@@ -38,27 +38,44 @@ function freshKit(level: Level, hearts: number, maxHearts: number): Kit {
 }
 
 /**
- * Moves him to the other world.
+ * The most hearts the ring lets through on the way back to the present. Going
+ * forward costs nothing; coming back, the present pulls at a traveller, and
+ * the crossing is paid for in life. A fresh quest starts with three, so this
+ * is one more than that and a long way down from a chest of containers.
+ */
+export const WARP_HEARTS = 4
+
+/** What a traveller with this many hearts arrives in the present with. */
+export function warpToll(maxHearts: number): number {
+  return Math.min(maxHearts, WARP_HEARTS)
+}
+
+/**
+ * Moves him to another world.
  *
- * His current gear goes into the stash and the stash — or a fresh start, the
- * first time — comes out. Nothing keyed by screen or barrier is touched:
- * the two worlds have no ids in common, so opened doors, burned trees and
- * fallen guardians all keep. Anything that belongs to the screen he is standing
- * on (a sack of food, a potion in effect, the suit) is cleared, because he is
- * no longer standing on it.
+ * His current gear goes into that world's stash and the stash of the world he
+ * is going to — or a fresh start, the first time — comes out. Nothing keyed
+ * by screen or barrier is touched: the worlds have no ids in common, so
+ * opened doors, burned trees and fallen guardians all keep. Anything that
+ * belongs to the screen he is standing on (a sack of food, a potion in
+ * effect, the suit) is cleared, because he is no longer standing on it.
  */
 export function switchLevel(save: SaveData, level: Level): void {
   if (save.level === level) return
   const leaving: Kit = { player: save.player, inventory: save.inventory }
-  const arriving = save.stash ?? freshKit(level, save.player.hearts, save.player.maxHearts)
-  save.stash = leaving
+  const arriving = save.stashes[level] ?? freshKit(level, save.player.hearts, save.player.maxHearts)
+  save.stashes[save.level] = leaving
+  delete save.stashes[level]
   save.level = level
+  // Life is his, not the world's: the container he earned in one carries to
+  // the other, and he arrives whole — except into the present, where the
+  // ring takes its toll on the way.
+  const carried = Math.max(arriving.player.maxHearts, leaving.player.maxHearts)
+  const maxHearts = level === 3 ? warpToll(carried) : carried
   save.player = {
     ...arriving.player,
-    // Life is his, not the world's: the container he earned in one carries to
-    // the other, and he arrives whole.
-    maxHearts: Math.max(arriving.player.maxHearts, leaving.player.maxHearts),
-    hearts: Math.max(arriving.player.maxHearts, leaving.player.maxHearts),
+    maxHearts,
+    hearts: maxHearts,
     // Always at the beginning of the world he is arriving in, never wherever
     // he happened to be standing when he last left it: the machine has one
     // end in the village and one on the bridge.

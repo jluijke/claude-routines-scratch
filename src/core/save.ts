@@ -8,7 +8,7 @@ import type { PetKind } from '../game/pets'
 import { emptyMasteryStore, type MasteryStore } from '../spelling/mastery'
 
 const STORAGE_KEY = 'zsq.save'
-export const SAVE_VERSION = 7
+export const SAVE_VERSION = 8
 
 /** The three worlds: the land, the sky-ship a thousand years on, and the city now. */
 export type Level = 1 | 2 | 3
@@ -30,10 +30,11 @@ export interface SaveData {
   /** Which world he is in. Everything below `player` is for that world. */
   level: Level
   /**
-   * The other level's gear and purse, put aside while he is away from it, so
-   * a parent can send him back and forth without anything being lost.
+   * The other levels' gear and purses, put aside while he is away from them
+   * and keyed by the level each belongs to, so a parent can send him back and
+   * forth between all three worlds without anything being lost.
    */
-  stash?: Kit
+  stashes: Partial<Record<Level, Kit>>
   player: {
     hearts: number
     maxHearts: number
@@ -128,6 +129,7 @@ export function newSave(): SaveData {
     createdAt: now,
     updatedAt: now,
     level: 1,
+    stashes: {},
     player: {
       hearts: 3,
       maxHearts: 3,
@@ -233,6 +235,20 @@ const MIGRATIONS: Record<number, Migration> = {
     data['world'] = world
     return data
   },
+
+  // 7 -> 8: a third world, and with it one stash per world instead of one in
+  // all. The old single stash was whichever world he was not in: the ship's
+  // kit for a save in the land, the land's for a save on the ship. A save
+  // already in the city had been handed the land's kit on arrival, so what it
+  // put aside was the ship's.
+  7: (data) => {
+    const stash = data['stash'] as Kit | undefined
+    delete data['stash']
+    const stashes: Partial<Record<Level, Kit>> = {}
+    if (stash) stashes[data['level'] === 1 ? 2 : data['level'] === 2 ? 1 : 2] = stash
+    data['stashes'] = stashes
+    return data
+  },
 }
 
 export function migrate(raw: Record<string, unknown>): SaveData {
@@ -260,6 +276,7 @@ export function withDefaults(data: Record<string, unknown>): SaveData {
   merged.world.invisibleScreens = merged.world.invisibleScreens ?? 0
   merged.world.suitOn = merged.world.suitOn ?? false
   merged.level = merged.level === 2 ? 2 : merged.level === 3 ? 3 : 1
+  merged.stashes = { ...(data['stashes'] as object) }
   merged.world.grammarRule = merged.world.grammarRule ?? 0
   merged.world.grammarAsked = merged.world.grammarAsked ?? []
   merged.spelling = { ...base.spelling, ...(data['spelling'] as object) }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { migrate, newSave, SAVE_VERSION } from '../src/core/save'
-import { levelOfScreen, START_SCREENS, switchLevel } from '../src/game/levels'
+import { levelOfScreen, START_SCREENS, switchLevel, WARP_HEARTS, warpToll } from '../src/game/levels'
 import { screenById, SCREENS } from '../src/game/world/screens'
 import { layoutConflicts, overworldLayout } from '../src/game/world/analysis'
 import { SPRITES } from '../src/game/render/sprites'
@@ -16,7 +16,7 @@ describe('the second world in the save', () => {
     const fresh = newSave()
     expect(fresh.level).toBe(1)
     expect(fresh.world.suitOn).toBe(false)
-    expect(fresh.stash).toBeUndefined()
+    expect(fresh.stashes).toEqual({})
   })
 
   it('upgrades a version 6 save into the land', () => {
@@ -53,7 +53,7 @@ describe('the second world in the save', () => {
     expect(save.player.hearts).toBe(7)
     expect(save.world.pet).toBe('wombat')
     expect(save.world.openedGates).toContain('village-north-seal')
-    expect(save.stash?.player.rupees).toBe(420)
+    expect(save.stashes[1]?.player.rupees).toBe(420)
 
     // Earn something out there, then go home.
     save.player.rupees = 55
@@ -70,8 +70,8 @@ describe('the second world in the save', () => {
     expect(save.player.screenId).toBe(START_SCREENS[2])
     switchLevel(save, 1)
     // And the ship's gear is waiting for the next trip.
-    expect(save.stash?.player.rupees).toBe(55)
-    expect(save.stash?.inventory.metalSword).toBe(1)
+    expect(save.stashes[2]?.player.rupees).toBe(55)
+    expect(save.stashes[2]?.inventory.metalSword).toBe(1)
   })
 
   it('does nothing when asked for the world he is already in', () => {
@@ -79,7 +79,50 @@ describe('the second world in the save', () => {
     save.player.rupees = 9
     switchLevel(save, 1)
     expect(save.player.rupees).toBe(9)
-    expect(save.stash).toBeUndefined()
+    expect(save.stashes).toEqual({})
+  })
+
+  it('keeps a kit for each of the three worlds, whichever way he travels', () => {
+    const save = newSave()
+    save.player.rupees = 100
+    save.inventory.goldenSword = 1
+    switchLevel(save, 2)
+    save.player.rupees = 20
+    save.inventory.metalSword = 1
+    switchLevel(save, 3)
+    // The city is a fresh start, not the land's kit handed back by mistake.
+    expect(save.player.rupees).toBe(0)
+    expect(save.inventory.goldenSword).toBeUndefined()
+    expect(save.inventory.metalSword).toBeUndefined()
+    expect(save.stashes[1]?.player.rupees).toBe(100)
+    expect(save.stashes[2]?.player.rupees).toBe(20)
+    save.player.rupees = 7
+    save.inventory.taser = 1
+    switchLevel(save, 1)
+    expect(save.player.rupees).toBe(100)
+    expect(save.inventory.goldenSword).toBe(1)
+    expect(save.stashes[3]?.inventory.taser).toBe(1)
+    expect(save.stashes[2]?.inventory.metalSword).toBe(1)
+    switchLevel(save, 3)
+    expect(save.player.rupees).toBe(7)
+    expect(save.inventory.taser).toBe(1)
+  })
+
+  it('takes its toll on the way back to the present: four hearts, no more', () => {
+    const save = newSave()
+    save.player.maxHearts = 8
+    save.player.hearts = 8
+    switchLevel(save, 2)
+    expect(save.player.maxHearts).toBe(8)
+    switchLevel(save, 3)
+    expect(save.player.maxHearts).toBe(WARP_HEARTS)
+    expect(save.player.hearts).toBe(WARP_HEARTS)
+    // Fewer than the toll is left alone: the ring takes, it does not give.
+    const poor = newSave()
+    switchLevel(poor, 3)
+    expect(poor.player.maxHearts).toBe(3)
+    expect(warpToll(3)).toBe(3)
+    expect(warpToll(9)).toBe(4)
   })
 })
 

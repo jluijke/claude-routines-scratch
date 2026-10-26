@@ -95,6 +95,25 @@ describe('save data', () => {
 })
 
 describe('schema migration', () => {
+  it('turns the one stash of a version 7 save into a stash per world', () => {
+    const kit = { player: { rupees: 77, hearts: 3, maxHearts: 5, screenId: 'ship-bridge', x: 0, y: 0, equippedShield: 'woodenShield' }, inventory: { metalSword: 1 } }
+    const inTheLand = { ...newSave(), version: 7, level: 1, stash: kit } as unknown as Record<string, unknown>
+    delete inTheLand['stashes']
+    const land = migrate(inTheLand)
+    expect(land.version).toBe(SAVE_VERSION)
+    expect((land as unknown as Record<string, unknown>)['stash']).toBeUndefined()
+    expect(land.stashes[2]?.player.rupees).toBe(77)
+    expect(land.stashes[1]).toBeUndefined()
+
+    const onTheShip = { ...newSave(), version: 7, level: 2, stash: kit } as unknown as Record<string, unknown>
+    delete onTheShip['stashes']
+    expect(migrate(onTheShip).stashes[1]?.player.rupees).toBe(77)
+
+    const noStash = { ...newSave(), version: 7 } as unknown as Record<string, unknown>
+    delete noStash['stashes']
+    expect(migrate(noStash).stashes).toEqual({})
+  })
+
   it('upgrades a version 1 save from before bombs existed', () => {
     // A child mid-curriculum must not lose their game when the game is updated.
     const old = {

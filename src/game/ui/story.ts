@@ -7,6 +7,12 @@
  * it reads as a moment rather than as another dialog box.
  */
 import { button, el } from '../../spelling/ui/dom'
+import { sfx } from '../../core/audio/sfx'
+
+/** How long each heart takes to go, once the ring starts pulling. */
+export const TOLL_HEART_MS = 520
+/** The pause before the first heart goes, so he sees them all first. */
+export const TOLL_LEAD_MS = 900
 
 export interface StoryOptions {
   /** The small line over the title. */
@@ -16,13 +22,23 @@ export interface StoryOptions {
   paragraphs: string[]
   /** What the last button says. */
   onwardLabel: string
+  /**
+   * The page on which the crossing takes its price: his hearts are shown
+   * under the words and drain, one by one, from `toll.from` to `toll.to`, and
+   * the button waits until they have. Set by the story; the numbers come from
+   * whoever shows it, because only they know how many hearts he has.
+   */
+  tollPage?: number
+  toll?: { from: number; to: number }
   onContinue: () => void
 }
 
 export function showStory(root: HTMLElement, options: StoryOptions): () => void {
   let index = 0
+  let timer: number | undefined
 
   const text = el('p', { class: 'story-text' })
+  const hearts = el('div', { class: 'story-hearts', 'aria-hidden': 'true' })
   const dots = el('ul', { class: 'story-dots' }, options.paragraphs.map(() => el('li')))
 
   const next = button('', () => {
@@ -35,15 +51,15 @@ export function showStory(root: HTMLElement, options: StoryOptions): () => void 
     show()
   }, { class: 'btn btn-primary btn-large' })
 
-  const panel = el('div', { class: 'overlay overlay-story' }, [
-    el('section', { class: 'panel-game story-panel' }, [
-      el('p', { class: 'story-kicker' }, [options.kicker]),
-      el('h2', { class: 'story-title' }, [options.title]),
-      text,
-      dots,
-      el('div', { class: 'gate-actions' }, [next]),
-    ]),
+  const section = el('section', { class: 'panel-game story-panel' }, [
+    el('p', { class: 'story-kicker' }, [options.kicker]),
+    el('h2', { class: 'story-title' }, [options.title]),
+    text,
+    hearts,
+    dots,
+    el('div', { class: 'gate-actions' }, [next]),
   ])
+  const panel = el('div', { class: 'overlay overlay-story' }, [section])
 
   function show(): void {
     text.textContent = options.paragraphs[index] ?? ''
@@ -54,6 +70,43 @@ export function showStory(root: HTMLElement, options: StoryOptions): () => void 
     const last = index >= options.paragraphs.length - 1
     next.textContent = last ? options.onwardLabel : 'Next →'
     dots.querySelectorAll('li').forEach((dot, i) => dot.classList.toggle('done', i <= index))
+
+    hearts.replaceChildren()
+    hearts.classList.remove('on')
+    panel.classList.remove('warping')
+    if (options.toll && index === options.tollPage) drain(options.toll)
+  }
+
+  /**
+   * The ring pulling the life out of him: every heart he has, then each one
+   * past the limit going dark in turn, with the hurt sound for each, and the
+   * button held until the last has gone.
+   */
+  function drain(toll: { from: number; to: number }): void {
+    const icons = Array.from({ length: toll.from }, () => el('span', { class: 'story-heart' }, ['♥']))
+    hearts.append(...icons)
+    hearts.classList.add('on')
+    panel.classList.add('warping')
+    let left = toll.from
+    if (left <= toll.to) return
+
+    const label = next.textContent
+    next.disabled = true
+    next.textContent = 'Hold on…'
+    const tick = (): void => {
+      left -= 1
+      icons[left]?.classList.add('gone')
+      sfx.play('playerHurt')
+      if (left > toll.to) {
+        timer = window.setTimeout(tick, TOLL_HEART_MS)
+        return
+      }
+      panel.classList.remove('warping')
+      next.disabled = false
+      next.textContent = label
+      next.focus()
+    }
+    timer = window.setTimeout(tick, TOLL_LEAD_MS)
   }
 
   root.append(panel)
@@ -61,6 +114,7 @@ export function showStory(root: HTMLElement, options: StoryOptions): () => void 
   window.setTimeout(() => next.focus(), 60)
 
   function close(): void {
+    if (timer !== undefined) window.clearTimeout(timer)
     panel.remove()
   }
   return close
@@ -106,10 +160,19 @@ export const TO_THE_PRESENT: Omit<StoryOptions, 'onContinue'> = {
       'middle of every neighbourhood, and trains that run under the ground. Nobody ' +
       'there can see what is wrong. But you have been a thousand years each way. ' +
       'You will."',
-    'The ring flares. When you can see again there is a fountain in front of you, ' +
-      'pigeons at your feet, a man playing chess against nobody, and a sound you have ' +
-      'never heard before, which is a taxi, leaning on its horn.',
+    '"One more thing," the voice says, and it is quieter now. "Going back is ' +
+      'harder than going forward. The present pulls at anyone who has been away ' +
+      'from it, and the ring pays for the crossing in life. You will arrive with ' +
+      'four hearts, whatever you carry now. Spend them carefully."',
+    'You step into the ring. The hum climbs, and climbs, and the light folds in ' +
+      'around you. One by one you feel the hearts you earned out here pulled away ' +
+      'into the glow, until only four are left beating.',
+    'When you can see again there is a fountain in front of you, pigeons at your ' +
+      'feet, a man playing chess against nobody, and a sound you have never heard ' +
+      'before, which is a taxi, leaning on its horn.',
   ],
+  // The hearts drain on the page where he steps into the ring.
+  tollPage: 4,
   onwardLabel: 'Step out into the square →',
 }
 
